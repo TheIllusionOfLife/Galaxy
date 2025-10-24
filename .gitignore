@@ -1,0 +1,31 @@
+# Secrets
+.env
+*.key
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Generated files
+evolution_history.json
+logs/
+*.log
+generated_code/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Experiments
+experiments/
+results/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
