@@ -89,12 +89,16 @@ def make_parametric_surrogate(theta: List[float], attractor: List[float]) -> Cal
 def compile_external_surrogate(code: str, attractor: List[float]) -> Callable[[List[float]], List[float]]:
     """安全な名前空間でLLM生成コードを実行し、predict関数を取得する。"""
 
+    # Use same builtins as CodeValidator.SAFE_BUILTINS to maintain consistency
     allowed_builtins = {
         "abs": abs,
         "min": min,
         "max": max,
         "sum": sum,
         "len": len,
+        "range": range,
+        "enumerate": enumerate,
+        "zip": zip,
     }
     sandbox_globals = {"__builtins__": allowed_builtins, "math": math}
     local_namespace: Dict[str, Callable] = {}
