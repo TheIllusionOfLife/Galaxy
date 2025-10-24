@@ -4,6 +4,7 @@ This module provides a client for the Gemini API optimized for the free tier
 (15 RPM, 1000 RPD) with comprehensive cost tracking and error handling.
 """
 
+import re
 import time
 import logging
 from typing import Optional, Dict, Any
@@ -106,13 +107,16 @@ class GeminiClient:
             HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
         }
 
+        # Store generation config for dynamic temperature override
+        self.generation_config = {
+            "temperature": temperature,
+            "max_output_tokens": max_output_tokens,
+        }
+
         self.model = genai.GenerativeModel(
             model_name=model,
             safety_settings=safety_settings,
-            generation_config={
-                "temperature": temperature,
-                "max_output_tokens": max_output_tokens,
-            }
+            generation_config=self.generation_config
         )
 
         self.model_name = model
@@ -121,13 +125,15 @@ class GeminiClient:
     def generate_surrogate_code(
         self,
         prompt: str,
-        retry_attempts: int = 3
+        retry_attempts: int = 3,
+        temperature: Optional[float] = None
     ) -> LLMResponse:
         """Generate surrogate model code with retry logic.
 
         Args:
             prompt: Prompt for code generation
             retry_attempts: Number of retry attempts on failure
+            temperature: Optional temperature override for this call
 
         Returns:
             LLMResponse with generated code and metadata
@@ -139,7 +145,15 @@ class GeminiClient:
 
         for attempt in range(retry_attempts):
             try:
-                response = self.model.generate_content(prompt)
+                # Use temperature override if provided
+                current_config = self.generation_config.copy()
+                if temperature is not None:
+                    current_config["temperature"] = temperature
+
+                response = self.model.generate_content(
+                    prompt,
+                    generation_config=current_config
+                )
 
                 # Extract code from response
                 code = self._extract_code(response.text)
@@ -191,27 +205,25 @@ class GeminiClient:
     def _extract_code(self, text: str) -> str:
         """Extract Python code from markdown code blocks or raw text.
 
+        Uses regex with case-insensitive matching and DOTALL to handle
+        various markdown formats robustly.
+
         Args:
             text: Raw LLM response text
 
         Returns:
             Extracted Python code
         """
-        # Try markdown code block with python language tag
-        if "```python" in text:
-            start = text.find("```python") + 9
-            end = text.find("```", start)
-            return text[start:end].strip()
-
-        # Try generic markdown code block
-        elif "```" in text:
-            start = text.find("```") + 3
-            end = text.find("```", start)
-            return text[start:end].strip()
-
-        # Assume raw code
-        else:
-            return text.strip()
+        # Prefer fenced python blocks; then any fenced block; else raw text
+        patterns = [
+            r"```(?:python|py)\s*(.*?)```",  # ```python or ```py
+            r"```(.*?)```",                   # any fenced block
+        ]
+        for pat in patterns:
+            m = re.search(pat, text, flags=re.IGNORECASE | re.DOTALL)
+            if m:
+                return m.group(1).strip()
+        return (text or "").strip()
 
     def _calculate_cost(self, prompt_tokens: int, completion_tokens: int) -> float:
         """Calculate API cost in USD.

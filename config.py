@@ -102,7 +102,7 @@ class Settings(BaseSettings):
         """Calculate total LLM calls needed for one complete evolution run.
 
         Returns:
-            Total number of API calls (population_size × num_generations)
+            Total number of API calls (population_size x num_generations)
         """
         return self.population_size * self.num_generations
 

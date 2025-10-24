@@ -32,6 +32,7 @@ class SurrogateGenome:
     fitness: Optional[float] = None      # Store for LLM prompt context
     accuracy: Optional[float] = None     # Store for LLM prompt context
     speed: Optional[float] = None        # Store for LLM prompt context
+    compiled_predict: Optional[Callable[[List[float]], List[float]]] = None  # Pre-validated callable
 
     def as_readable(self) -> str:
         if self.raw_code:
@@ -41,7 +42,21 @@ class SurrogateGenome:
         return f"theta=[{coeffs}]"
 
     def build_callable(self, attractor: List[float]) -> Callable[[List[float]], List[float]]:
+        # Prefer the pre-validated callable to avoid TOCTOU security issues
+        if self.compiled_predict is not None:
+            return self.compiled_predict
         if self.raw_code:
+            # Use stricter validator when available; otherwise sandbox fallback
+            if LLM_AVAILABLE:
+                try:
+                    from code_validator import validate_and_compile
+                    compiled, validation = validate_and_compile(self.raw_code, attractor)
+                    if not validation.valid or compiled is None:
+                        raise ValueError(f"Invalid surrogate code: {validation.errors}")
+                    self.compiled_predict = compiled
+                    return compiled
+                except ImportError:
+                    pass
             return compile_external_surrogate(self.raw_code, attractor)
         return make_parametric_surrogate(self.theta, attractor)
 
@@ -170,10 +185,15 @@ def LLM_propose_surrogate_model(
                 generation=generation,
                 mutation_type=mutation_type
             )
-            logger.info(f"Mutating model (generation {generation}, type {mutation_type})")
+            # Get adaptive temperature for this generation
+            temp_override = settings.get_mutation_temperature(generation)
+            logger.info(f"Mutating model (generation {generation}, type {mutation_type}, temp {temp_override:.2f})")
 
-        # Call Gemini
-        response = gemini_client.generate_surrogate_code(prompt)
+        # Call Gemini with adaptive temperature
+        response = gemini_client.generate_surrogate_code(
+            prompt,
+            temperature=temp_override if base_genome is not None else None
+        )
 
         # Track cost
         if cost_tracker:
@@ -201,14 +221,15 @@ def LLM_propose_surrogate_model(
                 logger.debug(f"Code warning: {warning}")
 
         # Return LLM-generated genome
-        logger.info(f"✓ LLM code validated and compiled successfully")
+        logger.info("✓ LLM code validated and compiled successfully")
         return SurrogateGenome(
             theta=BASE_THETA[:],  # Keep default theta as fallback
             description=f"gemini_gen{generation}",
             raw_code=response.code,
             fitness=None,
             accuracy=None,
-            speed=None
+            speed=None,
+            compiled_predict=compiled_func
         )
 
     except Exception as e:
