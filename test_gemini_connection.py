@@ -36,7 +36,7 @@ def main():
         print("Please add GOOGLE_API_KEY to .env")
         return 1
 
-    print(f"✓ API key loaded ({len(settings.google_api_key)} characters)")
+    print("✓ API key loaded")
     print(f"✓ Model: {settings.llm_model}")
     print(f"✓ Temperature: {settings.temperature}")
     print()

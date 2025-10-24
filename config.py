@@ -5,7 +5,7 @@ using Pydantic for validation and type safety.
 """
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field
+from pydantic import Field, field_validator
 
 
 class Settings(BaseSettings):
@@ -30,6 +30,27 @@ class Settings(BaseSettings):
         None,
         description="Optional Anthropic API key for comparison experiments"
     )
+
+    @field_validator("google_api_key", "anthropic_api_key")
+    @classmethod
+    def validate_api_key(cls, v: str | None) -> str | None:
+        """Reject placeholder API key values."""
+        if v is None:
+            return v
+        # Check for common placeholder patterns
+        placeholders = [
+            "your_api_key_here",
+            "your-api-key-here",
+            "INSERT_KEY_HERE",
+            "paste_your_key_here",
+            "replace_with_your_key",
+        ]
+        if v.lower() in placeholders:
+            raise ValueError(
+                f"Please replace placeholder API key with a real key from "
+                f"https://aistudio.google.com/apikey"
+            )
+        return v
 
     # Model Selection
     llm_model: str = Field(

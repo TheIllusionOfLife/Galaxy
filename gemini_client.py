@@ -58,7 +58,8 @@ class RateLimiter:
 
     def wait_if_needed(self):
         """Block if we're going too fast to maintain rate limit."""
-        now = time.time()
+        # Use monotonic time to avoid issues with system clock changes
+        now = time.monotonic()
         time_since_last = now - self.last_request_time
 
         if time_since_last < self.min_interval:
@@ -66,7 +67,7 @@ class RateLimiter:
             logger.debug(f"Rate limiting: sleeping {sleep_time:.2f}s")
             time.sleep(sleep_time)
 
-        self.last_request_time = time.time()
+        self.last_request_time = time.monotonic()
 
 
 class GeminiClient:
@@ -158,9 +159,9 @@ class GeminiClient:
                 # Extract code from response
                 code = self._extract_code(response.text)
 
-                # Calculate tokens and cost
-                prompt_tokens = response.usage_metadata.prompt_token_count
-                completion_tokens = response.usage_metadata.candidates_token_count
+                # Calculate tokens and cost (with safe metadata access)
+                prompt_tokens = getattr(response.usage_metadata, 'prompt_token_count', 0)
+                completion_tokens = getattr(response.usage_metadata, 'candidates_token_count', 0)
                 total_tokens = prompt_tokens + completion_tokens
 
                 cost = self._calculate_cost(prompt_tokens, completion_tokens)
