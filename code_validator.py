@@ -35,7 +35,10 @@ class CodeValidator:
     """
 
     # Allowed built-in functions in sandbox
-    SAFE_BUILTINS: ClassVar[set[str]] = {"abs", "min", "max", "sum", "len", "range", "enumerate", "zip"}
+    SAFE_BUILTINS: ClassVar[set[str]] = {
+        "abs", "min", "max", "sum", "len", "range", "enumerate", "zip",
+        "float", "int", "list"  # Type constructors needed by generated code
+    }
 
     # Disallowed AST node types
     FORBIDDEN_NODES: ClassVar[set[type[ast.AST]]] = {
