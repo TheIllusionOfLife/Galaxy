@@ -59,7 +59,11 @@ select = [
 ]
 ignore = [
     "S101",  # Allow assert statements in tests
-    "S311",  # Allow pseudo-random generators (used for evolution)
+    "S102",  # Allow exec (required for sandboxed code execution with validation)
+    "S311",  # Allow pseudo-random generators (used for evolution, not cryptography)
+    "E501",  # Allow long lines (mostly in prompts and strings that can't be split)
+    "N802",  # Allow function naming (LLM_propose intentional capitalization)
+    "C901",  # Allow complexity (inherent to validation and evolution logic)
 ]
 
 [tool.ruff.lint.per-file-ignores]
