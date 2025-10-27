@@ -1,85 +1,88 @@
-AI文明がどのようにして人間を超える解法を発見しうるか、そのプロセスを具体的にシミュレートするものです。ローカルマシンで直接実行し、その挙動を観察できるように設計されています。
+# Galaxy - AI Civilization Evolution Simulator
 
-プロトタイプの共通思想
-LLMの役割: LLMは直接問題を解くのではなく、問題に対する**「戦略」や「ヒューリスティック」、「代理モデル」**をコードとして生成・提案する役割を担います。ここではその創造的なプロセスをLLM_propose_strategy関数でシミュレートします。
+This project simulates how AI civilizations can discover solutions that surpass human capabilities. It is designed to run directly on local machines, allowing you to observe the evolutionary process in action.
 
-進化のプロセス: 各AI文明（エージェント群）が提案した戦略を「るつぼ（Crucible）」環境で実行・評価します。より優れた成果を出した戦略が「進化的エンジン」によって選択され、次の世代の戦略の土台となります。
+## Prototype Philosophy
 
-目的: これらのプロトタイプは、問題を完全に解くことではなく、より優れた解法発見プロセスを自動化・加速できるかを検証することを目的としています。
+**LLM Role**: Instead of solving problems directly, the LLM generates and proposes **"strategies," "heuristics," and "surrogate models"** as code. This creative process is simulated through the LLM_propose_strategy function.
 
-このプロトタイプでは、AI文明に、計算コストの高いN体シミュレーション（重力計算）を高速化するための代理モデル（Surrogate Model）を発明させます。フィットネスは、代理モデルの予測精度と計算速度のバランスで評価されます。
+**Evolution Process**: Each AI civilization (agent group) proposes strategies that are executed and evaluated in a "Crucible" environment. Superior strategies are selected by the "Evolutionary Engine" and become the foundation for the next generation.
 
-## セットアップ
+**Purpose**: These prototypes aim to verify whether the process of discovering better solutions can be automated and accelerated, rather than completely solving the problem.
 
-### 必要条件
-- Python 3.10以上
-- Google AI API キー（無料）
+**This Prototype**: AI civilizations are tasked with inventing surrogate models to accelerate computationally expensive N-body simulations (gravitational calculations). Fitness is evaluated based on the balance between the surrogate model's prediction accuracy and computational speed.
 
-### インストール手順
+## Setup
 
-1. **リポジトリのクローン**
+### Requirements
+- Python 3.10 or higher
+- Google AI API key (free)
+
+### Installation Steps
+
+1. **Clone the repository**
 ```bash
 git clone https://github.com/TheIllusionOfLife/Galaxy.git
 cd Galaxy
 ```
 
-2. **仮想環境の作成と有効化**
+2. **Create and activate virtual environment**
 ```bash
 python -m venv .venv
 source .venv/bin/activate  # Linux/Mac
 # .venv\Scripts\activate  # Windows
 ```
 
-3. **依存関係のインストール**
+3. **Install dependencies**
 ```bash
 pip install -e .
 ```
 
-4. **API キーの設定**
-- [Google AI Studio](https://aistudio.google.com/apikey) で無料のAPI キーを取得
-- プロジェクトルートに `.env` ファイルを作成:
+4. **Configure API key**
+- Get a free API key from [Google AI Studio](https://aistudio.google.com/apikey)
+- Create a `.env` file in the project root:
 ```bash
 cp .env.example .env
 ```
-- `.env` ファイルを編集して、API キーを設定:
+- Edit the `.env` file and set your API key:
 ```
 GOOGLE_API_KEY=your_api_key_here
 ```
 
-## 使用方法
+## Usage
 
-### 基本的な実行
+### Basic Execution
 
 ```bash
-# 仮想環境を有効化（まだの場合）
+# Activate virtual environment (if not already active)
 source .venv/bin/activate
 
-# 進化的最適化を実行
+# Run evolutionary optimization
 python prototype.py
 ```
 
-### 実行結果
+### Execution Results
 
-プログラムは以下を出力します：
-- 各世代の評価結果（フィットネス、精度、速度）
-- トップパフォーマンスのモデル
-- LLM使用統計（トークン数、コスト、成功率）
+The program outputs:
+- Evaluation results for each generation (fitness, accuracy, speed)
+- Top-performing models
+- LLM usage statistics (token count, cost, success rate)
 
-### コスト管理
+### Cost Management
 
-- **無料枠**: 1日1,000リクエスト、毎分15リクエストまで
-- **デフォルト設定**: 1実行あたり50 APIコール
-- **実行コスト**: 約$0.02/実行（予算の2%）
-- **レート制限**: 自動的に15 RPMを維持
+- **Free tier**: 1,000 requests per day, 15 requests per minute
+- **Default settings**: 50 API calls per execution
+- **Execution cost**: Approximately $0.02/run (2% of budget)
+- **Rate limiting**: Automatically maintains 15 RPM
 
-### テスト
+### Testing
 
-API接続をテスト:
+Test API connection:
 ```bash
 python test_gemini_connection.py
 ```
 
-単体テストを実行:
+Run unit tests:
 ```bash
 pytest tests/
 ```
@@ -119,11 +122,11 @@ pytest tests/
 
 #### Known Issues / Blockers
 - None currently - all critical issues resolved
-- claude-review workflow has expected failure (workflow validation issue, non-blocking)
+- **claude-review workflow**: Expected failure due to GitHub Actions workflow validation requiring identical content on default branch. This is non-blocking and normal for newly added workflow files. The workflow functions correctly once merged to main.
 
 #### Session Learnings
 - **CI/CD Infrastructure**: Comprehensive setup with Ruff + Mypy + Pytest provides strong foundation
 - **Type Safety**: Strict Mypy on critical modules (code_validator, gemini_client, config) catches errors early
-- **PR Review Systematic**: `/fix_pr_graphql` with 5-item verification checklist ensures no feedback missed
+- **PR Review Systematic**: `/fix_pr_graphql` command ensures comprehensive feedback coverage with mandatory verification checklist (feedback count, timestamps, author comments, review content, CI status)
 - **Japanese→English Translation**: All comments translated improves international collaboration
 - **Modern Python Syntax**: Updated isinstance to use union syntax (X | Y) for Python 3.10+
