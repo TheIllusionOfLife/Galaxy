@@ -10,15 +10,15 @@ This script makes a single API call to test that:
 
 import logging
 import sys
+
+from code_validator import validate_and_compile
 from config import settings
 from gemini_client import GeminiClient
 from prompts import get_initial_prompt
-from code_validator import validate_and_compile
 
 # Setup logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ def main():
             model=settings.llm_model,
             temperature=settings.temperature,
             max_output_tokens=settings.max_output_tokens,
-            enable_rate_limiting=False  # Disable for single test call
+            enable_rate_limiting=False,  # Disable for single test call
         )
         print("✓ Client initialized successfully")
         print()
@@ -63,7 +63,7 @@ def main():
 
     prompt = get_initial_prompt(seed=0)
     print(f"Prompt length: {len(prompt)} characters")
-    print(f"Approach: Euler integration with adaptive timestep")
+    print("Approach: Euler integration with adaptive timestep")
     print()
 
     print("Calling Gemini API (this may take a few seconds)...")
@@ -103,7 +103,7 @@ def main():
     compiled_func, validation = validate_and_compile(response.code, attractor)
 
     if not validation.valid:
-        print(f"❌ Validation failed:")
+        print("❌ Validation failed:")
         for error in validation.errors:
             print(f"  - {error}")
         return 1

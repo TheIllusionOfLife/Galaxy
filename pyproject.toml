@@ -21,9 +21,103 @@ py-modules = ["config", "prototype", "gemini_client", "prompts", "code_validator
 dev = [
     "pytest>=7.0.0",
     "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
     "mypy>=1.0.0",
+    "ruff>=0.1.0",
+    "pre-commit>=3.0.0",
 ]
 
 claude = [
     "anthropic>=0.18.0",  # Optional for comparison experiments
 ]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+exclude = [
+    ".venv",
+    "venv",
+    "__pycache__",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".ruff_cache",
+    "dist",
+    "build",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "S",   # flake8-bandit (security)
+    "C90", # mccabe complexity
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+]
+ignore = [
+    "S101",  # Allow assert statements in tests
+    "S102",  # Allow exec (required for sandboxed code execution with validation)
+    "S311",  # Allow pseudo-random generators (used for evolution, not cryptography)
+    "E501",  # Allow long lines (mostly in prompts and strings that can't be split)
+    "N802",  # Allow function naming (LLM_propose intentional capitalization)
+    "C901",  # Allow complexity (inherent to validation and evolution logic)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101", "S105", "S106"]  # Allow asserts and hardcoded passwords in tests
+"test_*.py" = ["S101", "S105", "S106"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false  # Start lenient, tighten later
+check_untyped_defs = true
+
+# Strict checking for critical security/cost modules
+[[tool.mypy.overrides]]
+module = [
+    "code_validator",
+    "gemini_client",
+    "config",
+]
+disallow_untyped_defs = true
+disallow_any_unimported = true
+warn_unreachable = true
+strict_optional = true
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --strict-markers"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = [
+    "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
+
+[tool.coverage.run]
+source = ["."]
+omit = [
+    "tests/*",
+    ".venv/*",
+    "venv/*",
+    "__pycache__/*",
+    "*/site-packages/*",
+    "test_*.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+# No fail_under for now - will add when we have comprehensive tests
+# fail_under = 80

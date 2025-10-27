@@ -4,9 +4,6 @@ This module contains all prompts used to generate and mutate surrogate models.
 Prompts are carefully crafted to maximize code quality and physics accuracy.
 """
 
-from typing import Optional
-
-
 # System instruction used for all prompts
 SYSTEM_INSTRUCTION = """You are an expert in numerical methods and physics simulation.
 Generate Python code for a surrogate model that approximates N-body gravitational dynamics.
@@ -81,7 +78,7 @@ def get_mutation_prompt(
     accuracy: float,
     speed: float,
     generation: int,
-    mutation_type: str = "explore"
+    mutation_type: str = "explore",
 ) -> str:
     """Generate mutation prompt based on parent performance.
 
@@ -140,7 +137,7 @@ Parent model performance (Generation {generation}):
 - Speed: {speed:.5f} seconds (lower is better)
 
 Performance analysis:
-{chr(10).join(f'  {item}' for item in perf_analysis)}
+{chr(10).join(f"  {item}" for item in perf_analysis)}
 """
 
     return f"""{SYSTEM_INSTRUCTION}
@@ -161,10 +158,7 @@ Generate improved code that maintains the predict(particle, attractor) signature
 
 
 def get_crossover_prompt(
-    parent1_code: str,
-    parent1_fitness: float,
-    parent2_code: str,
-    parent2_fitness: float
+    parent1_code: str, parent1_fitness: float, parent2_code: str, parent2_fitness: float
 ) -> str:
     """Generate crossover prompt combining two high-performing models.
 

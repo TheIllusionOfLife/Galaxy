@@ -12,6 +12,10 @@ __pycache__/
 dist/
 build/
 
+# Tool caches
+.ruff_cache/
+.mypy_cache/
+
 # Generated files
 evolution_history.json
 logs/
