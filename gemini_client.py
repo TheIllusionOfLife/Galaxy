@@ -140,13 +140,15 @@ class GeminiClient:
         Returns:
             LLMResponse with generated code and metadata
         """
-        if self.rate_limiter:
-            self.rate_limiter.wait_if_needed()
-
         start_time = time.time()
 
         for attempt in range(retry_attempts):
             try:
+                # Apply rate limiting before each attempt (not just first)
+                # This prevents exceeding 15 RPM when retries happen back-to-back
+                if self.rate_limiter:
+                    self.rate_limiter.wait_if_needed()
+
                 # Use temperature override if provided
                 current_config = self.generation_config.copy()
                 if temperature is not None:

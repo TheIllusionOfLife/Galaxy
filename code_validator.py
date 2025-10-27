@@ -7,7 +7,7 @@ is safe to execute and meets required specifications.
 import ast
 import math
 import logging
-from typing import Callable, Any
+from typing import Callable, Any, ClassVar
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
@@ -35,10 +35,10 @@ class CodeValidator:
     """
 
     # Allowed built-in functions in sandbox
-    SAFE_BUILTINS = {"abs", "min", "max", "sum", "len", "range", "enumerate", "zip"}
+    SAFE_BUILTINS: ClassVar[set[str]] = {"abs", "min", "max", "sum", "len", "range", "enumerate", "zip"}
 
     # Disallowed AST node types
-    FORBIDDEN_NODES = {
+    FORBIDDEN_NODES: ClassVar[set[type[ast.AST]]] = {
         ast.Import,              # No imports
         ast.ImportFrom,          # No from X import Y
         ast.AsyncFunctionDef,    # No async
@@ -182,8 +182,8 @@ class CodeValidator:
         # Execute code in sandbox
         try:
             exec(code, sandbox_globals, local_namespace)
-        except Exception as e:
-            logger.error(f"Execution error during compilation: {e}")
+        except Exception:
+            logger.exception("Execution error during compilation")
             return None
 
         if "predict" not in local_namespace:
