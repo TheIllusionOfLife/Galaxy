@@ -4,14 +4,14 @@ This module provides a client for the Gemini API optimized for the free tier
 (15 RPM, 1000 RPD) with comprehensive cost tracking and error handling.
 """
 
+import logging
 import re
 import time
-import logging
-from typing import Optional, Dict, Any
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from typing import Any
 
 import google.generativeai as genai
-from google.generativeai.types import HarmCategory, HarmBlockThreshold
+from google.generativeai.types import HarmBlockThreshold, HarmCategory
 
 logger = logging.getLogger(__name__)
 
@@ -30,13 +30,14 @@ class LLMResponse:
         error: Error message if failed
         generation_time_s: Time taken for API call
     """
+
     code: str
     raw_response: str
     tokens_used: int
     cost_usd: float
     model: str
     success: bool
-    error: Optional[str] = None
+    error: str | None = None
     generation_time_s: float = 0.0
 
 
@@ -56,7 +57,7 @@ class RateLimiter:
         self.min_interval = 60.0 / requests_per_minute  # seconds between requests
         self.last_request_time = 0.0
 
-    def wait_if_needed(self):
+    def wait_if_needed(self) -> None:
         """Block if we're going too fast to maintain rate limit."""
         # Use monotonic time to avoid issues with system clock changes
         now = time.monotonic()
@@ -79,7 +80,7 @@ class GeminiClient:
 
     # Pricing per 1M tokens (as of 2025-10-24)
     # Source: https://ai.google.dev/pricing
-    INPUT_COST_PER_MTOK = 0.10   # $0.10/1M input tokens (standard tier)
+    INPUT_COST_PER_MTOK = 0.10  # $0.10/1M input tokens (standard tier)
     OUTPUT_COST_PER_MTOK = 0.40  # $0.40/1M output tokens (standard tier)
 
     def __init__(
@@ -88,7 +89,7 @@ class GeminiClient:
         model: str = "gemini-2.5-flash-lite",
         temperature: float = 0.8,
         max_output_tokens: int = 2000,
-        enable_rate_limiting: bool = True
+        enable_rate_limiting: bool = True,
     ):
         """Initialize Gemini client.
 
@@ -118,17 +119,14 @@ class GeminiClient:
         self.model = genai.GenerativeModel(
             model_name=model,
             safety_settings=safety_settings,
-            generation_config=self.generation_config
+            generation_config=self.generation_config,  # type: ignore[arg-type]
         )
 
         self.model_name = model
         self.rate_limiter = RateLimiter() if enable_rate_limiting else None
 
     def generate_surrogate_code(
-        self,
-        prompt: str,
-        retry_attempts: int = 3,
-        temperature: Optional[float] = None
+        self, prompt: str, retry_attempts: int = 3, temperature: float | None = None
     ) -> LLMResponse:
         """Generate surrogate model code with retry logic.
 
@@ -156,19 +154,21 @@ class GeminiClient:
 
                 response = self.model.generate_content(
                     prompt,
-                    generation_config=current_config
+                    generation_config=current_config,  # type: ignore[arg-type]
                 )
 
                 # Extract code from response
                 code = self._extract_code(response.text)
 
                 # Calculate tokens and cost (with safe metadata access)
-                prompt_tokens = getattr(response.usage_metadata, 'prompt_token_count', 0)
-                completion_tokens = getattr(response.usage_metadata, 'candidates_token_count', 0)
+                prompt_tokens = getattr(response.usage_metadata, "prompt_token_count", 0)
+                completion_tokens = getattr(response.usage_metadata, "candidates_token_count", 0)
 
                 # Log warning if metadata is missing (indicates API change)
                 if prompt_tokens == 0 and completion_tokens == 0:
-                    logger.warning("API response missing usage_metadata - cost tracking may be inaccurate")
+                    logger.warning(
+                        "API response missing usage_metadata - cost tracking may be inaccurate"
+                    )
 
                 total_tokens = prompt_tokens + completion_tokens
 
@@ -177,8 +177,7 @@ class GeminiClient:
                 generation_time = time.time() - start_time
 
                 logger.info(
-                    f"Generated code: {total_tokens} tokens, "
-                    f"${cost:.6f}, {generation_time:.2f}s"
+                    f"Generated code: {total_tokens} tokens, ${cost:.6f}, {generation_time:.2f}s"
                 )
 
                 return LLMResponse(
@@ -188,13 +187,13 @@ class GeminiClient:
                     cost_usd=cost,
                     model=self.model_name,
                     success=True,
-                    generation_time_s=generation_time
+                    generation_time_s=generation_time,
                 )
 
             except Exception as e:
                 logger.warning(f"Attempt {attempt + 1}/{retry_attempts} failed: {e}")
                 if attempt < retry_attempts - 1:
-                    sleep_time = 2 ** attempt  # Exponential backoff
+                    sleep_time = 2**attempt  # Exponential backoff
                     logger.debug(f"Retrying in {sleep_time}s...")
                     time.sleep(sleep_time)
                 else:
@@ -208,8 +207,20 @@ class GeminiClient:
                         model=self.model_name,
                         success=False,
                         error=str(e),
-                        generation_time_s=generation_time
+                        generation_time_s=generation_time,
                     )
+
+        # Should never reach here, but added for mypy
+        return LLMResponse(
+            code="",
+            raw_response="",
+            tokens_used=0,
+            cost_usd=0.0,
+            model=self.model_name,
+            success=False,
+            error="No retry attempts configured",
+            generation_time_s=0.0,
+        )
 
     def _extract_code(self, text: str) -> str:
         """Extract Python code from markdown code blocks or raw text.
@@ -226,7 +237,7 @@ class GeminiClient:
         # Prefer fenced python blocks; then any fenced block; else raw text
         patterns = [
             r"```(?:python|py)\s*(.*?)```",  # ```python or ```py
-            r"```(.*?)```",                   # any fenced block
+            r"```(.*?)```",  # any fenced block
         ]
         for pat in patterns:
             m = re.search(pat, text, flags=re.IGNORECASE | re.DOTALL)
@@ -264,13 +275,9 @@ class CostTracker:
         """
         self.max_cost_usd = max_cost_usd
         self.total_cost = 0.0
-        self.calls: list[Dict[str, Any]] = []
+        self.calls: list[dict[str, Any]] = []
 
-    def add_call(
-        self,
-        response: LLMResponse,
-        context: Optional[Dict[str, Any]] = None
-    ):
+    def add_call(self, response: LLMResponse, context: dict[str, Any] | None = None) -> None:
         """Record an API call.
 
         Args:
@@ -278,14 +285,16 @@ class CostTracker:
             context: Optional context (generation, type, etc.)
         """
         self.total_cost += response.cost_usd
-        self.calls.append({
-            "tokens": response.tokens_used,
-            "cost_usd": response.cost_usd,
-            "success": response.success,
-            "generation_time_s": response.generation_time_s,
-            "error": response.error,
-            "context": context or {}
-        })
+        self.calls.append(
+            {
+                "tokens": response.tokens_used,
+                "cost_usd": response.cost_usd,
+                "success": response.success,
+                "generation_time_s": response.generation_time_s,
+                "error": response.error,
+                "context": context or {},
+            }
+        )
 
         logger.debug(
             f"Call recorded: ${response.cost_usd:.6f}, "
@@ -300,12 +309,10 @@ class CostTracker:
         """
         exceeded = self.total_cost >= self.max_cost_usd
         if exceeded:
-            logger.warning(
-                f"Budget exceeded: ${self.total_cost:.4f} >= ${self.max_cost_usd:.2f}"
-            )
+            logger.warning(f"Budget exceeded: ${self.total_cost:.4f} >= ${self.max_cost_usd:.2f}")
         return exceeded
 
-    def get_summary(self) -> Dict[str, Any]:
+    def get_summary(self) -> dict[str, Any]:
         """Get cost summary statistics.
 
         Returns:
@@ -319,13 +326,11 @@ class CostTracker:
             "successful_calls": len(successful_calls),
             "failed_calls": len(failed_calls),
             "total_cost_usd": self.total_cost,
-            "avg_cost_per_call": (
-                self.total_cost / len(self.calls) if self.calls else 0
-            ),
+            "avg_cost_per_call": (self.total_cost / len(self.calls) if self.calls else 0),
             "total_tokens": sum(c["tokens"] for c in self.calls),
             "total_time_s": sum(c["generation_time_s"] for c in self.calls),
             "budget_remaining_usd": max(0, self.max_cost_usd - self.total_cost),
             "budget_used_percent": (
                 (self.total_cost / self.max_cost_usd * 100) if self.max_cost_usd > 0 else 0
-            )
+            ),
         }

@@ -4,8 +4,8 @@ This module handles all configuration settings loaded from environment variables
 using Pydantic for validation and type safety.
 """
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -15,20 +15,14 @@ class Settings(BaseSettings):
     See .env.example for all available options.
     """
 
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        extra="ignore"
-    )
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     # API Configuration
     google_api_key: str | None = Field(
-        None,
-        description="Google AI API key from https://aistudio.google.com/apikey"
+        None, description="Google AI API key from https://aistudio.google.com/apikey"
     )
     anthropic_api_key: str | None = Field(
-        None,
-        description="Optional Anthropic API key for comparison experiments"
+        None, description="Optional Anthropic API key for comparison experiments"
     )
 
     @field_validator("google_api_key", "anthropic_api_key")
@@ -47,75 +41,46 @@ class Settings(BaseSettings):
         ]
         if v.lower() in placeholders:
             raise ValueError(
-                f"Please replace placeholder API key with a real key from "
-                f"https://aistudio.google.com/apikey"
+                "Please replace placeholder API key with a real key from "
+                "https://aistudio.google.com/apikey"
             )
         return v
 
     # Model Selection
     llm_model: str = Field(
-        "gemini-2.5-flash-lite",
-        description="Gemini model to use for code generation"
+        "gemini-2.5-flash-lite", description="Gemini model to use for code generation"
     )
     temperature: float = Field(
-        0.8,
-        ge=0.0,
-        le=2.0,
-        description="LLM temperature (0.0-2.0, higher = more creative)"
+        0.8, ge=0.0, le=2.0, description="LLM temperature (0.0-2.0, higher = more creative)"
     )
     max_output_tokens: int = Field(
-        2000,
-        ge=100,
-        le=8192,
-        description="Maximum tokens in LLM response"
+        2000, ge=100, le=8192, description="Maximum tokens in LLM response"
     )
 
     # Rate Limiting (Free tier: 15 RPM, 1000 RPD)
-    max_requests_per_run: int = Field(
-        50,
-        description="Maximum LLM calls per evolution run"
-    )
+    max_requests_per_run: int = Field(50, description="Maximum LLM calls per evolution run")
     enable_rate_limiting: bool = Field(
-        True,
-        description="Enable rate limiting for free tier (15 RPM)"
+        True, description="Enable rate limiting for free tier (15 RPM)"
     )
-    requests_per_minute: int = Field(
-        15,
-        description="Free tier rate limit: 15 requests per minute"
-    )
+    requests_per_minute: int = Field(15, description="Free tier rate limit: 15 requests per minute")
 
     # Evolution Parameters
     population_size: int = Field(
-        10,
-        ge=1,
-        le=100,
-        description="Number of surrogate models per generation"
+        10, ge=1, le=100, description="Number of surrogate models per generation"
     )
     num_generations: int = Field(
-        5,
-        ge=1,
-        le=100,
-        description="Number of evolutionary generations to run"
+        5, ge=1, le=100, description="Number of evolutionary generations to run"
     )
     elite_ratio: float = Field(
-        0.2,
-        ge=0.0,
-        le=1.0,
-        description="Fraction of top performers to keep for breeding"
+        0.2, ge=0.0, le=1.0, description="Fraction of top performers to keep for breeding"
     )
 
     # Mutation Strategy
     early_mutation_temp: float = Field(
-        1.0,
-        ge=0.0,
-        le=2.0,
-        description="High temperature for early generations (exploration)"
+        1.0, ge=0.0, le=2.0, description="High temperature for early generations (exploration)"
     )
     late_mutation_temp: float = Field(
-        0.6,
-        ge=0.0,
-        le=2.0,
-        description="Low temperature for late generations (exploitation)"
+        0.6, ge=0.0, le=2.0, description="Low temperature for late generations (exploitation)"
     )
 
     @property
@@ -157,4 +122,4 @@ class Settings(BaseSettings):
 
 # Global settings instance
 # Will be initialized when imported, loading from .env or environment
-settings = Settings()
+settings = Settings()  # type: ignore[call-arg]
