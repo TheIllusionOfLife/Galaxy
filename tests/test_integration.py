@@ -127,9 +127,9 @@ class TestGeminiIntegration:
         min_expected = 8.0  # 2 intervals of 4 seconds
         max_expected = 12.0  # Allow for API latency
 
-        assert (
-            elapsed >= min_expected
-        ), f"Rate limiting not working: {elapsed:.1f}s < {min_expected}s"
+        assert elapsed >= min_expected, (
+            f"Rate limiting not working: {elapsed:.1f}s < {min_expected}s"
+        )
         assert elapsed <= max_expected, f"Unexpectedly slow: {elapsed:.1f}s > {max_expected}s"
 
     def test_cost_tracking_accuracy(self):
@@ -247,9 +247,9 @@ class TestGeminiIntegration:
                 approaches.append("softened")
 
         # Should have 6 different approaches
-        assert (
-            len(set(approaches)) == 6
-        ), f"Expected 6 unique approaches, got {len(set(approaches))}"
+        assert len(set(approaches)) == 6, (
+            f"Expected 6 unique approaches, got {len(set(approaches))}"
+        )
 
     def test_explore_vs_exploit_mutation(self):
         """Test that explore and exploit produce different mutation prompts."""
