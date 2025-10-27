@@ -8,6 +8,9 @@ venv/
 __pycache__/
 *.pyc
 *.pyo
+*.egg-info/
+dist/
+build/
 
 # Generated files
 evolution_history.json

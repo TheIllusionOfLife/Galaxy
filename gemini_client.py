@@ -78,8 +78,9 @@ class GeminiClient:
     """
 
     # Pricing per 1M tokens (as of 2025-10-24)
-    INPUT_COST_PER_MTOK = 0.10   # $0.10/1M input tokens
-    OUTPUT_COST_PER_MTOK = 0.40  # $0.40/1M output tokens
+    # Source: https://ai.google.dev/pricing
+    INPUT_COST_PER_MTOK = 0.10   # $0.10/1M input tokens (standard tier)
+    OUTPUT_COST_PER_MTOK = 0.40  # $0.40/1M output tokens (standard tier)
 
     def __init__(
         self,
@@ -162,6 +163,11 @@ class GeminiClient:
                 # Calculate tokens and cost (with safe metadata access)
                 prompt_tokens = getattr(response.usage_metadata, 'prompt_token_count', 0)
                 completion_tokens = getattr(response.usage_metadata, 'candidates_token_count', 0)
+
+                # Log warning if metadata is missing (indicates API change)
+                if prompt_tokens == 0 and completion_tokens == 0:
+                    logger.warning("API response missing usage_metadata - cost tracking may be inaccurate")
+
                 total_tokens = prompt_tokens + completion_tokens
 
                 cost = self._calculate_cost(prompt_tokens, completion_tokens)

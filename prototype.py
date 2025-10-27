@@ -371,6 +371,11 @@ class EvolutionaryEngine:
                 model_func = genome.build_callable(self.crucible.attractor)
                 accuracy, speed = self.crucible.evaluate_surrogate_model(model_func)
 
+                # Validate speed is positive and finite
+                if not isinstance(speed, (int, float)) or speed <= 0 or math.isnan(speed) or math.isinf(speed):
+                    logger.warning(f"{civ_id}: Invalid speed value {speed}, using fallback")
+                    speed = 999.9  # Fallback to worst-case speed
+
                 # フィットネス = 精度 / 速度 (速度が速いほど良い)
                 fitness = accuracy / (speed + 1e-9)
                 self.civilizations[civ_id]["fitness"] = fitness

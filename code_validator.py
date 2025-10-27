@@ -99,17 +99,39 @@ class CodeValidator:
                     elif func_name == "open":
                         errors.append("File I/O not allowed: open()")
 
-            # Check for infinite loops (while True without break)
+            # Check for infinite loops (while True/1 without break)
             if isinstance(node, ast.While):
-                if isinstance(node.test, ast.Constant) and node.test.value is True:
+                # Check for always-true conditions: True, 1, or other truthy constants
+                is_always_true = False
+                if isinstance(node.test, ast.Constant):
+                    # Catches: while True, while 1, while 2, etc.
+                    if node.test.value is True or (isinstance(node.test.value, int) and node.test.value != 0):
+                        is_always_true = True
+
+                if is_always_true:
                     # Check if there's a break statement
                     has_break = any(
                         isinstance(n, ast.Break) for n in ast.walk(node)
                     )
                     if not has_break:
-                        errors.append("Infinite loop detected: while True without break")
+                        errors.append(f"Infinite loop detected: while {node.test.value!r} without break")
 
-        # Check 5: Warn about complexity
+        # Check 5: Warn about potentially expensive comprehensions
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.ListComp, ast.SetComp, ast.DictComp)):
+                # Check for large range() calls in comprehensions
+                for gen in node.generators:
+                    if isinstance(gen.iter, ast.Call):
+                        if isinstance(gen.iter.func, ast.Name) and gen.iter.func.id == "range":
+                            # Check if range has a large constant argument
+                            if gen.iter.args and isinstance(gen.iter.args[0], ast.Constant):
+                                range_size = gen.iter.args[0].value
+                                if isinstance(range_size, int) and range_size > 10000:
+                                    warnings.append(
+                                        f"List comprehension with large range ({range_size}) may be slow"
+                                    )
+
+        # Check 6: Warn about complexity
         num_loops = sum(
             1 for node in ast.walk(tree) if isinstance(node, (ast.For, ast.While))
         )
@@ -172,6 +194,8 @@ class CodeValidator:
 
         # Test call to verify it works
         # Use a particle away from attractor to avoid division by zero
+        # Test particle: [x=45, y=45, vx=0.5, vy=0.5] with default attractor [50, 50]
+        # This creates a realistic scenario: particle approaching attractor with small velocity
         try:
             test_particle = [45.0, 45.0, 0.5, 0.5]
             result = predict_func(test_particle, attractor)
