@@ -26,7 +26,7 @@ DEFAULT_ATTRACTOR = [50.0, 50.0]
 
 @dataclass
 class SurrogateGenome:
-    """Parameterised代理モデルの遺伝子表現。"""
+    """Genetic representation of a parameterized surrogate model."""
 
     theta: list[float]
     description: str = "parametric"
@@ -67,7 +67,7 @@ class SurrogateGenome:
 def make_parametric_surrogate(
     theta: list[float], attractor: list[float]
 ) -> Callable[[list[float]], list[float]]:
-    """θで定義される代理モデルを生成する。"""
+    """Generate a surrogate model defined by theta parameters."""
 
     g_const, epsilon, dt_velocity, dt_position, velocity_correction, damping = theta
 
@@ -94,7 +94,7 @@ def make_parametric_surrogate(
 def compile_external_surrogate(
     code: str, attractor: list[float]
 ) -> Callable[[list[float]], list[float]]:
-    """安全な名前空間でLLM生成コードを実行し、predict関数を取得する。"""
+    """Execute LLM-generated code in a safe namespace and retrieve the predict function."""
 
     # Use same builtins as CodeValidator.SAFE_BUILTINS to maintain consistency
     allowed_builtins = {
@@ -112,7 +112,7 @@ def compile_external_surrogate(
     exec(code, sandbox_globals, local_namespace)
 
     if "predict" not in local_namespace:
-        raise ValueError("代理モデルコードはpredict(particle, attractor)を定義する必要があります。")
+        raise ValueError("Surrogate model code must define predict(particle, attractor) function.")
 
     predict_func = local_namespace["predict"]
 
@@ -148,7 +148,7 @@ def mutate_theta(theta: list[float], mutation_scale: float) -> list[float]:
 
 
 # ------------------------------------------------------------------------------
-# LLM-powered代理モデル生成 (Mock fallback付き)
+# LLM-powered surrogate model generation (with Mock fallback)
 # ------------------------------------------------------------------------------
 def LLM_propose_surrogate_model(
     base_genome: SurrogateGenome | None,
@@ -156,16 +156,16 @@ def LLM_propose_surrogate_model(
     gemini_client: Optional["GeminiClient"] = None,
     cost_tracker: Optional["CostTracker"] = None,
 ) -> SurrogateGenome:
-    """LLMまたはMockで新しい代理モデルを生成・進化させる。
+    """Generate or evolve a new surrogate model using LLM or Mock fallback.
 
     Args:
-        base_genome: 親のゲノム (Noneの場合は初期生成)
-        generation: 現在の世代数
-        gemini_client: Gemini APIクライアント (Noneの場合はMockモード)
-        cost_tracker: コスト追跡器
+        base_genome: Parent genome (None for initial generation)
+        generation: Current generation number
+        gemini_client: Gemini API client (None for Mock mode)
+        cost_tracker: Cost tracker
 
     Returns:
-        新しいSurrogateGenome
+        New SurrogateGenome
     """
     # Check if we should use LLM
     if gemini_client is None or not LLM_AVAILABLE:
@@ -266,16 +266,17 @@ def _mock_surrogate_generation(
 
 
 # ------------------------------------------------------------------------------
-# るつぼ (Crucible) - AI文明が挑戦する物理シミュレーション環境
+# Crucible - Physical simulation environment that AI civilizations challenge
 # ------------------------------------------------------------------------------
 class CosmologyCrucible:
     """
-    単純なN体シミュレーション環境。
-    正確だが遅い「真の物理法則」と、文明が提案する高速な「代理モデル」を比較評価する。
+    Simple N-body simulation environment.
+    Compare and evaluate the accurate but slow 'true physical laws'
+    with the fast 'surrogate models' proposed by civilizations.
     """
 
     def __init__(self, num_particles: int = 50, attractor: list[float] | None = None):
-        # [x, y, vx, vy] のリスト
+        # List of [x, y, vx, vy]
         self.particles = [
             [
                 random.uniform(0, 100),
@@ -285,15 +286,15 @@ class CosmologyCrucible:
             ]
             for _ in range(num_particles)
         ]
-        self.attractor = attractor or DEFAULT_ATTRACTOR[:]  # 中央の重力源
+        self.attractor = attractor or DEFAULT_ATTRACTOR[:]  # Central gravity source
 
     def brute_force_step(self, particles: list[list[float]]) -> list[list[float]]:
-        """真の物理法則（Ground Truth）。正確だが意図的に遅くしてある。"""
+        """True physical laws (Ground Truth). Accurate but intentionally slow."""
         new_particles = []
         for p in particles:
             dx = self.attractor[0] - p[0]
             dy = self.attractor[1] - p[1]
-            dist_sq = dx**2 + dy**2 + 1e-6  # ゼロ除算を避ける
+            dist_sq = dx**2 + dy**2 + 1e-6  # Avoid division by zero
             force = 10.0 / dist_sq
 
             ax = force * dx / math.sqrt(dist_sq)
@@ -305,18 +306,18 @@ class CosmologyCrucible:
             new_y = p[1] + new_vy * 0.1
             new_particles.append([new_x, new_y, new_vx, new_vy])
 
-        time.sleep(0.05)  # 重い計算をシミュレート
+        time.sleep(0.05)  # Simulate heavy computation
         return new_particles
 
     def evaluate_surrogate_model(
         self, model: Callable[[list[float]], list[float]]
     ) -> tuple[float, float]:
         """
-        代理モデルの「精度」と「速度」を評価する。
+        Evaluate the 'accuracy' and 'speed' of the surrogate model.
         """
-        initial_state = [p[:] for p in self.particles]  # 状態をコピー
+        initial_state = [p[:] for p in self.particles]  # Copy state
 
-        # 1. 精度評価
+        # 1. Accuracy evaluation
         ground_truth_next_state = self.brute_force_step(initial_state)
 
         start_time = time.time()
@@ -324,11 +325,11 @@ class CosmologyCrucible:
             predicted_next_state = []
             for particle in initial_state:
                 prediction = model(particle)
-                if not isinstance(prediction, (list, tuple)) or len(prediction) != 4:
-                    raise ValueError("代理モデルの出力は長さ4のシーケンスである必要があります。")
+                if not isinstance(prediction, list | tuple) or len(prediction) != 4:
+                    raise ValueError("Surrogate model output must be a sequence of length 4.")
                 predicted_next_state.append(list(prediction))
         except Exception:
-            return 0.0, 999.9  # 不正なコードは最低評価
+            return 0.0, 999.9  # Invalid code gets worst evaluation
 
         speed = time.time() - start_time
 
@@ -338,17 +339,18 @@ class CosmologyCrucible:
             pred_p = predicted_next_state[i]
             error += (true_p[0] - pred_p[0]) ** 2 + (true_p[1] - pred_p[1]) ** 2
 
-        accuracy = 1.0 / (1.0 + math.sqrt(error))  # エラーが小さいほど1に近づく
+        accuracy = 1.0 / (1.0 + math.sqrt(error))  # Smaller error approaches 1
 
         return accuracy, speed
 
 
 # ------------------------------------------------------------------------------
-# 進化的エンジン - 文明を進化させる淘汰圧
+# Evolutionary Engine - Selection pressure that evolves civilizations
 # ------------------------------------------------------------------------------
 class EvolutionaryEngine:
     """
-    文明の世代交代を司る。優れた代理モデルを選択し、次世代のモデルを生み出す。
+    Manage the generational succession of civilizations.
+    Select superior surrogate models and create next-generation models.
     """
 
     def __init__(
@@ -367,7 +369,7 @@ class EvolutionaryEngine:
         self.history: list[dict] = []
 
     def initialize_population(self):
-        """最初の文明（代理モデル）群を生成する"""
+        """Generate the initial population of civilizations (surrogate models)."""
         for i in range(self.population_size):
             civ_id = f"civ_{self.generation}_{i}"
             genome = LLM_propose_surrogate_model(
@@ -376,10 +378,10 @@ class EvolutionaryEngine:
             self.civilizations[civ_id] = {"genome": genome, "fitness": 0}
 
     def run_evolutionary_cycle(self):
-        """1世代分の進化（評価、選択、繁殖）を実行する"""
+        """Execute one generation of evolution (evaluation, selection, reproduction)."""
         print(f"\n===== Generation {self.generation}: Evaluating Surrogate Models =====")
 
-        # 評価
+        # Evaluation
         for civ_id, civ_data in self.civilizations.items():
             genome: SurrogateGenome = civ_data["genome"]
             try:
@@ -388,7 +390,7 @@ class EvolutionaryEngine:
 
                 # Validate speed is positive and finite
                 if (
-                    not isinstance(speed, (int, float))
+                    not isinstance(speed, int | float)
                     or speed <= 0
                     or math.isnan(speed)
                     or math.isinf(speed)
@@ -396,7 +398,7 @@ class EvolutionaryEngine:
                     logger.warning(f"{civ_id}: Invalid speed value {speed}, using fallback")
                     speed = 999.9  # Fallback to worst-case speed
 
-                # フィットネス = 精度 / 速度 (速度が速いほど良い)
+                # Fitness = accuracy / speed (faster is better)
                 fitness = accuracy / (speed + 1e-9)
                 self.civilizations[civ_id]["fitness"] = fitness
                 self.civilizations[civ_id]["accuracy"] = accuracy
@@ -421,7 +423,7 @@ class EvolutionaryEngine:
                 f"Genome: {genome.as_readable()}"
             )
 
-        # 選択
+        # Selection
         sorted_civs = sorted(
             self.civilizations.items(), key=lambda item: item[1].get("fitness", 0), reverse=True
         )
@@ -432,7 +434,7 @@ class EvolutionaryEngine:
             f"\n--- Top performing model in Generation {self.generation}: {elites[0][0]} with fitness {elites[0][1]['fitness']:.2f} ---"
         )
 
-        # 繁殖
+        # Reproduction
         next_generation_civs = {}
         for i in range(self.population_size):
             parent_civ = random.choice(elites)
@@ -449,7 +451,7 @@ class EvolutionaryEngine:
 
 
 # ------------------------------------------------------------------------------
-# メイン実行ブロック
+# Main execution block
 # ------------------------------------------------------------------------------
 if __name__ == "__main__":
     # Setup logging
