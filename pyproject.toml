@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "galaxy-prometheus"
+version = "0.1.0"
+description = "Evolutionary surrogate model discovery with Gemini 2.5 Flash Lite"
+requires-python = ">=3.10"
+dependencies = [
+    "google-generativeai>=0.8.0",
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+]
+
+[tool.setuptools]
+py-modules = ["config", "prototype", "gemini_client", "prompts", "code_validator"]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "mypy>=1.0.0",
+]
+
+claude = [
+    "anthropic>=0.18.0",  # Optional for comparison experiments
+]
