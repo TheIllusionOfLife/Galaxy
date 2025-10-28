@@ -12,10 +12,11 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "pydantic>=2.0.0",
     "pydantic-settings>=2.0.0",
+    "matplotlib>=3.5.0",
 ]
 
 [tool.setuptools]
-py-modules = ["config", "prototype", "gemini_client", "prompts", "code_validator"]
+py-modules = ["config", "prototype", "gemini_client", "prompts", "code_validator", "visualization"]
 
 [project.optional-dependencies]
 dev = [

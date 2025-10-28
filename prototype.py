@@ -325,7 +325,7 @@ class CosmologyCrucible:
             predicted_next_state = []
             for particle in initial_state:
                 prediction = model(particle)
-                if not isinstance(prediction, list | tuple) or len(prediction) != 4:
+                if not isinstance(prediction, (list, tuple)) or len(prediction) != 4:
                     raise ValueError("Surrogate model output must be a sequence of length 4.")
                 predicted_next_state.append(list(prediction))
         except Exception:
@@ -389,12 +389,7 @@ class EvolutionaryEngine:
                 accuracy, speed = self.crucible.evaluate_surrogate_model(model_func)
 
                 # Validate speed is positive and finite
-                if (
-                    not isinstance(speed, int | float)
-                    or speed <= 0
-                    or math.isnan(speed)
-                    or math.isinf(speed)
-                ):
+                if not isinstance(speed, (int, float)) or speed <= 0 or not math.isfinite(speed):
                     logger.warning(f"{civ_id}: Invalid speed value {speed}, using fallback")
                     speed = 999.9  # Fallback to worst-case speed
 
@@ -412,16 +407,36 @@ class EvolutionaryEngine:
                 logger.error(f"Evaluation failed for {civ_id}: {e}")
                 self.civilizations[civ_id]["fitness"] = 0
                 self.civilizations[civ_id]["accuracy"] = 0.0
-                self.civilizations[civ_id]["speed"] = float("inf")
+                self.civilizations[civ_id]["speed"] = 999.9
                 genome.fitness = 0.0
                 genome.accuracy = 0.0
-                genome.speed = float("inf")
+                genome.speed = 999.9
 
             print(
                 f"  Civilization {civ_id}: Fitness={self.civilizations[civ_id]['fitness']:.4f} "
                 f"(Acc={self.civilizations[civ_id]['accuracy']:.4f}, Speed={self.civilizations[civ_id]['speed']:.5f}s) | "
                 f"Genome: {genome.as_readable()}"
             )
+
+        # Record generation history
+        fitness_values = [civ["fitness"] for civ in self.civilizations.values()]
+        generation_data = {
+            "generation": self.generation,
+            "population": [
+                {
+                    "civ_id": civ_id,
+                    "fitness": civ_data["fitness"],
+                    "accuracy": civ_data["accuracy"],
+                    "speed": civ_data["speed"],
+                    "description": civ_data["genome"].description,
+                }
+                for civ_id, civ_data in self.civilizations.items()
+            ],
+            "best_fitness": max(fitness_values) if fitness_values else 0.0,
+            "avg_fitness": sum(fitness_values) / len(fitness_values) if fitness_values else 0.0,
+            "worst_fitness": min(fitness_values) if fitness_values else 0.0,
+        }
+        self.history.append(generation_data)
 
         # Selection
         sorted_civs = sorted(
@@ -454,6 +469,17 @@ class EvolutionaryEngine:
 # Main execution block
 # ------------------------------------------------------------------------------
 if __name__ == "__main__":
+    from datetime import datetime
+    from pathlib import Path
+
+    try:
+        from visualization import export_history_json, generate_all_plots
+
+        VISUALIZATION_AVAILABLE = True
+    except ImportError:
+        VISUALIZATION_AVAILABLE = False
+        logger.warning("Visualization module not available - install matplotlib to enable plots")
+
     # Setup logging
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -537,6 +563,37 @@ if __name__ == "__main__":
         print(f"  Avg cost per call:   ${summary['avg_cost_per_call']:.6f}")
         print(f"  Total API time:      {summary['total_time_s']:.1f}s")
         print(f"  Budget remaining:    ${summary['budget_remaining_usd']:.4f}")
+        print()
+
+    # Generate visualizations and export data
+    if VISUALIZATION_AVAILABLE:
+        try:
+            # Create timestamped output directory
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            output_dir = Path("results") / f"run_{timestamp}"
+            output_dir.mkdir(parents=True, exist_ok=True)
+
+            print(f"Saving results to: {output_dir}")
+
+            # Export history as JSON
+            history_path = output_dir / "evolution_history.json"
+            export_history_json(engine.history, str(history_path))
+            print(f"  ✓ Evolution history saved: {history_path}")
+
+            # Generate all plots
+            generate_all_plots(engine.history, cost_tracker, str(output_dir))
+            print(f"  ✓ Fitness progression plot: {output_dir / 'fitness_progression.png'}")
+            print(f"  ✓ Accuracy vs speed plot: {output_dir / 'accuracy_vs_speed.png'}")
+            if cost_tracker and cost_tracker.calls:
+                print(f"  ✓ Cost progression plot: {output_dir / 'cost_progression.png'}")
+
+            print()
+        except Exception as e:
+            logger.warning(f"Failed to generate visualizations: {e}")
+            print(f"Warning: Could not generate visualizations ({e})")
+    else:
+        print("Skipping visualization generation (matplotlib not available)")
+        print()
         print()
 
     print("=" * 70)
