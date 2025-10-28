@@ -474,6 +474,11 @@ class EvolutionaryEngine:
 # Main execution block
 # ------------------------------------------------------------------------------
 if __name__ == "__main__":
+    from datetime import datetime
+    from pathlib import Path
+
+    from visualization import export_history_json, generate_all_plots
+
     # Setup logging
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -561,11 +566,6 @@ if __name__ == "__main__":
 
     # Generate visualizations and export data
     try:
-        from datetime import datetime
-        from pathlib import Path
-
-        from visualization import export_history_json, generate_all_plots
-
         # Create timestamped output directory
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         output_dir = Path("results") / f"run_{timestamp}"

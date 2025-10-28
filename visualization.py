@@ -14,6 +14,34 @@ from pathlib import Path
 from typing import Any
 
 import matplotlib.pyplot as plt
+from matplotlib.ticker import FuncFormatter
+
+
+def _create_empty_plot(output_path: str, title: str, xlabel: str, ylabel: str) -> None:
+    """
+    Create and save an empty plot with a message for when no data is available.
+
+    Args:
+        output_path: Path where plot image will be saved
+        title: Plot title
+        xlabel: X-axis label
+        ylabel: Y-axis label
+    """
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.text(
+        0.5,
+        0.5,
+        "No evolution data available",
+        ha="center",
+        va="center",
+        transform=ax.transAxes,
+    )
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_title(title)
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(output_path, dpi=300, bbox_inches="tight")
+    plt.close()
 
 
 def plot_fitness_progression(history: list[dict[str, Any]], output_path: str) -> None:
@@ -27,22 +55,12 @@ def plot_fitness_progression(history: list[dict[str, Any]], output_path: str) ->
         output_path: Path where plot image will be saved
     """
     if not history:
-        # Create empty plot with message
-        fig, ax = plt.subplots(figsize=(10, 6))
-        ax.text(
-            0.5,
-            0.5,
-            "No evolution data available",
-            ha="center",
-            va="center",
-            transform=ax.transAxes,
+        _create_empty_plot(
+            output_path,
+            "Fitness Progression Over Generations",
+            "Generation",
+            "Fitness",
         )
-        ax.set_xlabel("Generation")
-        ax.set_ylabel("Fitness")
-        ax.set_title("Fitness Progression Over Generations")
-        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(output_path, dpi=300, bbox_inches="tight")
-        plt.close()
         return
 
     generations = [entry["generation"] for entry in history]
@@ -97,22 +115,12 @@ def plot_accuracy_vs_speed(history: list[dict[str, Any]], output_path: str) -> N
         output_path: Path where plot image will be saved
     """
     if not history:
-        # Create empty plot with message
-        fig, ax = plt.subplots(figsize=(10, 6))
-        ax.text(
-            0.5,
-            0.5,
-            "No evolution data available",
-            ha="center",
-            va="center",
-            transform=ax.transAxes,
+        _create_empty_plot(
+            output_path,
+            "Accuracy vs Speed Trade-off",
+            "Speed (seconds)",
+            "Accuracy",
         )
-        ax.set_xlabel("Speed (seconds)")
-        ax.set_ylabel("Accuracy")
-        ax.set_title("Accuracy vs Speed Trade-off")
-        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(output_path, dpi=300, bbox_inches="tight")
-        plt.close()
         return
 
     # Collect all models from all generations
@@ -136,22 +144,13 @@ def plot_accuracy_vs_speed(history: list[dict[str, Any]], output_path: str) -> N
                     generations.append(entry["generation"])
 
     if not speeds:
-        # No valid data
-        fig, ax = plt.subplots(figsize=(10, 6))
-        ax.text(
-            0.5,
-            0.5,
-            "No valid model data to plot",
-            ha="center",
-            va="center",
-            transform=ax.transAxes,
+        # No valid data - use the same helper but with a different message
+        _create_empty_plot(
+            output_path,
+            "Accuracy vs Speed Trade-off",
+            "Speed (seconds)",
+            "Accuracy",
         )
-        ax.set_xlabel("Speed (seconds)")
-        ax.set_ylabel("Accuracy")
-        ax.set_title("Accuracy vs Speed Trade-off")
-        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(output_path, dpi=300, bbox_inches="tight")
-        plt.close()
         return
 
     fig, ax = plt.subplots(figsize=(12, 7))
@@ -196,22 +195,12 @@ def plot_cost_progression(cost_tracker: Any, output_path: str) -> None:
         output_path: Path where plot image will be saved
     """
     if not cost_tracker or not cost_tracker.calls:
-        # Create empty plot with message
-        fig, ax = plt.subplots(figsize=(10, 6))
-        ax.text(
-            0.5,
-            0.5,
-            "No cost data available",
-            ha="center",
-            va="center",
-            transform=ax.transAxes,
+        _create_empty_plot(
+            output_path,
+            "Cost Progression",
+            "API Call Number",
+            "Cumulative Cost (USD)",
         )
-        ax.set_xlabel("API Call Number")
-        ax.set_ylabel("Cumulative Cost (USD)")
-        ax.set_title("Cost Progression")
-        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(output_path, dpi=300, bbox_inches="tight")
-        plt.close()
         return
 
     # Calculate cumulative costs
@@ -246,7 +235,7 @@ def plot_cost_progression(cost_tracker: Any, output_path: str) -> None:
     ax.grid(True, alpha=0.3)
 
     # Format y-axis to show currency
-    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f"${x:.4f}"))
+    ax.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f"${x:.4f}"))
 
     # Ensure output directory exists
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
