@@ -559,4 +559,36 @@ if __name__ == "__main__":
         print(f"  Budget remaining:    ${summary['budget_remaining_usd']:.4f}")
         print()
 
+    # Generate visualizations and export data
+    try:
+        from datetime import datetime
+        from pathlib import Path
+
+        from visualization import export_history_json, generate_all_plots
+
+        # Create timestamped output directory
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_dir = Path("results") / f"run_{timestamp}"
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        print(f"Saving results to: {output_dir}")
+
+        # Export history as JSON
+        history_path = output_dir / "evolution_history.json"
+        export_history_json(engine.history, str(history_path))
+        print(f"  ✓ Evolution history saved: {history_path}")
+
+        # Generate all plots
+        generate_all_plots(engine.history, cost_tracker, str(output_dir))
+        print(f"  ✓ Fitness progression plot: {output_dir / 'fitness_progression.png'}")
+        print(f"  ✓ Accuracy vs speed plot: {output_dir / 'accuracy_vs_speed.png'}")
+        if cost_tracker and cost_tracker.calls:
+            print(f"  ✓ Cost progression plot: {output_dir / 'cost_progression.png'}")
+
+        print()
+    except Exception as e:
+        logger.warning(f"Failed to generate visualizations: {e}")
+        print(f"Warning: Could not generate visualizations ({e})")
+        print()
+
     print("=" * 70)
