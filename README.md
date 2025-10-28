@@ -64,9 +64,40 @@ python prototype.py
 ### Execution Results
 
 The program outputs:
-- Evaluation results for each generation (fitness, accuracy, speed)
-- Top-performing models
-- LLM usage statistics (token count, cost, success rate)
+- **Console:** Evaluation results for each generation (fitness, accuracy, speed)
+- **Console:** Top-performing models and LLM usage statistics
+- **Files:** Automatically generated visualization and data export
+
+#### Visualization and Data Export
+
+After evolution completes, results are automatically saved to a timestamped directory (`results/run_YYYYMMDD_HHMMSS/`):
+
+1. **evolution_history.json** - Complete evolution history with summary statistics
+   - All generations, populations, fitness values
+   - Best/average/worst fitness per generation
+   - Total models evaluated and best overall fitness
+
+2. **fitness_progression.png** - Line plot showing fitness over generations
+   - Best, average, and worst fitness trends
+   - Identifies improvement/stagnation patterns
+
+3. **accuracy_vs_speed.png** - Scatter plot of accuracy vs speed trade-offs
+   - Each point represents one model from any generation
+   - Color indicates fitness level
+   - Reveals Pareto frontier of speed/accuracy balance
+
+4. **cost_progression.png** - Cumulative cost over API calls
+   - Tracks spending throughout evolution
+   - Helps validate cost estimates
+
+Example output:
+```
+Saving results to: results/run_20251028_113940
+  ✓ Evolution history saved: results/run_20251028_113940/evolution_history.json
+  ✓ Fitness progression plot: results/run_20251028_113940/fitness_progression.png
+  ✓ Accuracy vs speed plot: results/run_20251028_113940/accuracy_vs_speed.png
+  ✓ Cost progression plot: results/run_20251028_113940/cost_progression.png
+```
 
 ### Cost Management
 
@@ -89,9 +120,18 @@ pytest tests/
 
 ## Session Handover
 
-### Last Updated: October 28, 2025 05:15 AM JST
+### Last Updated: October 28, 2025 11:45 AM JST
 
 #### Recently Completed
+- ✅ [Evolution Visualization]: Complete visualization and data export system
+  - **History Tracking**: Records generation data (fitness, accuracy, speed per model)
+  - **JSON Export**: Saves complete evolution history with summary statistics
+  - **Fitness Progression Plot**: Line plot showing best/avg/worst fitness over generations
+  - **Accuracy vs Speed Plot**: Scatter plot revealing speed/accuracy trade-offs
+  - **Cost Progression Plot**: Tracks cumulative API spending
+  - **Auto-save**: Timestamped results directories (`results/run_YYYYMMDD_HHMMSS/`)
+  - **Tests**: 12 history tracking tests + 17 visualization tests (all passing)
+  - **Real API Test**: Verified with 2-gen, 3-pop evolution (all outputs correct)
 - ✅ [Production Run]: First successful end-to-end LLM evolution cycle
   - **Validation Success**: 58/60 code samples validated (96.7% success rate)
   - **Cost**: $0.0223 (within estimated $0.02, 2.2% of budget)
@@ -126,12 +166,7 @@ pytest tests/
    - Context: Simple prompt improvement could reduce failures
    - Approach: Add "Ensure code is complete and syntactically valid" to system instruction
 
-2. **[Visualization]**: Add evolution progress visualization
-   - Source: evolution_analysis.md shows interesting fitness progression
-   - Context: Visual plots would help understand trade-offs
-   - Approach: matplotlib plots for fitness/generation, accuracy/speed scatter
-
-3. **[Code Length Penalty]**: Address token bloat in later generations
+2. **[Code Length Penalty]**: Address token bloat in later generations
    - Source: Generation 4 produced 3,576 token functions (vs 726 in Gen 0)
    - Context: Fitness function doesn't penalize code complexity
    - Approach: Add token count to fitness calculation
