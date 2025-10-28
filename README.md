@@ -112,25 +112,26 @@ pytest tests/
   - Code quality patterns (Euler dominates, adaptive timestep common)
   - Failure analysis (2 syntax errors, both in later generations with complex code)
   - LLM vs mock comparison (LLM 2x better than parametric baseline)
+- ✅ [Integration Tests]: Comprehensive integration test suite added (tests/test_integration.py)
+  - 11 integration tests covering real Gemini API interactions
+  - Tests for code generation, mutation, rate limiting, cost tracking, budget enforcement
+  - Tests for error recovery (invalid API key, validation failures)
+  - Full evolution cycle test (mini evolution with 2 generations, 3 population)
+  - All marked with @pytest.mark.integration for selective execution
 - ✅ [Previous Sessions]: PR #5 (CI/CD infrastructure) and PR #2 (Gemini API integration)
 
 #### Next Priority Tasks
-1. **[Integration Tests]**: Add comprehensive integration tests
-   - Source: Production run revealed patterns to test
-   - Context: Need tests for syntax error recovery, rate limiting, budget enforcement
-   - Approach: Create tests/test_integration.py with @pytest.mark.integration
-
-2. **[Prompt Engineering]**: Reduce syntax error rate from 3.3%
+1. **[Prompt Engineering]**: Reduce syntax error rate from 3.3%
    - Source: Generation 2 and 4 had syntax errors (incomplete code blocks)
    - Context: Simple prompt improvement could reduce failures
    - Approach: Add "Ensure code is complete and syntactically valid" to system instruction
 
-3. **[Visualization]**: Add evolution progress visualization
+2. **[Visualization]**: Add evolution progress visualization
    - Source: evolution_analysis.md shows interesting fitness progression
    - Context: Visual plots would help understand trade-offs
    - Approach: matplotlib plots for fitness/generation, accuracy/speed scatter
 
-4. **[Code Length Penalty]**: Address token bloat in later generations
+3. **[Code Length Penalty]**: Address token bloat in later generations
    - Source: Generation 4 produced 3,576 token functions (vs 726 in Gen 0)
    - Context: Fitness function doesn't penalize code complexity
    - Approach: Add token count to fitness calculation

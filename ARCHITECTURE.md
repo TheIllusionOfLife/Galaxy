@@ -1362,12 +1362,12 @@ The system successfully balances **innovation** (LLM creativity) with **safety**
 ## References
 
 ### File Locations
-- Configuration: `config.py:1-157`
-- Gemini Client: `gemini_client.py:1-311`
-- Code Validator: `code_validator.py:1-243`
-- Prompts: `prompts.py:1-203`
-- Evolution Engine: `prototype.py:1-600+`
-- Tests: `tests/test_config.py:1-182`
+- Configuration: `config.py:1-125`
+- Gemini Client: `gemini_client.py:1-336`
+- Code Validator: `code_validator.py:1-267`
+- Prompts: `prompts.py:1-196`
+- Evolution Engine: `prototype.py:1-542`
+- Tests: `tests/test_config.py:1-204`
 
 ### External Documentation
 - [Gemini API Documentation](https://ai.google.dev/docs)
