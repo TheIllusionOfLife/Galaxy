@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 [tool.setuptools]
-py-modules = ["config", "prototype", "gemini_client", "prompts", "code_validator"]
+py-modules = ["config", "prototype", "gemini_client", "prompts", "code_validator", "visualization"]
 
 [project.optional-dependencies]
 dev = [

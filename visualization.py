@@ -269,11 +269,34 @@ def generate_all_plots(history: list[dict[str, Any]], cost_tracker: Any, output_
         plot_cost_progression(cost_tracker, str(output_path / "cost_progression.png"))
 
 
+def _sanitize_for_json(obj: Any) -> Any:
+    """
+    Recursively sanitize data structure for JSON export.
+
+    Replaces non-finite float values (NaN, Inf, -Inf) with None.
+
+    Args:
+        obj: Object to sanitize (dict, list, or primitive)
+
+    Returns:
+        Sanitized object safe for JSON serialization
+    """
+    if isinstance(obj, dict):
+        return {key: _sanitize_for_json(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [_sanitize_for_json(item) for item in obj]
+    elif isinstance(obj, float):
+        return None if not math.isfinite(obj) else obj
+    else:
+        return obj
+
+
 def export_history_json(history: list[dict[str, Any]], output_path: str) -> None:
     """
     Export evolution history to JSON file.
 
     Saves the complete evolution history along with summary statistics.
+    Non-finite float values (NaN, Inf) are replaced with null for JSON compatibility.
 
     Args:
         history: Evolution history data
@@ -301,11 +324,13 @@ def export_history_json(history: list[dict[str, Any]], output_path: str) -> None
             "total_models_evaluated": 0,
         }
 
-    data = {"history": history, "summary": summary}
+    # Sanitize history to remove non-finite values
+    sanitized_history = _sanitize_for_json(history)
+    data = {"history": sanitized_history, "summary": summary}
 
     # Ensure output directory exists
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 
-    # Write JSON
+    # Write JSON with allow_nan=False to catch any remaining non-finite values
     with open(output_path, "w") as f:
-        json.dump(data, f, indent=2)
+        json.dump(data, f, indent=2, allow_nan=False)

@@ -325,7 +325,7 @@ class CosmologyCrucible:
             predicted_next_state = []
             for particle in initial_state:
                 prediction = model(particle)
-                if not isinstance(prediction, list | tuple) or len(prediction) != 4:
+                if not isinstance(prediction, (list, tuple)) or len(prediction) != 4:
                     raise ValueError("Surrogate model output must be a sequence of length 4.")
                 predicted_next_state.append(list(prediction))
         except Exception:
@@ -389,12 +389,7 @@ class EvolutionaryEngine:
                 accuracy, speed = self.crucible.evaluate_surrogate_model(model_func)
 
                 # Validate speed is positive and finite
-                if (
-                    not isinstance(speed, int | float)
-                    or speed <= 0
-                    or math.isnan(speed)
-                    or math.isinf(speed)
-                ):
+                if not isinstance(speed, (int, float)) or speed <= 0 or not math.isfinite(speed):
                     logger.warning(f"{civ_id}: Invalid speed value {speed}, using fallback")
                     speed = 999.9  # Fallback to worst-case speed
 
@@ -412,10 +407,10 @@ class EvolutionaryEngine:
                 logger.error(f"Evaluation failed for {civ_id}: {e}")
                 self.civilizations[civ_id]["fitness"] = 0
                 self.civilizations[civ_id]["accuracy"] = 0.0
-                self.civilizations[civ_id]["speed"] = float("inf")
+                self.civilizations[civ_id]["speed"] = 999.9
                 genome.fitness = 0.0
                 genome.accuracy = 0.0
-                genome.speed = float("inf")
+                genome.speed = 999.9
 
             print(
                 f"  Civilization {civ_id}: Fitness={self.civilizations[civ_id]['fitness']:.4f} "
