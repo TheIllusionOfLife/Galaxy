@@ -177,7 +177,7 @@ def plot_accuracy_vs_speed(history: list[dict[str, Any]], output_path: str) -> N
     ax.grid(True, alpha=0.3)
 
     # Use log scale for speed if range is large
-    if max(speeds) / min(speeds) > 10:
+    if speeds and min(speeds) > 0 and max(speeds) / min(speeds) > 10:
         ax.set_xscale("log")
 
     # Ensure output directory exists
