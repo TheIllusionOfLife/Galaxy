@@ -53,7 +53,7 @@ class TestGeminiIntegration:
 
         # Track cost
         self.cost_tracker.add_call(response, "test_single_generation")
-        assert self.cost_tracker.total_cost_usd > 0
+        assert self.cost_tracker.total_cost > 0
 
         # Validate generated code
         attractor = [50.0, 50.0]
@@ -162,7 +162,7 @@ class TestGeminiIntegration:
         assert abs(actual_total - expected_total) < 1e-6, "Cost tracking mismatch"
 
         # Check budget remaining
-        assert summary["budget_remaining"] == 1.0 - actual_total
+        assert summary["budget_remaining_usd"] == 1.0 - actual_total
 
     def test_budget_enforcement(self):
         """Test that budget limit prevents overspending."""
@@ -186,7 +186,7 @@ class TestGeminiIntegration:
 
         # Verify that budget was exceeded
         assert tracker.check_budget_exceeded(), "Budget should be exceeded"
-        assert tracker.total_cost_usd >= tiny_budget, "Cost didn't reach budget"
+        assert tracker.total_cost >= tiny_budget, "Cost didn't reach budget"
 
         # Verify we stopped (call_count < 10)
         assert call_count < 10, "Budget enforcement didn't stop calls"
@@ -362,7 +362,7 @@ class TestFullEvolutionCycle:
 
         # Check cost tracking
         summary = tracker.get_summary()
-        assert summary["total_calls"] >= 6  # 3 initial + 3 children
+        assert summary["total_calls"] == 6  # 3 initial + 3 children (exact count)
         assert summary["total_cost_usd"] > 0
         assert not tracker.check_budget_exceeded()
 
