@@ -16,6 +16,7 @@ This project simulates how AI civilizations can discover solutions that surpass 
 
 ### Requirements
 - Python 3.10 or higher
+- [uv](https://docs.astral.sh/uv/) package manager (recommended) or pip
 - Google AI API key (free)
 
 ### Installation Steps
@@ -26,17 +27,28 @@ git clone https://github.com/TheIllusionOfLife/Galaxy.git
 cd Galaxy
 ```
 
-2. **Create and activate virtual environment**
+2. **Install uv (if not already installed)**
 ```bash
-python -m venv .venv
-source .venv/bin/activate  # Linux/Mac
-# .venv\Scripts\activate  # Windows
+# macOS/Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Windows
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+# Alternative: with pip
+pip install uv
 ```
 
 3. **Install dependencies**
 ```bash
-pip install -e .
+# With uv (recommended - faster and more reliable)
+uv sync --extra dev
+
+# Alternative: with pip
+pip install -e ".[dev]"
 ```
+
+**Why uv?** uv is 10-100x faster than pip and provides reproducible installs via `uv.lock`. Dependencies install in seconds instead of minutes.
 
 4. **Configure API key**
 - Get a free API key from [Google AI Studio](https://aistudio.google.com/apikey)
@@ -54,10 +66,11 @@ GOOGLE_API_KEY=your_api_key_here
 ### Basic Execution
 
 ```bash
-# Activate virtual environment (if not already active)
-source .venv/bin/activate
-
 # Run evolutionary optimization
+uv run python prototype.py
+
+# Alternative: with pip/venv (activate virtual environment first)
+source .venv/bin/activate  # if using venv
 python prototype.py
 ```
 
@@ -110,12 +123,19 @@ Saving results to: results/run_20251028_113940
 
 Test API connection:
 ```bash
-python test_gemini_connection.py
+uv run python test_gemini_connection.py
 ```
 
 Run unit tests:
 ```bash
-pytest tests/
+# Run all tests (excluding integration tests)
+uv run pytest tests/ -m "not integration"
+
+# Run all tests including integration tests (requires API key)
+uv run pytest tests/
+
+# Run with coverage
+uv run pytest tests/ --cov --cov-report=html
 ```
 
 ## Session Handover

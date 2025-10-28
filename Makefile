@@ -4,34 +4,34 @@ help:  ## Show this help message
 	@echo "Available commands:"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
-install:  ## Install dependencies including dev tools
-	pip install -e ".[dev]"
-	pre-commit install
+install:  ## Install dependencies with uv (10-100x faster than pip)
+	uv sync --extra dev
+	uv run pre-commit install
 
 format:  ## Format code with Ruff
-	ruff format .
+	uv run ruff format .
 
 lint:  ## Run Ruff linter (with auto-fix)
-	ruff check . --fix
+	uv run ruff check . --fix
 
 typecheck:  ## Run Mypy type checker on critical modules
-	mypy code_validator.py gemini_client.py config.py
+	uv run mypy code_validator.py gemini_client.py config.py
 
 test:  ## Run tests with coverage
-	pytest tests/ --cov=. --cov-report=term-missing --cov-report=html
+	uv run pytest tests/ --cov=. --cov-report=term-missing --cov-report=html
 
 test-fast:  ## Run tests without integration tests
-	pytest tests/ -m "not integration" --cov=. --cov-report=term-missing
+	uv run pytest tests/ -m "not integration" --cov=. --cov-report=term-missing
 
 check:  ## Run all checks (format, lint, typecheck, test)
 	@echo "Running format check..."
-	ruff format --check .
+	uv run ruff format --check .
 	@echo "\nRunning linter..."
-	ruff check .
+	uv run ruff check .
 	@echo "\nRunning type checker..."
-	mypy code_validator.py gemini_client.py config.py
+	uv run mypy code_validator.py gemini_client.py config.py
 	@echo "\nRunning tests..."
-	pytest tests/ --cov=. --cov-report=term-missing
+	uv run pytest tests/ -m "not integration" --cov=. --cov-report=term-missing
 
 clean:  ## Remove cache and generated files
 	rm -rf __pycache__ .pytest_cache .mypy_cache .ruff_cache .coverage htmlcov
@@ -40,4 +40,4 @@ clean:  ## Remove cache and generated files
 	find . -type f -name "*.pyo" -delete
 
 run:  ## Run the evolution prototype
-	python prototype.py
+	uv run python prototype.py
