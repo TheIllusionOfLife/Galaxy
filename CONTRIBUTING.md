@@ -6,6 +6,7 @@ Thank you for your interest in contributing to Galaxy! This document provides gu
 
 ### Prerequisites
 - Python 3.10 or higher
+- [uv](https://docs.astral.sh/uv/) package manager (recommended) or pip
 - Git
 - Google AI API key (free tier available at [Google AI Studio](https://aistudio.google.com/apikey))
 
@@ -17,20 +18,27 @@ Thank you for your interest in contributing to Galaxy! This document provides gu
    cd Galaxy
    ```
 
-2. **Create and activate virtual environment**
+2. **Install uv (if not already installed)**
    ```bash
-   python -m venv .venv
-   source .venv/bin/activate  # Linux/Mac
-   # .venv\Scripts\activate  # Windows
+   # macOS/Linux
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+
+   # Windows
+   powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+   # Alternative: with pip
+   pip install uv
    ```
 
 3. **Install dependencies**
    ```bash
    make install
    # Or manually:
-   pip install -e ".[dev]"
+   uv sync
    pre-commit install
    ```
+
+   **Why uv?** uv is 10-100x faster than pip, provides reproducible installs via `uv.lock`, and automatically manages virtual environments.
 
 4. **Configure API key**
    ```bash
@@ -126,15 +134,20 @@ make test
 
 # Run without integration tests (faster)
 make test-fast
+
+# Or manually with uv:
+uv run pytest tests/ -m "not integration"  # Fast
+uv run pytest tests/                        # All tests
+uv run pytest tests/ --cov --cov-report=html  # With coverage
 ```
 
 ### Test Markers
-- `@pytest.mark.integration` - Integration tests (may use real API)
-- `@pytest.mark.slow` - Slow-running tests
+- `@pytest.mark.integration` - Integration tests (use real API, require API key)
+- `@pytest.mark.slow` - Slow-running tests (>5 seconds)
 
 Skip integration tests during development:
 ```bash
-pytest -m "not integration"
+uv run pytest -m "not integration"
 ```
 
 ## Project Structure
@@ -198,8 +211,8 @@ Look for issues labeled:
 ### Running the Evolution
 ```bash
 make run
-# Or:
-python prototype.py
+# Or with uv:
+uv run python prototype.py
 ```
 
 ### Cleaning Cache Files
@@ -215,6 +228,18 @@ make help
 ### Running Pre-commit Manually
 ```bash
 pre-commit run --all-files
+```
+
+### Quick Quality Check
+```bash
+# Run all checks before committing
+make check
+
+# Or individually:
+make format      # Auto-format code
+make lint        # Check for issues
+make typecheck   # Type check critical files
+make test-fast   # Run fast tests
 ```
 
 ## Security Considerations
