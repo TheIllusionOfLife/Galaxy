@@ -423,6 +423,26 @@ class EvolutionaryEngine:
                 f"Genome: {genome.as_readable()}"
             )
 
+        # Record generation history
+        fitness_values = [civ["fitness"] for civ in self.civilizations.values()]
+        generation_data = {
+            "generation": self.generation,
+            "population": [
+                {
+                    "civ_id": civ_id,
+                    "fitness": civ_data["fitness"],
+                    "accuracy": civ_data["accuracy"],
+                    "speed": civ_data["speed"],
+                    "description": civ_data["genome"].description,
+                }
+                for civ_id, civ_data in self.civilizations.items()
+            ],
+            "best_fitness": max(fitness_values) if fitness_values else 0.0,
+            "avg_fitness": sum(fitness_values) / len(fitness_values) if fitness_values else 0.0,
+            "worst_fitness": min(fitness_values) if fitness_values else 0.0,
+        }
+        self.history.append(generation_data)
+
         # Selection
         sorted_civs = sorted(
             self.civilizations.items(), key=lambda item: item[1].get("fitness", 0), reverse=True
