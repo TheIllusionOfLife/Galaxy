@@ -88,8 +88,11 @@ class TestVisualizationIntegration:
             "evolution_history.json",
             "fitness_progression.png",
             "accuracy_vs_speed.png",
-            "cost_progression.png",
         ]
+
+        # cost_progression.png only generated if API calls succeeded
+        if cost_tracker and cost_tracker.calls:
+            required_files.append("cost_progression.png")
 
         for filename in required_files:
             filepath = output_dir / filename

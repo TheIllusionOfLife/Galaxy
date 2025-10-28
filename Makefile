@@ -6,7 +6,7 @@ help:  ## Show this help message
 
 install:  ## Install dependencies with uv (10-100x faster than pip)
 	uv sync --extra dev
-	pre-commit install
+	uv run pre-commit install
 
 format:  ## Format code with Ruff
 	uv run ruff format .
@@ -31,7 +31,7 @@ check:  ## Run all checks (format, lint, typecheck, test)
 	@echo "\nRunning type checker..."
 	uv run mypy code_validator.py gemini_client.py config.py
 	@echo "\nRunning tests..."
-	uv run pytest tests/ --cov=. --cov-report=term-missing
+	uv run pytest tests/ -m "not integration" --cov=. --cov-report=term-missing
 
 clean:  ## Remove cache and generated files
 	rm -rf __pycache__ .pytest_cache .mypy_cache .ruff_cache .coverage htmlcov
