@@ -120,10 +120,10 @@ pytest tests/
 
 ## Session Handover
 
-### Last Updated: October 28, 2025 11:45 AM JST
+### Last Updated: October 28, 2025 03:04 PM JST
 
 #### Recently Completed
-- ✅ [Evolution Visualization]: Complete visualization and data export system
+- ✅ [PR #8 - Evolution Visualization]: Merged comprehensive visualization and data export system
   - **History Tracking**: Records generation data (fitness, accuracy, speed per model)
   - **JSON Export**: Saves complete evolution history with summary statistics
   - **Fitness Progression Plot**: Line plot showing best/avg/worst fitness over generations
@@ -187,3 +187,8 @@ pytest tests/
 - **Failure Modes**: Syntax errors occur in later generations with complex code (incomplete blocks, missing parens)
 - **Cost Accuracy**: Estimated $0.02, actual $0.0223 (+11.5%) - close enough for planning
 - **Architecture Documentation**: Comprehensive ARCHITECTURE.md essential for contributor onboarding
+- **PR Review Process**: Systematic /fix_pr_graphql workflow caught 10 issues (4 critical) across 4 reviewers
+- **Python 3.10 Compatibility**: isinstance() union syntax (`list | tuple`) incompatible with 3.10 - use tuple form
+- **JSON Standards**: NaN/Inf values produce non-standard JSON; sanitize recursively with null replacement
+- **Package Declaration**: visualization.py module required explicit py-modules declaration for installation
+- **Defensive Programming**: Add safety checks even when data is pre-filtered (division by zero, finiteness)
