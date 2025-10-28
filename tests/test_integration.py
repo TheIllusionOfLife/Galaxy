@@ -290,6 +290,99 @@ def predict(particle, attractor):
 
 @pytest.mark.integration
 @pytest.mark.slow
+class TestSyntaxErrorRate:
+    """Test that LLM syntax error rate is below 1%."""
+
+    def test_syntax_error_rate_below_threshold(self):
+        """Test that syntax error rate is below 1% across multiple generations.
+
+        This test validates the effectiveness of prompt engineering improvements
+        that reduce incomplete code generation (missing brackets, truncated code).
+
+        Target: <1% syntax error rate (down from historical 3.3%)
+        Cost: ~$0.01 (20 API calls)
+        """
+        client = GeminiClient(
+            api_key=settings.google_api_key,
+            model=settings.llm_model,
+            temperature=settings.temperature,
+            max_output_tokens=settings.max_output_tokens,
+            enable_rate_limiting=False,  # Faster for tests
+        )
+
+        attractor = [50.0, 50.0]
+        total_attempts = 20
+        syntax_errors = 0
+        validation_errors = []
+
+        # Test Phase 1: Initial generation (explore phase, temperature 1.0)
+        # This tests diverse approaches with high creativity
+        for seed in range(10):
+            prompt = get_initial_prompt(seed=seed % 6)
+            response = client.generate_surrogate_code(prompt)
+
+            if response.success and response.code:
+                _, validation = validate_and_compile(response.code, attractor)
+                if not validation.valid:
+                    # Check if it's specifically a syntax error
+                    for error in validation.errors:
+                        if "Syntax error" in error or "SyntaxError" in error:
+                            syntax_errors += 1
+                            validation_errors.append(f"Initial Gen (seed={seed % 6}): {error}")
+                            break
+
+        # Test Phase 2: Mutation generation (exploit phase, temperature 0.6)
+        # This tests refinement mode where historical errors occurred (Gen 3-4)
+        parent_code = """def predict(particle, attractor):
+    # Simple baseline - will be mutated
+    x, y, vx, vy = particle
+    ax, ay = attractor
+    dx = ax - x
+    dy = ay - y
+    r_squared = dx * dx + dy * dy + 0.1
+    force = 1.0 / r_squared
+    return [x + vx * 0.01, y + vy * 0.01, vx + dx * force * 0.01, vy + dy * force * 0.01]
+"""
+
+        for gen in range(10):
+            prompt = get_mutation_prompt(
+                parent_code=parent_code,
+                fitness=15000.0,
+                accuracy=0.89,
+                speed=0.00005,
+                generation=gen + 3,  # Simulate later generation (exploitation phase)
+                mutation_type="exploit",  # Refinement mode where errors occurred
+            )
+            response = client.generate_surrogate_code(prompt)
+
+            if response.success and response.code:
+                _, validation = validate_and_compile(response.code, attractor)
+                if not validation.valid:
+                    # Check if it's specifically a syntax error
+                    for error in validation.errors:
+                        if "Syntax error" in error or "SyntaxError" in error:
+                            syntax_errors += 1
+                            validation_errors.append(f"Exploit Gen {gen + 3}: {error}")
+                            break
+
+        # Calculate error rate
+        error_rate = syntax_errors / total_attempts
+
+        # Log results for debugging
+        if syntax_errors > 0:
+            print(f"\nSyntax Errors Found ({syntax_errors}/{total_attempts}):")
+            for err in validation_errors:
+                print(f"  - {err}")
+
+        # Assert: Error rate must be below 1%
+        assert error_rate < 0.01, (
+            f"Syntax error rate {error_rate:.1%} ({syntax_errors}/{total_attempts}) "
+            f"exceeds 1% threshold. Errors: {validation_errors}"
+        )
+
+
+@pytest.mark.integration
+@pytest.mark.slow
 class TestFullEvolutionCycle:
     """Test complete evolution cycle (slow, uses many API calls)."""
 

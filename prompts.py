@@ -29,7 +29,24 @@ CRITICAL REQUIREMENTS:
    - FORBIDDEN: import statements, loops over large arrays, recursion, file I/O
    - Fast and simple (will be called 50 times per evaluation)
 
-6. Output ONLY the Python code with the predict function, NO import statements, NO markdown, NO explanations."""
+6. CODE COMPLETENESS (CRITICAL - READ CAREFULLY):
+   - ALWAYS generate COMPLETE, syntactically VALID Python code with NO syntax errors
+   - BEFORE finishing, count ALL opening and closing brackets to ensure they match: ( ) [ ] { }
+   - VERIFY the function has a proper return statement at the very end
+   - DO NOT truncate code, leave brackets unclosed, or create incomplete expressions
+   - If generating long/complex code (>2000 characters), PAUSE and verify completeness
+   - FORBIDDEN: Incomplete code, unmatched brackets, missing return statements
+   - If you're unsure, generate SIMPLER code that you KNOW is syntactically complete
+
+7. Output format (CRITICAL):
+   - Output ONLY raw Python code - NO other text
+   - NO import statements (math module is already available)
+   - NO markdown formatting (no ```python, no ```, no backticks)
+   - NO explanatory text, NO comments outside the function
+   - NO incomplete or placeholder code
+   - Start directly with "def predict" - nothing before it
+   - End with the return statement - nothing after it
+   - The output must be directly executable Python code with ZERO syntax errors"""
 
 
 def get_initial_prompt(seed: int) -> str:
@@ -140,6 +157,23 @@ Performance analysis:
 {chr(10).join(f"  {item}" for item in perf_analysis)}
 """
 
+    # Extra reminder for code completeness (especially important in exploit phase)
+    completion_reminder = """
+CRITICAL - Final Verification Before Submitting:
+You MUST verify these items BEFORE finishing (this prevents syntax errors):
+
+✓ Count brackets: ALL opening ( [ { MUST have matching closing ) ] }
+✓ Return statement: The function MUST end with "return [new_x, new_y, new_vx, new_vy]"
+✓ All blocks closed: Every if/for/while MUST have proper closing and indentation
+✓ No truncation: The code MUST be complete - no "..." or incomplete lines
+✓ Zero syntax errors: The code must parse as valid Python
+
+SPECIAL WARNING for long/complex code:
+- If your code is >2000 characters, PAUSE and verify completeness twice
+- When in doubt, generate SIMPLER code that you KNOW is complete
+- One syntax error = complete failure; completeness is MORE important than cleverness
+"""
+
     return f"""{SYSTEM_INSTRUCTION}
 
 TASK: Improve this surrogate model (Generation {generation + 1})
@@ -153,6 +187,8 @@ PARENT CODE:
 
 MUTATION STRATEGY:
 {strategy}
+
+{completion_reminder}
 
 Generate improved code that maintains the predict(particle, attractor) signature and returns [new_x, new_y, new_vx, new_vy]."""
 

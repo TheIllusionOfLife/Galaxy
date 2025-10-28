@@ -180,6 +180,8 @@ def LLM_propose_surrogate_model(
 
     # Generate prompt
     try:
+        temp_override = None  # Initialize temperature override
+
         if base_genome is None or base_genome.raw_code is None:
             # Initial generation - use diverse approaches
             seed = generation * 100 + random.randint(0, 99)
@@ -203,9 +205,7 @@ def LLM_propose_surrogate_model(
             )
 
         # Call Gemini with adaptive temperature
-        response = gemini_client.generate_surrogate_code(
-            prompt, temperature=temp_override if base_genome is not None else None
-        )
+        response = gemini_client.generate_surrogate_code(prompt, temperature=temp_override)
 
         # Track cost
         if cost_tracker:
