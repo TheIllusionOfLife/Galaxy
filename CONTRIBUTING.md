@@ -34,7 +34,7 @@ Thank you for your interest in contributing to Galaxy! This document provides gu
    ```bash
    make install
    # Or manually:
-   uv sync
+   uv sync --extra dev
    pre-commit install
    ```
 

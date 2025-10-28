@@ -42,10 +42,10 @@ pip install uv
 3. **Install dependencies**
 ```bash
 # With uv (recommended - faster and more reliable)
-uv sync
+uv sync --extra dev
 
 # Alternative: with pip
-pip install -e .
+pip install -e ".[dev]"
 ```
 
 **Why uv?** uv is 10-100x faster than pip and provides reproducible installs via `uv.lock`. Dependencies install in seconds instead of minutes.
