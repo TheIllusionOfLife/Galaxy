@@ -122,7 +122,7 @@ class TestVisualizationIntegration:
             assert len(gen_data["population"]) == population_size
 
             for model in gen_data["population"]:
-                assert "civilization_id" in model
+                assert "civ_id" in model
                 assert "fitness" in model
                 assert "accuracy" in model
                 assert "speed" in model
