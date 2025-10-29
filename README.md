@@ -189,7 +189,7 @@ uv run pytest tests/ --cov --cov-report=html
     - 98.3% LLM success rate (59/60)
     - Token tracking functional, no performance degradation
   - **Review Fixes**: Addressed 4 reviewers (claude, codex, gemini, coderabbit)
-    - CRITICAL: Removed exposed API key (.env.backup)
+    - CRITICAL: Removed exposed API key (.env.backup) - ✅ Resolved (key revoked and regenerated)
     - Code: Simplified token counting, removed redundant checks
     - Tests: Made assertions exact, implemented empty integration test
   - **Status**: ✅ Merged, ready for comparative testing with penalty enabled
@@ -223,9 +223,6 @@ uv run pytest tests/ --cov --cov-report=html
    - Goal: Validate penalty reduces token growth without harming fitness
 
 #### Known Issues / Blockers
-- ⚠️ **SECURITY**: Exposed API key must be revoked by user
-  - Key: `API_KEY_REDACTED` (removed from .env.backup in commit e8f9c51)
-  - Action: User must revoke the exposed key at [Google AI Studio](https://aistudio.google.com/apikey) and regenerate a new one
 - **Non-monotonic Fitness**: Fitness fluctuates between generations (not guaranteed to improve)
   - Expected behavior during exploration phase, not a bug
 
