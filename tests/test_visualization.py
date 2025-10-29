@@ -34,6 +34,7 @@ class TestVisualizationFunctions:
                         "accuracy": 0.95,
                         "speed": 0.000095,
                         "description": "mock_gen0_0",
+                        "token_count": 150,
                     },
                     {
                         "civ_id": "civ_0_1",
@@ -41,6 +42,7 @@ class TestVisualizationFunctions:
                         "accuracy": 0.96,
                         "speed": 0.00008,
                         "description": "mock_gen0_1",
+                        "token_count": 200,
                     },
                     {
                         "civ_id": "civ_0_2",
@@ -48,6 +50,7 @@ class TestVisualizationFunctions:
                         "accuracy": 0.94,
                         "speed": 0.000085,
                         "description": "mock_gen0_2",
+                        "token_count": 175,
                     },
                 ],
                 "best_fitness": 12000.0,
@@ -63,6 +66,7 @@ class TestVisualizationFunctions:
                         "accuracy": 0.97,
                         "speed": 0.000065,
                         "description": "mock_gen1_0",
+                        "token_count": 250,
                     },
                     {
                         "civ_id": "civ_1_1",
@@ -70,6 +74,7 @@ class TestVisualizationFunctions:
                         "accuracy": 0.96,
                         "speed": 0.000069,
                         "description": "mock_gen1_1",
+                        "token_count": 300,
                     },
                     {
                         "civ_id": "civ_1_2",
@@ -77,6 +82,7 @@ class TestVisualizationFunctions:
                         "accuracy": 0.95,
                         "speed": 0.000073,
                         "description": "mock_gen1_2",
+                        "token_count": 275,
                     },
                 ],
                 "best_fitness": 15000.0,
@@ -348,3 +354,76 @@ class TestVisualizationFunctions:
         # Should not crash, may skip inf values
         plot_fitness_progression(bad_history, str(output_path))
         assert output_path.exists()
+
+    def test_plot_token_progression_creates_file(self, tmp_path):
+        """Test that token progression plot is created."""
+        from visualization import plot_token_progression
+
+        output_path = tmp_path / "token_progression.png"
+        plot_token_progression(self.mock_history, str(output_path))
+
+        assert output_path.exists(), "Token plot file should be created"
+        assert output_path.stat().st_size > 0, "Token plot file should not be empty"
+
+    def test_plot_token_progression_with_missing_token_data(self, tmp_path):
+        """Test token plot handles missing token_count field (backward compatibility)."""
+        from visualization import plot_token_progression
+
+        # History without token_count field (old format)
+        old_history = [
+            {
+                "generation": 0,
+                "population": [
+                    {
+                        "civ_id": "civ_0_0",
+                        "fitness": 10000.0,
+                        "accuracy": 0.95,
+                        "speed": 0.000095,
+                        "description": "old_model",
+                        # No token_count field
+                    }
+                ],
+                "best_fitness": 10000.0,
+                "avg_fitness": 10000.0,
+                "worst_fitness": 10000.0,
+            }
+        ]
+
+        output_path = tmp_path / "token_old_format.png"
+        # Should handle missing data gracefully (default to 0)
+        plot_token_progression(old_history, str(output_path))
+        assert output_path.exists()
+
+    def test_plot_token_progression_with_empty_history(self, tmp_path):
+        """Test token plot with empty history."""
+        from visualization import plot_token_progression
+
+        empty_history = []
+        output_path = tmp_path / "token_empty.png"
+
+        # Should create empty plot message, not crash
+        plot_token_progression(empty_history, str(output_path))
+        assert output_path.exists()
+
+    def test_plot_token_progression_single_generation(self, tmp_path):
+        """Test token plot works with single generation."""
+        from visualization import plot_token_progression
+
+        single_gen = [self.mock_history[0]]
+        output_path = tmp_path / "token_single_gen.png"
+
+        plot_token_progression(single_gen, str(output_path))
+        assert output_path.exists()
+
+    def test_generate_all_plots_includes_token_plot(self, tmp_path):
+        """Test that generate_all_plots creates token progression plot."""
+        from visualization import generate_all_plots
+
+        output_dir = tmp_path / "results"
+        generate_all_plots(self.mock_history, self.mock_cost_tracker, str(output_dir))
+
+        # Check token plot exists alongside other plots
+        assert (output_dir / "token_progression.png").exists()
+        assert (output_dir / "fitness_progression.png").exists()
+        assert (output_dir / "accuracy_vs_speed.png").exists()
+        assert (output_dir / "cost_progression.png").exists()

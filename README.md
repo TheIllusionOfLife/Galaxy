@@ -99,7 +99,12 @@ After evolution completes, results are automatically saved to a timestamped dire
    - Color indicates fitness level
    - Reveals Pareto frontier of speed/accuracy balance
 
-4. **cost_progression.png** - Cumulative cost over API calls
+4. **token_progression.png** - Code length evolution over generations
+   - Average, maximum, and minimum token counts per generation
+   - Individual model scatter overlay colored by fitness
+   - Monitors code bloat and validates length penalty effectiveness
+
+5. **cost_progression.png** - Cumulative cost over API calls
    - Tracks spending throughout evolution
    - Helps validate cost estimates
 
@@ -109,6 +114,7 @@ Saving results to: results/run_20251028_113940
   ✓ Evolution history saved: results/run_20251028_113940/evolution_history.json
   ✓ Fitness progression plot: results/run_20251028_113940/fitness_progression.png
   ✓ Accuracy vs speed plot: results/run_20251028_113940/accuracy_vs_speed.png
+  ✓ Token progression plot: results/run_20251028_113940/token_progression.png
   ✓ Cost progression plot: results/run_20251028_113940/cost_progression.png
 ```
 

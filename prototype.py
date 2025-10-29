@@ -641,6 +641,7 @@ if __name__ == "__main__":
             generate_all_plots(engine.history, cost_tracker, str(output_dir))
             print(f"  ✓ Fitness progression plot: {output_dir / 'fitness_progression.png'}")
             print(f"  ✓ Accuracy vs speed plot: {output_dir / 'accuracy_vs_speed.png'}")
+            print(f"  ✓ Token progression plot: {output_dir / 'token_progression.png'}")
             if cost_tracker and cost_tracker.calls:
                 print(f"  ✓ Cost progression plot: {output_dir / 'cost_progression.png'}")
 
