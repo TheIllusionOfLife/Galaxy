@@ -381,11 +381,13 @@ class EvolutionaryEngine:
         self,
         crucible: CosmologyCrucible,
         population_size: int = 10,
+        elite_ratio: float = 0.2,
         gemini_client: Optional["GeminiClient"] = None,
         cost_tracker: Optional["CostTracker"] = None,
     ):
         self.crucible = crucible
         self.population_size = population_size
+        self.elite_ratio = elite_ratio
         self.civilizations: dict[str, dict] = {}
         self.generation = 0
         self.gemini_client = gemini_client
@@ -499,7 +501,7 @@ class EvolutionaryEngine:
         sorted_civs = sorted(
             self.civilizations.items(), key=lambda item: item[1].get("fitness", 0), reverse=True
         )
-        num_elites = max(1, int(self.population_size * 0.2))
+        num_elites = max(1, int(self.population_size * self.elite_ratio))
         elites = sorted_civs[:num_elites]
 
         print(
@@ -583,6 +585,7 @@ if __name__ == "__main__":
     engine = EvolutionaryEngine(
         crucible,
         population_size=POPULATION_SIZE,
+        elite_ratio=settings.elite_ratio,
         gemini_client=gemini_client,
         cost_tracker=cost_tracker,
     )
