@@ -140,24 +140,27 @@ uv run pytest tests/ --cov --cov-report=html
 
 ## Session Handover
 
-### Last Updated: October 29, 2025 09:20 AM JST
+### Last Updated: October 29, 2025 10:39 AM JST
 
 #### Recently Completed
-- ✅ **[Code Length Penalty Implementation]**: Fully implemented and tested with real API
-  - **Feature**: Token counting and fitness penalty system to prevent code bloat
+- ✅ **[PR #14 - Code Length Penalty System]**: Complete TDD implementation merged to main
+  - **Problem**: Token bloat in later generations (Gen 0: 1,038 → Gen 3-4: 2,271 avg tokens, +119%)
+  - **Solution**: Configurable fitness penalty system to discourage unnecessarily long code
   - **Implementation**:
-    - Added `count_tokens()` function for whitespace-based tokenization
-    - Added `token_count` field to SurrogateGenome dataclass
-    - Integrated penalty calculation into evaluation cycle
-    - Updated history tracking to include token counts
-  - **Configuration**: 3 new settings (enable_code_length_penalty, code_length_penalty_weight, max_acceptable_tokens)
-  - **Testing**: 12 unit tests (all passing) + baseline evolution run with real API
-  - **Baseline Results** (Penalty Disabled):
-    - Gen 0: 158-747 tokens (avg 284)
-    - Gen 1-4: 155-573 tokens (avg 247)
-    - System correctly tracks token counts across all generations
-    - No performance degradation observed
-  - **Status**: Ready for comparative testing with penalty enabled
+    - Token counting: `count_tokens()` function (whitespace-based, noted for tiktoken upgrade)
+    - Fitness penalty: Linear penalty with 10% floor, only applied above threshold (2000 tokens)
+    - Configuration: 3 new settings (enable, weight, threshold) with defaults
+    - History tracking: Added `token_count` to evolution JSON for analysis
+  - **Testing**: 12 unit tests + integration test + real API validation
+  - **Baseline Results** (Penalty Disabled, 60 API calls, $0.02):
+    - Gen 0-4 tokens: 158-747 range, avg 247 tokens
+    - 98.3% LLM success rate (59/60)
+    - Token tracking functional, no performance degradation
+  - **Review Fixes**: Addressed 4 reviewers (claude, codex, gemini, coderabbit)
+    - CRITICAL: Removed exposed API key (.env.backup)
+    - Code: Simplified token counting, removed redundant checks
+    - Tests: Made assertions exact, implemented empty integration test
+  - **Status**: ✅ Merged, ready for comparative testing with penalty enabled
 - ✅ [PR #12 - Prompt Engineering & Test Threshold]: Merged syntax error reduction improvements
   - **Achievement**: Reduced LLM syntax error rate by 49% (3.3% → 1.67%)
   - **Review Fix**: Adjusted test threshold from <1% to <2% based on statistical sample size
@@ -188,13 +191,29 @@ uv run pytest tests/ --cov --cov-report=html
    - Goal: Validate penalty reduces token growth without harming fitness
 
 #### Known Issues / Blockers
-- None currently - system validated as production-ready
-- **Token Growth**: Later generations produce increasingly complex code (avg 2,271 tokens in Gen 3-4 vs 1,038 in Gen 0)
-  - Acceptable for now, but may need fitness penalty for code length
+- ⚠️ **SECURITY**: Exposed API key must be revoked by user
+  - Key: `AIzaSyAbz_6NGKzJgmslz-4TF9KkQ1Oq_wKm07Y` (removed from .env.backup in commit e8f9c51)
+  - Action: User must revoke at https://aistudio.google.com/apikey and regenerate
 - **Non-monotonic Fitness**: Fitness fluctuates between generations (not guaranteed to improve)
   - Expected behavior during exploration phase, not a bug
 
 #### Session Learnings
+- **TDD Integration Test Implementation**: Empty tests with `pass` should be implemented or removed
+  - Anti-pattern: Placeholder tests that don't validate behavior
+  - Solution: Either implement with mock data validation or remove entirely
+  - PR #14 example: Implemented penalty calculation validation test
+- **Security Review Priority**: API keys, credentials, secrets take absolute precedence
+  - Even one exposed key blocks merge regardless of feature quality
+  - Check for .env*, *.backup, *.bak files before committing
+  - Git remove immediately, then revoke/regenerate keys
+- **Code Simplification from AI Review**: Trust AI suggestions for redundant code
+  - Gemini correctly identified redundant list comprehension in token counting
+  - Redundant checks (settings, token_count > 0) can be removed if logic handles edge cases
+  - Simpler code is more maintainable and often faster
+- **Test Assertion Precision**: Exact assertions > Range assertions
+  - Range assertions (e.g., `assert 50 < tokens < 150`) hide actual expected values
+  - Exact assertions (`assert tokens == 86`) document intended behavior
+  - Narrow ranges (`assert 80 <= tokens <= 90`) acceptable for LLM/approximation variance
 - **Prompt Engineering for Code Completeness**: Explicit bracket counting and completeness verification reduces syntax errors
   - Key technique: "Count ALL opening ( [ { MUST have matching closing ) ] }" instruction
   - Special warning for long code (>2000 chars) prevents truncation
