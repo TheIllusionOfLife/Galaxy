@@ -290,6 +290,7 @@ class TestPenaltyInEvolution:
         assert expected_factor < 1.0, "Long code should have penalty factor < 1.0"
         assert expected_factor >= 0.1, "Penalty factor should respect 10% floor"
 
+    @pytest.mark.integration
     @pytest.mark.skipif(
         not os.getenv("GOOGLE_API_KEY") or os.getenv("GOOGLE_API_KEY") == "your_api_key_here",
         reason="Requires valid GOOGLE_API_KEY",
@@ -299,6 +300,9 @@ class TestPenaltyInEvolution:
 
         This is a comprehensive integration test that runs mini evolution cycles
         with different penalty weights and verifies the expected behavior.
+
+        Note: monkeypatch.setenv() works correctly with Settings.load_from_yaml()
+        because environment variables have highest priority in the config loading hierarchy.
         """
         from config import Settings
         from gemini_client import CostTracker, GeminiClient
@@ -364,7 +368,12 @@ class TestPenaltyInEvolution:
         # Verify penalty effect: higher weight → lower tokens (statistically)
         # Note: With small sample size, this is a trend check, not strict ordering
         if len(results[0.0]["token_counts"]) > 0 and len(results[0.2]["token_counts"]) > 0:
-            # At minimum, verify penalty doesn't increase token count significantly
+            # REGRESSION TEST (not effectiveness test):
+            # This assertion verifies penalty doesn't BACKFIRE (increase tokens),
+            # not that it's optimally effective. Real-world validation shows the
+            # threshold (2000) is too high for typical models (300-400 tokens),
+            # so we only test for "no harm" here. Effectiveness testing requires
+            # lowering threshold to 400 (see results/penalty_comparison_20251030.md).
             max_allowed = results[0.0]["avg_tokens"] * 1.2
             assert results[0.2]["avg_tokens"] <= max_allowed, (
                 f"High penalty should not significantly increase token count. "
