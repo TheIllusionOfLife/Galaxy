@@ -83,6 +83,23 @@ class Settings(BaseSettings):
         0.6, ge=0.0, le=2.0, description="Low temperature for late generations (exploitation)"
     )
 
+    # Code Length Penalty (prevent token bloat in later generations)
+    enable_code_length_penalty: bool = Field(
+        True, description="Enable fitness penalty for long code to prevent bloat"
+    )
+    code_length_penalty_weight: float = Field(
+        0.1,
+        ge=0.0,
+        le=1.0,
+        description="Penalty weight (0.0 = no penalty, 1.0 = maximum penalty)",
+    )
+    max_acceptable_tokens: int = Field(
+        2000,
+        ge=100,
+        le=10000,
+        description="Token count threshold before penalty applies",
+    )
+
     @property
     def total_requests_needed(self) -> int:
         """Calculate total LLM calls needed for one complete evolution run.
