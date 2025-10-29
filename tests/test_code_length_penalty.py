@@ -83,15 +83,7 @@ class TestPenaltyCalculation:
 
     def test_no_penalty_below_threshold(self):
         """Code below threshold should not be penalized."""
-        from config import Settings
-
-        # Create test settings
-        settings = Settings(
-            google_api_key="test_key",
-            enable_code_length_penalty=True,
-            code_length_penalty_weight=0.1,
-            max_acceptable_tokens=2000,
-        )
+        from config import settings  # Load from config.yaml
 
         # Test: 1500 tokens (below 2000 threshold)
         token_count = 1500
@@ -113,14 +105,7 @@ class TestPenaltyCalculation:
 
     def test_penalty_above_threshold(self):
         """Code above threshold should be penalized."""
-        from config import Settings
-
-        settings = Settings(
-            google_api_key="test_key",
-            enable_code_length_penalty=True,
-            code_length_penalty_weight=0.1,
-            max_acceptable_tokens=2000,
-        )
+        from config import settings  # Load from config.yaml
 
         # Test: 3000 tokens (1000 excess)
         token_count = 3000
@@ -142,14 +127,7 @@ class TestPenaltyCalculation:
 
     def test_penalty_scales_linearly(self):
         """Penalty should scale linearly with excess tokens."""
-        from config import Settings
-
-        settings = Settings(
-            google_api_key="test_key",
-            enable_code_length_penalty=True,
-            code_length_penalty_weight=0.1,
-            max_acceptable_tokens=2000,
-        )
+        from config import settings  # Load from config.yaml
 
         test_cases = [
             (2000, 1.0),  # At threshold - no penalty
@@ -169,16 +147,12 @@ class TestPenaltyCalculation:
                 f"Token {token_count}: expected {expected_factor}, got {factor}"
             )
 
-    def test_penalty_minimum_floor(self):
+    def test_penalty_minimum_floor(self, monkeypatch):
         """Penalty should not reduce fitness below 10% of base."""
-        from config import Settings
+        from config import settings  # Load from config.yaml
 
-        settings = Settings(
-            google_api_key="test_key",
-            enable_code_length_penalty=True,
-            code_length_penalty_weight=1.0,  # Maximum weight
-            max_acceptable_tokens=2000,
-        )
+        # Override weight for this test only
+        monkeypatch.setattr(settings, "code_length_penalty_weight", 1.0)  # Maximum weight
 
         # Extreme case: 20,000 tokens (18,000 excess = 900% excess)
         token_count = 20000
@@ -194,16 +168,12 @@ class TestPenaltyCalculation:
         final_fitness = base_fitness * factor
         assert final_fitness == 1000.0, "Minimum 10% fitness retained"
 
-    def test_penalty_disabled(self):
+    def test_penalty_disabled(self, monkeypatch):
         """When penalty disabled, fitness should not be affected."""
-        from config import Settings
+        from config import settings  # Load from config.yaml
 
-        settings = Settings(
-            google_api_key="test_key",
-            enable_code_length_penalty=False,  # Disabled
-            code_length_penalty_weight=0.5,
-            max_acceptable_tokens=2000,
-        )
+        # Disable penalty for this test
+        monkeypatch.setattr(settings, "enable_code_length_penalty", False)
 
         # When disabled, penalty logic should be skipped
         # This will be tested in integration test
@@ -263,7 +233,11 @@ class TestPenaltyInEvolution:
         cost_tracker = CostTracker(max_cost_usd=1.0)
 
         engine = EvolutionaryEngine(
-            crucible, population_size=3, gemini_client=client, cost_tracker=cost_tracker
+            crucible,
+            population_size=3,
+            elite_ratio=0.2,
+            gemini_client=client,
+            cost_tracker=cost_tracker,
         )
 
         # Run evolution

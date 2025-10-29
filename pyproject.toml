@@ -120,5 +120,10 @@ exclude_lines = [
     "if __name__ == .__main__.:",
     "if TYPE_CHECKING:",
 ]
+
+[dependency-groups]
+dev = [
+    "types-pyyaml>=6.0.12.20250915",
+]
 # No fail_under for now - will add when we have comprehensive tests
 # fail_under = 80

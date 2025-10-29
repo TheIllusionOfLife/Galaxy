@@ -18,7 +18,11 @@ class TestHistoryTracking:
         """Create test fixtures."""
         self.crucible = CosmologyCrucible()
         self.engine = EvolutionaryEngine(
-            crucible=self.crucible, population_size=3, gemini_client=None, cost_tracker=None
+            crucible=self.crucible,
+            population_size=3,
+            elite_ratio=0.2,
+            gemini_client=None,
+            cost_tracker=None,
         )
 
     def test_history_initialized_empty(self):
@@ -175,7 +179,7 @@ class TestHistoryTracking:
 
     def test_history_with_single_civilization(self):
         """Test history tracking with population size of 1."""
-        engine = EvolutionaryEngine(crucible=self.crucible, population_size=1)
+        engine = EvolutionaryEngine(crucible=self.crucible, population_size=1, elite_ratio=0.2)
         engine.initialize_population()
         engine.run_evolutionary_cycle()
 

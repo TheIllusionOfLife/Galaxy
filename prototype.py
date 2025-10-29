@@ -381,11 +381,28 @@ class EvolutionaryEngine:
         self,
         crucible: CosmologyCrucible,
         population_size: int = 10,
+        elite_ratio: float = 0.2,
         gemini_client: Optional["GeminiClient"] = None,
         cost_tracker: Optional["CostTracker"] = None,
     ):
+        """Initialize the evolutionary engine.
+
+        Args:
+            crucible: CosmologyCrucible for evaluating models
+            population_size: Number of models per generation
+            elite_ratio: Fraction of top performers to keep for breeding (0.0 to 1.0)
+            gemini_client: Optional LLM client for code generation
+            cost_tracker: Optional cost tracking utility
+
+        Raises:
+            ValueError: If elite_ratio is outside valid range [0.0, 1.0]
+        """
+        if not 0.0 <= elite_ratio <= 1.0:
+            raise ValueError(f"elite_ratio must be between 0.0 and 1.0, got {elite_ratio}")
+
         self.crucible = crucible
         self.population_size = population_size
+        self.elite_ratio = elite_ratio
         self.civilizations: dict[str, dict] = {}
         self.generation = 0
         self.gemini_client = gemini_client
@@ -499,7 +516,7 @@ class EvolutionaryEngine:
         sorted_civs = sorted(
             self.civilizations.items(), key=lambda item: item[1].get("fitness", 0), reverse=True
         )
-        num_elites = max(1, int(self.population_size * 0.2))
+        num_elites = max(1, int(self.population_size * self.elite_ratio))
         elites = sorted_civs[:num_elites]
 
         print(
@@ -583,6 +600,7 @@ if __name__ == "__main__":
     engine = EvolutionaryEngine(
         crucible,
         population_size=POPULATION_SIZE,
+        elite_ratio=settings.elite_ratio,
         gemini_client=gemini_client,
         cost_tracker=cost_tracker,
     )
