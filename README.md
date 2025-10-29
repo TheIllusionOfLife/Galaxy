@@ -211,22 +211,27 @@ uv run pytest tests/ --cov --cov-report=html
   - **Review Fixes**: Addressed 3 CodeRabbit comments (mock type fix, YAML error handling, structure validation)
   - **CI Fix**: Excluded integration tests from CI (no API key needed), all Python 3.10-3.12 passing
   - **Status**: ✅ Merged (commit [5000cd1](https://github.com/TheIllusionOfLife/Galaxy/commit/5000cd1)), 8 commits squashed, 17 files changed (+884, -155)
-- ✅ **[Code Length Penalty - Comparative Testing]**: Validated penalty system with real API (not yet PR)
-  - **Goal**: Test code length penalty with different weights to validate effectiveness
+- ✅ **[PR #21 - Code Length Penalty Comparative Testing & Validation](https://github.com/TheIllusionOfLife/Galaxy/pull/21)**: Complete TDD testing merged to main
+  - **Goal**: Validate penalty system effectiveness with different weights using real API
   - **Testing**: 3 full evolution runs (150 API calls, $0.05 total) with weights 0.1 and 0.2
   - **Results**:
     - Test 2 (weight=0.1): Avg 368.9 tokens, Best fitness 25314.61, 98.3% LLM success
     - Test 3 (weight=0.2): Avg 348.8 tokens, Best fitness 20923.09, 98.3% LLM success
     - Comparison: 5.4% token reduction but 17.3% fitness loss with aggressive penalty
-  - **Key Finding**: Threshold (2000 tokens) too high - typical models generate 300-400 tokens
-  - **Root Cause**: Penalty only applies to `excess = token_count - threshold`, so models <2000 tokens never penalized
-  - **Recommendation**: Lower threshold to 400 tokens to make penalty relevant
-  - **Integration Test**: Added `test_penalty_weight_affects_token_count()` with monkeypatch config override
-  - **Bug Fix**: visualization.py:283-284 - Added None-safety check for token_count (caused "int + NoneType" error)
-  - **Utilities**: Created `regenerate_viz.py` and `analyze_penalty_results.py` helper scripts
-  - **Documentation**: Complete analysis in `results/penalty_comparison_20251030.md`
+  - **Critical Finding**: Threshold (2000 tokens) too high for typical models (300-400 tokens)
+  - **Root Cause**: Penalty only applies to `excess = token_count - threshold`, so models <2000 never penalized
+  - **Recommendation**: Lower threshold to 400 tokens to make penalty relevant to actual token ranges
+  - **Integration Test**: Added `test_penalty_weight_affects_token_count()` with proper settings patching
+  - **Critical Bug Fixes** (4 commits addressing reviewer feedback):
+    - **CodeRabbit #1**: Test was not actually testing different weights - fixed by patching global settings references
+    - **CodeRabbit #2**: `regenerate_viz.py` crashed on legacy list format - added format detection
+    - visualization.py:282 - Changed to `token_count = model.get("token_count") or 0` (handles None + missing key)
+    - Added JSON error handling in `analyze_penalty_results.py`
+  - **Utilities**: Created `regenerate_viz.py` (46 lines) and `analyze_penalty_results.py` (122 lines)
+  - **Review Process**: Addressed 3 reviewers (claude, gemini-code-assist, CodeRabbit) across 4 commits
+  - **Documentation**: Complete analysis in `results/penalty_comparison_20251030.md` (gitignored)
   - **Verification**: ✅ All outputs validated - no timeout, no truncation, no duplicates, no errors
-  - **Status**: ⏳ Ready for PR creation with threshold tuning recommendation
+  - **Status**: ✅ Merged (commit [af73928](https://github.com/TheIllusionOfLife/Galaxy/commit/af73928)), 4 commits squashed, 5 files changed (+291, -6)
 - ✅ **[PR #16 - Token Progression Visualization]**: Complete TDD implementation merged to main
   - **Problem**: No visibility into code length evolution across generations (PR #14 added tracking but no visualization)
   - **Solution**: New `token_progression.png` plot with avg/max/min lines + fitness-colored scatter overlay
@@ -307,6 +312,12 @@ uv run pytest tests/ --cov --cov-report=html
   - Expected behavior during exploration phase, not a bug
 
 #### Session Learnings
+- **Integration Testing Global Settings Patch** (2025-10-30 from PR #21): `monkeypatch.setenv()` alone insufficient for testing module-level settings
+  - **Problem**: Test using `monkeypatch.setenv("PENALTY_WEIGHT", "0.2")` but code still uses default 0.1
+  - **Root Cause**: Modules import `settings` at load time; env changes don't update existing references
+  - **Solution**: Reload settings + patch ALL module references: `monkeypatch.setattr(config_module, "settings", test_settings)`
+  - **Detection**: Test passes but doesn't actually vary parameter being tested
+  - **Pattern**: Always patch global references when testing module-level config objects
 - **GraphQL PR Review Efficiency**: Single comprehensive query fetches all feedback sources
   - Pattern: `query { repository { pullRequest { comments, reviews, reviewThreads, statusCheckRollup } } }`
   - Advantage: Single API call vs multiple CLI commands (3 `gh api` calls + parsing)
