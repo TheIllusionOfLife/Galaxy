@@ -34,6 +34,7 @@ class SurrogateGenome:
     fitness: float | None = None  # Store for LLM prompt context
     accuracy: float | None = None  # Store for LLM prompt context
     speed: float | None = None  # Store for LLM prompt context
+    token_count: int | None = None  # Track code length for penalty calculation
     compiled_predict: Callable[[list[float]], list[float]] | None = None  # Pre-validated callable
 
     def as_readable(self) -> str:
@@ -145,6 +146,29 @@ def mutate_theta(theta: list[float], mutation_scale: float) -> list[float]:
         jitter = random.gauss(0, span * mutation_scale)
         mutated.append(clamp(value + jitter, lower, upper))
     return mutated
+
+
+def count_tokens(code: str | None) -> int:
+    """Count approximate tokens in code using whitespace splitting.
+
+    This is a simple approximation sufficient for relative comparison
+    between models. More sophisticated tokenization (e.g., tiktoken)
+    could be added later if needed.
+
+    Note: This method splits on whitespace, which is adequate for
+    comparing relative code complexity. For more accurate tokenization
+    matching LLM token counts, consider upgrading to tiktoken library.
+
+    Args:
+        code: Python source code string
+
+    Returns:
+        Approximate token count (0 if code is None or empty)
+    """
+    if not code:
+        return 0
+    # code.split() with no arguments already handles whitespace and empty strings
+    return len(code.split())
 
 
 # ------------------------------------------------------------------------------
@@ -393,13 +417,45 @@ class EvolutionaryEngine:
                     logger.warning(f"{civ_id}: Invalid speed value {speed}, using fallback")
                     speed = 999.9  # Fallback to worst-case speed
 
-                # Fitness = accuracy / speed (faster is better)
-                fitness = accuracy / (speed + 1e-9)
+                # Count tokens in LLM-generated code
+                token_count = 0
+                if genome.raw_code:
+                    token_count = count_tokens(genome.raw_code)
+                    genome.token_count = token_count
+
+                # Calculate base fitness (accuracy / speed)
+                base_fitness = accuracy / (speed + 1e-9)
+
+                # Apply code length penalty if enabled
+                fitness = base_fitness
+                if LLM_AVAILABLE and settings.enable_code_length_penalty:
+                    # Only penalize tokens beyond threshold
+                    # Note: If token_count is 0, excess_tokens will be 0 and no penalty applies
+                    excess_tokens = max(0, token_count - settings.max_acceptable_tokens)
+                    if excess_tokens > 0:
+                        # Linear penalty: more excess = lower penalty factor
+                        penalty_ratio = excess_tokens / settings.max_acceptable_tokens
+                        penalty_factor = 1.0 - (settings.code_length_penalty_weight * penalty_ratio)
+                        # Floor at 10% to avoid complete elimination
+                        penalty_factor = max(0.1, penalty_factor)
+
+                        fitness = base_fitness * penalty_factor
+
+                        logger.debug(
+                            f"{civ_id}: Token penalty applied - {token_count} tokens "
+                            f"(excess: {excess_tokens}, factor: {penalty_factor:.3f}, "
+                            f"base_fitness: {base_fitness:.2f} -> penalized: {fitness:.2f})"
+                        )
+                    else:
+                        logger.debug(
+                            f"{civ_id}: No penalty - {token_count} tokens (below threshold)"
+                        )
+
                 self.civilizations[civ_id]["fitness"] = fitness
                 self.civilizations[civ_id]["accuracy"] = accuracy
                 self.civilizations[civ_id]["speed"] = speed
 
-                # Store in genome for LLM prompts
+                # Store in genome for LLM prompts (use penalized fitness)
                 genome.fitness = fitness
                 genome.accuracy = accuracy
                 genome.speed = speed
@@ -429,6 +485,7 @@ class EvolutionaryEngine:
                     "accuracy": civ_data["accuracy"],
                     "speed": civ_data["speed"],
                     "description": civ_data["genome"].description,
+                    "token_count": civ_data["genome"].token_count,
                 }
                 for civ_id, civ_data in self.civilizations.items()
             ],

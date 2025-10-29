@@ -904,12 +904,28 @@ except Exception as e:
 
 ### Fitness Landscape
 
-**Objective**: Maximize fitness = accuracy / speed
+**Objective**: Maximize fitness = (accuracy / speed) × code_length_penalty_factor
+
+**Base Fitness**: `accuracy / speed`
+- Rewards high accuracy and fast execution
+
+**Code Length Penalty** (Optional, enabled by default):
+- **Purpose**: Prevent code bloat in later generations
+- **Formula**: `penalty_factor = max(0.1, 1.0 - (weight × (excess_tokens / threshold)))`
+  - `weight`: Configurable (default 0.1 = 10% penalty per 100% excess)
+  - `threshold`: Token count before penalty applies (default 2000)
+  - `excess_tokens`: max(0, token_count - threshold)
+- **Example**:
+  - 1500 tokens: No penalty (below threshold)
+  - 3000 tokens: 5% penalty (50% excess at weight 0.1)
+  - 6000 tokens: 20% penalty (200% excess, floor at 10% minimum)
+- **Configuration**: Set `ENABLE_CODE_LENGTH_PENALTY=true` in `.env`
 
 **Trade-offs**:
 - **High accuracy, slow speed**: Low fitness (over-complicated models)
 - **Low accuracy, fast speed**: Low fitness (useless models)
-- **High accuracy, fast speed**: High fitness (optimal models) ✅
+- **High accuracy, fast speed, short code**: High fitness (optimal models) ✅
+- **High accuracy, fast speed, long code**: Penalized fitness (unnecessary complexity)
 
 **Pareto Frontier**:
 ```
