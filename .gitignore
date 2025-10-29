@@ -1,6 +1,30 @@
 # Secrets
 .env
+.env.*           # All .env variants (.env.backup, .env.local, .env.test, etc.)
+!.env.example    # EXCEPT the example file
 *.key
+*.pem
+*.crt
+*.p12
+*.pfx
+secrets/
+credentials/
+.secrets
+*.secret
+*_secret.*
+*-secret.*
+
+# API Keys
+*api_key*
+*apikey*
+!*api_key*.example
+
+# Backups and temporary files
+*.backup
+*.bak
+*.old
+*.orig
+*~
 
 # Python
 .venv/
