@@ -9,7 +9,7 @@ import pytest
 
 
 @pytest.fixture(autouse=True)
-def test_environment(monkeypatch):
+def test_environment(request, monkeypatch):
     """Automatically set safe test environment for all tests.
 
     This fixture runs automatically for every test, setting safe default
@@ -17,6 +17,8 @@ def test_environment(monkeypatch):
     - Accidental use of real API keys
     - Calls to production services during unit tests
     - Exposure of credentials in test logs
+
+    Skips test_config.py to allow those tests to verify default settings.
 
     Individual tests can override specific values using monkeypatch.setenv().
 
@@ -26,6 +28,10 @@ def test_environment(monkeypatch):
             monkeypatch.setenv("ELITE_RATIO", "0.3")
             # Test runs with ELITE_RATIO=0.3, all other values from this fixture
     """
+    # Skip for config tests that need to verify default values
+    if "test_config" in request.node.nodeid:
+        return
+
     test_env = {
         "GOOGLE_API_KEY": "test-safe-api-key",  # pragma: allowlist secret
         "ANTHROPIC_API_KEY": "test-safe-anthropic-key",  # pragma: allowlist secret
