@@ -211,6 +211,22 @@ uv run pytest tests/ --cov --cov-report=html
   - **Review Fixes**: Addressed 3 CodeRabbit comments (mock type fix, YAML error handling, structure validation)
   - **CI Fix**: Excluded integration tests from CI (no API key needed), all Python 3.10-3.12 passing
   - **Status**: ✅ Merged (commit [5000cd1](https://github.com/TheIllusionOfLife/Galaxy/commit/5000cd1)), 8 commits squashed, 17 files changed (+884, -155)
+- ✅ **[Code Length Penalty - Comparative Testing]**: Validated penalty system with real API (not yet PR)
+  - **Goal**: Test code length penalty with different weights to validate effectiveness
+  - **Testing**: 3 full evolution runs (150 API calls, $0.05 total) with weights 0.1 and 0.2
+  - **Results**:
+    - Test 2 (weight=0.1): Avg 368.9 tokens, Best fitness 25314.61, 98.3% LLM success
+    - Test 3 (weight=0.2): Avg 348.8 tokens, Best fitness 20923.09, 98.3% LLM success
+    - Comparison: 5.4% token reduction but 17.3% fitness loss with aggressive penalty
+  - **Key Finding**: Threshold (2000 tokens) too high - typical models generate 300-400 tokens
+  - **Root Cause**: Penalty only applies to `excess = token_count - threshold`, so models <2000 tokens never penalized
+  - **Recommendation**: Lower threshold to 400 tokens to make penalty relevant
+  - **Integration Test**: Added `test_penalty_weight_affects_token_count()` with monkeypatch config override
+  - **Bug Fix**: visualization.py:283-284 - Added None-safety check for token_count (caused "int + NoneType" error)
+  - **Utilities**: Created `regenerate_viz.py` and `analyze_penalty_results.py` helper scripts
+  - **Documentation**: Complete analysis in `results/penalty_comparison_20251030.md`
+  - **Verification**: ✅ All outputs validated - no timeout, no truncation, no duplicates, no errors
+  - **Status**: ⏳ Ready for PR creation with threshold tuning recommendation
 - ✅ **[PR #16 - Token Progression Visualization]**: Complete TDD implementation merged to main
   - **Problem**: No visibility into code length evolution across generations (PR #14 added tracking but no visualization)
   - **Solution**: New `token_progression.png` plot with avg/max/min lines + fitness-colored scatter overlay
@@ -278,11 +294,13 @@ uv run pytest tests/ --cov --cov-report=html
 - ✅ [PR #5]: CI/CD infrastructure with Ruff, Mypy, Pytest
 
 #### Next Priority Tasks
-1. **[Code Length Penalty - Comparative Testing]**: Enable penalty and compare results
-   - Implementation: Complete ✓
-   - Baseline: Complete ✓ (penalty disabled, avg 247 tokens across Gen 1-4)
-   - Next: Run with penalty enabled (weights: 0.05, 0.1, 0.2) and analyze impact
-   - Goal: Validate penalty reduces token growth without harming fitness
+1. **[Code Length Penalty - Parameter Tuning]**: Lower threshold from 2000 to 400 tokens
+   - Comparative Testing: Complete ✓ (weights: 0.1, 0.2 tested with real API)
+   - Key Finding: Current threshold (2000 tokens) too high for typical models (300-400 tokens)
+   - Results: Aggressive penalty (0.2) achieved only 5.4% token reduction but 17.3% fitness loss
+   - Analysis: See `results/penalty_comparison_20251030.md` for full details
+   - Next: Re-run with threshold=400 to make penalty relevant to actual token ranges
+   - Goal: Achieve meaningful token reduction without excessive fitness trade-off
 
 #### Known Issues / Blockers
 - **Non-monotonic Fitness**: Fitness fluctuates between generations (not guaranteed to improve)

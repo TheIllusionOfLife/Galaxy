@@ -289,3 +289,101 @@ class TestPenaltyInEvolution:
         # Verify penalty factor is less than 1
         assert expected_factor < 1.0, "Long code should have penalty factor < 1.0"
         assert expected_factor >= 0.1, "Penalty factor should respect 10% floor"
+
+    @pytest.mark.integration
+    @pytest.mark.skipif(
+        not os.getenv("GOOGLE_API_KEY") or os.getenv("GOOGLE_API_KEY") == "your_api_key_here",
+        reason="Requires valid GOOGLE_API_KEY",
+    )
+    def test_penalty_weight_affects_token_count(self, tmp_path, monkeypatch):
+        """Verify different penalty weights affect token evolution.
+
+        This is a comprehensive integration test that runs mini evolution cycles
+        with different penalty weights and verifies the expected behavior.
+
+        Note: monkeypatch.setenv() works correctly with Settings.load_from_yaml()
+        because environment variables have highest priority in the config loading hierarchy.
+        """
+        from config import Settings
+        from gemini_client import CostTracker, GeminiClient
+        from prototype import CosmologyCrucible, EvolutionaryEngine
+
+        # Test with 3 different penalty weights
+        test_weights = [0.0, 0.1, 0.2]
+        results = {}
+
+        for weight in test_weights:
+            # Override settings for this test
+            monkeypatch.setenv("CODE_LENGTH_PENALTY_WEIGHT", str(weight))
+            monkeypatch.setenv("ENABLE_CODE_LENGTH_PENALTY", "true" if weight > 0 else "false")
+
+            # Reload settings with new environment
+            test_settings = Settings.load_from_yaml()
+
+            # Patch global settings so EvolutionaryEngine uses the new values
+            import config as config_module
+            import prototype as prototype_module
+
+            monkeypatch.setattr(config_module, "settings", test_settings)
+            monkeypatch.setattr(prototype_module, "settings", test_settings)
+
+            # Verify settings loaded correctly
+            assert test_settings.code_length_penalty_weight == weight
+
+            # Mini evolution: 2 generations, 3 population
+            crucible = CosmologyCrucible()
+            client = GeminiClient(
+                api_key=test_settings.google_api_key,
+                model=test_settings.llm_model,
+                temperature=test_settings.temperature,
+                max_output_tokens=test_settings.max_output_tokens,
+                enable_rate_limiting=True,
+            )
+            cost_tracker = CostTracker(max_cost_usd=1.0)
+
+            engine = EvolutionaryEngine(
+                crucible,
+                population_size=3,
+                elite_ratio=0.2,
+                gemini_client=client,
+                cost_tracker=cost_tracker,
+            )
+
+            # Run evolution
+            engine.initialize_population()
+            engine.run_evolutionary_cycle()
+
+            # Collect token statistics
+            token_counts = []
+            for gen_data in engine.history:
+                for civ_data in gen_data["population"]:
+                    token_count = civ_data.get("token_count", 0)
+                    if token_count and token_count > 0:
+                        token_counts.append(token_count)
+
+            avg_tokens = sum(token_counts) / len(token_counts) if token_counts else 0
+            max_tokens = max(token_counts) if token_counts else 0
+
+            results[weight] = {
+                "avg_tokens": avg_tokens,
+                "max_tokens": max_tokens,
+                "token_counts": token_counts,
+            }
+
+            print(f"\nWeight {weight}: avg={avg_tokens:.1f}, max={max_tokens}")
+
+        # Verify penalty effect: higher weight → lower tokens (statistically)
+        # Note: With small sample size, this is a trend check, not strict ordering
+        if len(results[0.0]["token_counts"]) > 0 and len(results[0.2]["token_counts"]) > 0:
+            # REGRESSION TEST (not effectiveness test):
+            # This assertion verifies penalty doesn't BACKFIRE (increase tokens),
+            # not that it's optimally effective. Real-world validation shows the
+            # threshold (2000) is too high for typical models (300-400 tokens),
+            # so we only test for "no harm" here. Effectiveness testing requires
+            # lowering threshold to 400 (see results/penalty_comparison_20251030.md).
+            max_allowed = results[0.0]["avg_tokens"] * 1.2
+            assert results[0.2]["avg_tokens"] <= max_allowed, (
+                f"High penalty should not significantly increase token count. "
+                f"Expected max {max_allowed:.1f}, got {results[0.2]['avg_tokens']:.1f} "
+                f"(no penalty baseline: {results[0.0]['avg_tokens']:.1f})"
+            )
