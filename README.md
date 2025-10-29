@@ -192,8 +192,8 @@ uv run pytest tests/ --cov --cov-report=html
 
 #### Known Issues / Blockers
 - ⚠️ **SECURITY**: Exposed API key must be revoked by user
-  - Key: `AIzaSyAbz_6NGKzJgmslz-4TF9KkQ1Oq_wKm07Y` (removed from .env.backup in commit e8f9c51)
-  - Action: User must revoke at https://aistudio.google.com/apikey and regenerate
+  - Key: `API_KEY_REDACTED` (removed from .env.backup in commit e8f9c51)
+  - Action: User must revoke the exposed key at [Google AI Studio](https://aistudio.google.com/apikey) and regenerate a new one
 - **Non-monotonic Fitness**: Fitness fluctuates between generations (not guaranteed to improve)
   - Expected behavior during exploration phase, not a bug
 
