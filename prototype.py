@@ -155,6 +155,10 @@ def count_tokens(code: str | None) -> int:
     between models. More sophisticated tokenization (e.g., tiktoken)
     could be added later if needed.
 
+    Note: This method splits on whitespace, which is adequate for
+    comparing relative code complexity. For more accurate tokenization
+    matching LLM token counts, consider upgrading to tiktoken library.
+
     Args:
         code: Python source code string
 
@@ -163,9 +167,8 @@ def count_tokens(code: str | None) -> int:
     """
     if not code:
         return 0
-    # Split on whitespace and filter out empty strings
-    tokens = [t for t in code.split() if t.strip()]
-    return len(tokens)
+    # code.split() with no arguments already handles whitespace and empty strings
+    return len(code.split())
 
 
 # ------------------------------------------------------------------------------
@@ -425,13 +428,9 @@ class EvolutionaryEngine:
 
                 # Apply code length penalty if enabled
                 fitness = base_fitness
-                if (
-                    LLM_AVAILABLE
-                    and settings
-                    and settings.enable_code_length_penalty
-                    and token_count > 0
-                ):
+                if LLM_AVAILABLE and settings.enable_code_length_penalty:
                     # Only penalize tokens beyond threshold
+                    # Note: If token_count is 0, excess_tokens will be 0 and no penalty applies
                     excess_tokens = max(0, token_count - settings.max_acceptable_tokens)
                     if excess_tokens > 0:
                         # Linear penalty: more excess = lower penalty factor

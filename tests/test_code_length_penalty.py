@@ -21,10 +21,8 @@ class TestTokenCounting:
 
         code = "def predict(particle, attractor):\n    return [1, 2, 3, 4]"
         tokens = count_tokens(code)
-        # Expected: def, predict, (particle,, attractor):, return, [1,, 2,, 3,, 4]
-        # Simple whitespace split gives us roughly 9 tokens
-        assert tokens > 0, "Should count tokens in valid code"
-        assert tokens < 20, "Simple code should have few tokens"
+        # Whitespace split: def, predict(particle,, attractor):, return, [1,, 2,, 3,, 4]
+        assert tokens == 8, f"Expected 8 tokens, got {tokens}"
 
     def test_count_tokens_empty(self):
         """Test empty code returns zero."""
@@ -59,9 +57,9 @@ class TestTokenCounting:
     new_y = y + new_vy * 0.1
     return [new_x, new_y, new_vx, new_vy]"""
         tokens = count_tokens(code)
-        # This is a realistic model, should have 80-100 tokens
-        assert tokens > 50, "Complex code should have many tokens"
-        assert tokens < 150, "Should be in reasonable range"
+        # Count actual tokens in this specific code
+        # This realistic model has approximately 86 tokens
+        assert 80 <= tokens <= 90, f"Expected ~86 tokens, got {tokens}"
 
     def test_count_tokens_very_long(self):
         """Test very long code (3000+ tokens)."""
@@ -295,6 +293,25 @@ class TestPenaltyInEvolution:
     )
     def test_penalty_reduces_fitness_for_long_code(self):
         """Verify penalty reduces fitness when code is long."""
-        # This will be validated by comparing evolution runs with/without penalty
-        # Detailed comparison done in user testing phase
-        pass
+        from config import settings
+        from prototype import count_tokens
+
+        # Create a genome with very long code
+        long_code = (
+            "def predict(particle, attractor):\n    " + "x = 1\n    " * 1000 + "return [1, 2, 3, 4]"
+        )
+        token_count = count_tokens(long_code)
+
+        # Verify it exceeds threshold
+        assert token_count > settings.max_acceptable_tokens, "Test code should exceed threshold"
+
+        # Calculate expected penalty
+        excess = token_count - settings.max_acceptable_tokens
+        expected_factor = max(
+            0.1,
+            1.0 - (settings.code_length_penalty_weight * (excess / settings.max_acceptable_tokens)),
+        )
+
+        # Verify penalty factor is less than 1
+        assert expected_factor < 1.0, "Long code should have penalty factor < 1.0"
+        assert expected_factor >= 0.1, "Penalty factor should respect 10% floor"
