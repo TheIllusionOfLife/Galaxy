@@ -146,9 +146,35 @@ uv run pytest tests/ --cov --cov-report=html
 
 ## Session Handover
 
-### Last Updated: October 29, 2025 10:39 AM JST
+### Last Updated: October 29, 2025 5:23 PM JST
 
 #### Recently Completed
+- ✅ **[PR #16 - Token Progression Visualization]**: Complete TDD implementation merged to main
+  - **Problem**: No visibility into code length evolution across generations (PR #14 added tracking but no visualization)
+  - **Solution**: New `token_progression.png` plot with avg/max/min lines + fitness-colored scatter overlay
+  - **Implementation**:
+    - New function: `plot_token_progression()` in visualization.py (97 lines)
+    - Statistics: Per-generation avg/max/min token calculations
+    - Scatter overlay: Individual models colored by fitness (viridis colormap)
+    - Backward compatible: Uses `.get("token_count", 0)` for missing data
+    - Integration: Updated `generate_all_plots()` and prototype.py console output
+  - **Testing**: TDD with 6 comprehensive tests (358-482 lines in test_visualization.py)
+    - Basic file creation test
+    - Missing token data (backward compatibility)
+    - Empty history edge case
+    - Single generation edge case
+    - Integration with generate_all_plots
+    - All models missing tokens (added after review)
+  - **Real API Validation** (9 API calls, $0.002):
+    - Configuration: 2 generations, 3 population
+    - Results: All 5 PNG files generated (144-186KB, 300 DPI)
+    - JSON: All models contain token_count field
+    - Output: results/run_20251029_110221
+  - **Review Fixes**: Addressed 3 reviewers (claude, gemini, coderabbit)
+    - ARCHITECTURE.md: Replaced incomplete code snippet with complete 38-line example
+    - visualization.py: Refactored to tuple comprehension + `zip(*valid_points)` pattern
+    - tests: Added test for all-missing-tokens scenario
+  - **Status**: ✅ Merged (commit aae2eab), 23 tests passing, CI green across Python 3.10-3.12
 - ✅ **[PR #14 - Code Length Penalty System]**: Complete TDD implementation merged to main
   - **Problem**: Token bloat in later generations (Gen 0: 1,038 → Gen 3-4: 2,271 avg tokens, +119%)
   - **Solution**: Configurable fitness penalty system to discourage unnecessarily long code
@@ -163,7 +189,7 @@ uv run pytest tests/ --cov --cov-report=html
     - 98.3% LLM success rate (59/60)
     - Token tracking functional, no performance degradation
   - **Review Fixes**: Addressed 4 reviewers (claude, codex, gemini, coderabbit)
-    - CRITICAL: Removed exposed API key (.env.backup)
+    - CRITICAL: Removed exposed API key (.env.backup) - ✅ Resolved (key revoked and regenerated)
     - Code: Simplified token counting, removed redundant checks
     - Tests: Made assertions exact, implemented empty integration test
   - **Status**: ✅ Merged, ready for comparative testing with penalty enabled
@@ -197,13 +223,30 @@ uv run pytest tests/ --cov --cov-report=html
    - Goal: Validate penalty reduces token growth without harming fitness
 
 #### Known Issues / Blockers
-- ⚠️ **SECURITY**: Exposed API key must be revoked by user
-  - Key: `API_KEY_REDACTED` (removed from .env.backup in commit e8f9c51)
-  - Action: User must revoke the exposed key at [Google AI Studio](https://aistudio.google.com/apikey) and regenerate a new one
 - **Non-monotonic Fitness**: Fitness fluctuates between generations (not guaranteed to improve)
   - Expected behavior during exploration phase, not a bug
 
 #### Session Learnings
+- **GraphQL PR Review Efficiency**: Single comprehensive query fetches all feedback sources
+  - Pattern: `query { repository { pullRequest { comments, reviews, reviewThreads, statusCheckRollup } } }`
+  - Advantage: Single API call vs multiple CLI commands (3 `gh api` calls + parsing)
+  - Coverage: PR comments, reviews, line comments, CI annotations all in one query
+- **Zip Pattern Optimization**: Tuple comprehension + `zip(*iterable)` cleaner than intermediate lists
+  - Anti-pattern: `list1 = []; list2 = []; for x in data: list1.append(x.a); list2.append(x.b)`
+  - Better: `valid = [(x.a, x.b) for x in data if condition]; a_list, b_list = zip(*valid)`
+  - Benefit: More Pythonic, fewer variables, clearer intent
+- **Complete Test Coverage for Edge Cases**: Test "all data missing" not just "some data missing"
+  - Example: PR #16 added test_plot_token_progression_all_models_missing_tokens
+  - Rationale: Different code path when ALL vs SOME models lack token_count
+  - Pattern: Empty list handling often differs from partial data handling
+- **Documentation Code Completeness**: Examples must be runnable, not fragments
+  - Anti-pattern: Code snippet missing variable initialization, imports, error handling
+  - Consequence: Users copy-paste non-working code, creates support burden
+  - Fix: Include complete context (imports, initialization, error checks)
+- **TDD with Real API Integration**: Integration tests catch format issues mocks miss
+  - Mock limitation: Assumes response format, may not match reality
+  - Real API advantage: Validates actual LLM output format, timing, error handling
+  - Best practice: Write unit tests with mocks, verify with real API before merge
 - **TDD Integration Test Implementation**: Empty tests with `pass` should be implemented or removed
   - Anti-pattern: Placeholder tests that don't validate behavior
   - Solution: Either implement with mock data validation or remove entirely
@@ -232,7 +275,6 @@ uv run pytest tests/ --cov --cov-report=html
 - **Make Target Purpose**: `make check` should exclude slow integration tests for quick local validation
 - **Test Robustness**: Conditional assertions (e.g., cost_progression.png only if API succeeded) prevent flaky tests
 - **Pre-commit Setup**: Tool invocations need `uv run` wrapper when using uv-managed environments
-- **GraphQL PR Review**: Single query fetches all feedback sources (comments, reviews, line comments, CI annotations)
 - **Reviewer Priority**: Read review CONTENT not just STATE; even APPROVED reviews can have suggestions
 - **Field Name Consistency**: Integration tests must match actual data structure field names (e.g., `civ_id` not `civilization_id`)
 - **Test Threshold Statistics**: Adjust test thresholds based on sample size and statistical variance (e.g., 20 samples at 1.67% error = 1 error = 5% rate, use 2% threshold not <1%)
