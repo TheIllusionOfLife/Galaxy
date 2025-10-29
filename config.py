@@ -177,60 +177,84 @@ class Settings(BaseSettings):
                 "See config.yaml for required structure."
             )
 
-        with open(yaml_path) as f:
-            yaml_config = yaml.safe_load(f)
+        # Load and parse YAML with error handling
+        try:
+            with open(yaml_path) as f:
+                yaml_config = yaml.safe_load(f)
+        except yaml.YAMLError as e:
+            raise ValueError(
+                f"Failed to parse {yaml_path}. Please check YAML syntax.\nError: {e}"
+            ) from e
+
+        # Validate YAML structure
+        required_sections = ["model", "rate_limiting", "evolution", "mutation", "code_penalty"]
+        missing_sections = [s for s in required_sections if s not in yaml_config]
+        if missing_sections:
+            raise ValueError(
+                f"Invalid config.yaml structure. Missing sections: {missing_sections}\n"
+                "See config.yaml for required structure."
+            )
 
         # Flatten YAML structure with environment variable overrides
         # Environment variables take precedence over YAML defaults
-        config_data = {
-            # Model configuration
-            "llm_model": os.getenv("LLM_MODEL", yaml_config["model"]["name"]),
-            "temperature": float(os.getenv("TEMPERATURE", yaml_config["model"]["temperature"])),
-            "max_output_tokens": int(
-                os.getenv("MAX_OUTPUT_TOKENS", yaml_config["model"]["max_output_tokens"])
-            ),
-            # Rate limiting
-            "enable_rate_limiting": os.getenv(
-                "ENABLE_RATE_LIMITING", str(yaml_config["rate_limiting"]["enabled"])
-            ).lower()
-            == "true",
-            "requests_per_minute": int(
-                os.getenv(
-                    "REQUESTS_PER_MINUTE", yaml_config["rate_limiting"]["requests_per_minute"]
-                )
-            ),
-            "max_requests_per_run": int(
-                os.getenv(
-                    "MAX_REQUESTS_PER_RUN", yaml_config["rate_limiting"]["max_requests_per_run"]
-                )
-            ),
-            # Evolution
-            "population_size": int(
-                os.getenv("POPULATION_SIZE", yaml_config["evolution"]["population_size"])
-            ),
-            "num_generations": int(
-                os.getenv("NUM_GENERATIONS", yaml_config["evolution"]["num_generations"])
-            ),
-            "elite_ratio": float(os.getenv("ELITE_RATIO", yaml_config["evolution"]["elite_ratio"])),
-            # Mutation
-            "early_mutation_temp": float(
-                os.getenv("EARLY_MUTATION_TEMP", yaml_config["mutation"]["early_temp"])
-            ),
-            "late_mutation_temp": float(
-                os.getenv("LATE_MUTATION_TEMP", yaml_config["mutation"]["late_temp"])
-            ),
-            # Code penalty
-            "enable_code_length_penalty": os.getenv(
-                "ENABLE_CODE_LENGTH_PENALTY", str(yaml_config["code_penalty"]["enabled"])
-            ).lower()
-            == "true",
-            "code_length_penalty_weight": float(
-                os.getenv("CODE_LENGTH_PENALTY_WEIGHT", yaml_config["code_penalty"]["weight"])
-            ),
-            "max_acceptable_tokens": int(
-                os.getenv("MAX_ACCEPTABLE_TOKENS", yaml_config["code_penalty"]["max_tokens"])
-            ),
-        }
+        try:
+            config_data = {
+                # Model configuration
+                "llm_model": os.getenv("LLM_MODEL", yaml_config["model"]["name"]),
+                "temperature": float(os.getenv("TEMPERATURE", yaml_config["model"]["temperature"])),
+                "max_output_tokens": int(
+                    os.getenv("MAX_OUTPUT_TOKENS", yaml_config["model"]["max_output_tokens"])
+                ),
+                # Rate limiting
+                "enable_rate_limiting": os.getenv(
+                    "ENABLE_RATE_LIMITING", str(yaml_config["rate_limiting"]["enabled"])
+                ).lower()
+                == "true",
+                "requests_per_minute": int(
+                    os.getenv(
+                        "REQUESTS_PER_MINUTE", yaml_config["rate_limiting"]["requests_per_minute"]
+                    )
+                ),
+                "max_requests_per_run": int(
+                    os.getenv(
+                        "MAX_REQUESTS_PER_RUN", yaml_config["rate_limiting"]["max_requests_per_run"]
+                    )
+                ),
+                # Evolution
+                "population_size": int(
+                    os.getenv("POPULATION_SIZE", yaml_config["evolution"]["population_size"])
+                ),
+                "num_generations": int(
+                    os.getenv("NUM_GENERATIONS", yaml_config["evolution"]["num_generations"])
+                ),
+                "elite_ratio": float(
+                    os.getenv("ELITE_RATIO", yaml_config["evolution"]["elite_ratio"])
+                ),
+                # Mutation
+                "early_mutation_temp": float(
+                    os.getenv("EARLY_MUTATION_TEMP", yaml_config["mutation"]["early_temp"])
+                ),
+                "late_mutation_temp": float(
+                    os.getenv("LATE_MUTATION_TEMP", yaml_config["mutation"]["late_temp"])
+                ),
+                # Code penalty
+                "enable_code_length_penalty": os.getenv(
+                    "ENABLE_CODE_LENGTH_PENALTY", str(yaml_config["code_penalty"]["enabled"])
+                ).lower()
+                == "true",
+                "code_length_penalty_weight": float(
+                    os.getenv("CODE_LENGTH_PENALTY_WEIGHT", yaml_config["code_penalty"]["weight"])
+                ),
+                "max_acceptable_tokens": int(
+                    os.getenv("MAX_ACCEPTABLE_TOKENS", yaml_config["code_penalty"]["max_tokens"])
+                ),
+            }
+        except (KeyError, TypeError) as e:
+            raise ValueError(
+                f"Invalid config.yaml structure. Check that all required keys exist.\n"
+                f"Error: {e}\n"
+                "See config.yaml for required structure."
+            ) from e
 
         # Create Settings instance
         # Pydantic will automatically load .env file for API keys

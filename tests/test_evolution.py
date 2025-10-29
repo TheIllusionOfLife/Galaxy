@@ -275,10 +275,8 @@ class TestEliteSelectionIntegration:
                 mock_choice.side_effect = lambda elites: elites[0]
 
                 # Mock evaluate to avoid actual evaluation during mutation
-                mock_crucible.evaluate_surrogate_model.return_value = {
-                    "accuracy": 0.9,
-                    "speed": 0.001,
-                }
+                # Returns tuple (accuracy, speed) as per prototype.py:427
+                mock_crucible.evaluate_surrogate_model.return_value = (0.9, 0.001)
 
                 engine.run_evolutionary_cycle()
 
