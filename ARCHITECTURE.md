@@ -1267,41 +1267,84 @@ def get_meta_learning_prompt(parent_code, failure_reason):
     """
 ```
 
-### 6. Add Visualization
+### 6. Visualization System
 
-**Current**: Text-only output
+**Status**: ✅ **IMPLEMENTED** (PR #8, enhanced with token tracking)
 
-**To Add**:
-1. Fitness progression plot
-2. Accuracy vs speed scatter plot
-3. Code complexity evolution
-4. Token usage trends
+**Available Visualizations**:
 
-**Implementation**:
+1. **Fitness Progression Plot** (`plot_fitness_progression`)
+   - Line plots showing best, average, and worst fitness per generation
+   - Identifies improvement patterns and stagnation
+   - Auto-filters inf/nan values
+
+2. **Accuracy vs Speed Plot** (`plot_accuracy_vs_speed`)
+   - Scatter plot of all models across all generations
+   - Color-coded by fitness (viridis colormap)
+   - Reveals Pareto frontier of speed/accuracy trade-offs
+   - Automatic log scaling for large speed ranges
+
+3. **Token Progression Plot** (`plot_token_progression`) ✨ **NEW**
+   - Line plots: average, maximum, minimum token counts per generation
+   - Scatter overlay: individual models colored by fitness
+   - Monitors code length evolution
+   - Validates code length penalty system (PR #14)
+   - Backward compatible: handles missing token_count with default 0
+
+4. **Cost Progression Plot** (`plot_cost_progression`)
+   - Cumulative API cost over time
+   - Final cost annotation
+   - Currency-formatted y-axis
+
+**Implementation** (visualization.py):
 
 ```python
-import matplotlib.pyplot as plt
+def plot_token_progression(history: list[dict[str, Any]], output_path: str) -> None:
+    """Plot token count progression over generations."""
+    # Initialize data structures
+    generations, avg_tokens, max_tokens, min_tokens = [], [], [], []
+    all_gen_nums, all_tokens, all_fitness = [], [], []
 
-def plot_fitness_progression(history):
-    generations = [h['generation'] for h in history]
-    best_fitness = [max(g['fitness'] for g in h['population']) for h in history]
+    # Calculate statistics and collect all data points
+    for entry in history:
+        token_counts = [m.get("token_count", 0) for m in entry["population"]]
+        if not token_counts:  # Handle empty population
+            continue
 
-    plt.plot(generations, best_fitness, marker='o')
-    plt.xlabel('Generation')
-    plt.ylabel('Best Fitness')
-    plt.title('Fitness Progression')
-    plt.savefig('fitness_progression.png')
+        gen = entry["generation"]
+        generations.append(gen)
+        avg_tokens.append(sum(token_counts) / len(token_counts))
+        max_tokens.append(max(token_counts))
+        min_tokens.append(min(token_counts))
 
-def plot_pareto_frontier(population):
-    accuracies = [g.accuracy for g in population]
-    speeds = [g.speed for g in population]
+        # Collect individual data points
+        for model in entry["population"]:
+            all_gen_nums.append(gen)
+            all_tokens.append(model.get("token_count", 0))
+            all_fitness.append(model.get("fitness", 0))
 
-    plt.scatter(speeds, accuracies)
-    plt.xlabel('Speed (seconds)')
-    plt.ylabel('Accuracy')
-    plt.title('Accuracy vs Speed Trade-off')
-    plt.savefig('pareto_frontier.png')
+    # Create figure and plot lines
+    fig, ax = plt.subplots(figsize=(12, 7))
+    ax.plot(generations, avg_tokens, "b-o", label="Average")
+    ax.plot(generations, max_tokens, "r--^", label="Maximum")
+    ax.plot(generations, min_tokens, "g--v", label="Minimum")
+
+    # Overlay individual models as scatter (colored by fitness)
+    valid_points = [(all_gen_nums[i], all_tokens[i], f)
+                    for i, f in enumerate(all_fitness) if f > 0]
+    if valid_points:
+        scatter_gens, scatter_tokens, scatter_fitness = zip(*valid_points)
+        scatter = ax.scatter(scatter_gens, scatter_tokens,
+                           c=scatter_fitness, cmap="viridis")
 ```
+
+**Auto-Generation**:
+All plots are automatically generated after evolution completes via `generate_all_plots()` in prototype.py:640-646.
+
+**Output Format**:
+- High-resolution PNG (300 DPI)
+- Timestamped directories: `results/run_YYYYMMDD_HHMMSS/`
+- Includes JSON export with complete history
 
 ---
 

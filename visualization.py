@@ -4,6 +4,7 @@ Evolution visualization and data export module.
 This module provides functions to visualize evolution results including:
 - Fitness progression over generations
 - Accuracy vs speed trade-offs
+- Token count progression (code length evolution)
 - Cost progression over time
 - JSON export of evolution history
 """
@@ -243,12 +244,107 @@ def plot_cost_progression(cost_tracker: Any, output_path: str) -> None:
     plt.close()
 
 
+def plot_token_progression(history: list[dict[str, Any]], output_path: str) -> None:
+    """
+    Plot token count progression over generations.
+
+    Shows average, maximum, and minimum token counts for each generation
+    with individual model token counts as scatter overlay.
+
+    Args:
+        history: List of generation data dicts with population details
+        output_path: Path where plot image will be saved
+    """
+    if not history:
+        _create_empty_plot(
+            output_path,
+            "Token Count Progression Over Generations",
+            "Generation",
+            "Token Count",
+        )
+        return
+
+    generations = []
+    avg_tokens = []
+    max_tokens = []
+    min_tokens = []
+    all_gen_nums = []
+    all_token_counts = []
+    all_fitnesses = []
+
+    for entry in history:
+        gen = entry["generation"]
+        token_counts = []
+
+        for model in entry["population"]:
+            # Use get() with default 0 for backward compatibility
+            token_count = model.get("token_count", 0)
+            token_counts.append(token_count)
+
+            # Collect individual points for scatter overlay
+            all_gen_nums.append(gen)
+            all_token_counts.append(token_count)
+            all_fitnesses.append(model.get("fitness", 0))
+
+        if token_counts:
+            generations.append(gen)
+            avg_tokens.append(sum(token_counts) / len(token_counts))
+            max_tokens.append(max(token_counts))
+            min_tokens.append(min(token_counts))
+
+    fig, ax = plt.subplots(figsize=(12, 7))
+
+    # Plot aggregate statistics as lines
+    if generations:
+        ax.plot(generations, avg_tokens, "b-o", label="Average", linewidth=2, markersize=8)
+        ax.plot(generations, max_tokens, "r--^", label="Maximum", linewidth=2, markersize=6)
+        ax.plot(generations, min_tokens, "g--v", label="Minimum", linewidth=2, markersize=6)
+
+    # Overlay individual models as scatter plot colored by fitness
+    if all_gen_nums and all_token_counts:
+        # Filter out zero fitness for better color scaling using zip pattern
+        valid_points = [
+            (all_gen_nums[i], all_token_counts[i], f) for i, f in enumerate(all_fitnesses) if f > 0
+        ]
+        if valid_points:
+            scatter_gens, scatter_tokens, scatter_fitness = zip(*valid_points)  # noqa: B905
+
+            scatter = ax.scatter(
+                scatter_gens,
+                scatter_tokens,
+                c=scatter_fitness,
+                cmap="viridis",
+                s=50,
+                alpha=0.4,
+                edgecolors="none",
+            )
+
+            # Add colorbar
+            cbar = plt.colorbar(scatter, ax=ax)
+            cbar.set_label("Fitness", fontsize=10)
+
+    ax.set_xlabel("Generation", fontsize=12)
+    ax.set_ylabel("Token Count", fontsize=12)
+    ax.set_title(
+        "Code Length Evolution (Token Count Over Generations)",
+        fontsize=14,
+        fontweight="bold",
+    )
+    ax.legend(fontsize=10, loc="best")
+    ax.grid(True, alpha=0.3)
+
+    # Ensure output directory exists
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(output_path, dpi=300, bbox_inches="tight")
+    plt.close()
+
+
 def generate_all_plots(history: list[dict[str, Any]], cost_tracker: Any, output_dir: str) -> None:
     """
     Generate all visualization plots.
 
-    Creates fitness progression, accuracy vs speed, and cost progression plots
-    in the specified output directory.
+    Creates fitness progression, accuracy vs speed, token progression,
+    and cost progression plots in the specified output directory.
 
     Args:
         history: Evolution history data
@@ -263,6 +359,9 @@ def generate_all_plots(history: list[dict[str, Any]], cost_tracker: Any, output_
 
     # Generate accuracy vs speed plot
     plot_accuracy_vs_speed(history, str(output_path / "accuracy_vs_speed.png"))
+
+    # Generate token progression plot
+    plot_token_progression(history, str(output_path / "token_progression.png"))
 
     # Generate cost progression plot if tracker available
     if cost_tracker and hasattr(cost_tracker, "calls") and cost_tracker.calls:
