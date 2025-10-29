@@ -1301,20 +1301,41 @@ def get_meta_learning_prompt(parent_code, failure_reason):
 ```python
 def plot_token_progression(history: list[dict[str, Any]], output_path: str) -> None:
     """Plot token count progression over generations."""
-    # Calculate avg/max/min tokens per generation
+    # Initialize data structures
+    generations, avg_tokens, max_tokens, min_tokens = [], [], [], []
+    all_gen_nums, all_tokens, all_fitness = [], [], []
+
+    # Calculate statistics and collect all data points
     for entry in history:
         token_counts = [m.get("token_count", 0) for m in entry["population"]]
+        if not token_counts:  # Handle empty population
+            continue
+
+        gen = entry["generation"]
+        generations.append(gen)
         avg_tokens.append(sum(token_counts) / len(token_counts))
         max_tokens.append(max(token_counts))
         min_tokens.append(min(token_counts))
 
-    # Plot lines with scatter overlay colored by fitness
+        # Collect individual data points
+        for model in entry["population"]:
+            all_gen_nums.append(gen)
+            all_tokens.append(model.get("token_count", 0))
+            all_fitness.append(model.get("fitness", 0))
+
+    # Create figure and plot lines
+    fig, ax = plt.subplots(figsize=(12, 7))
     ax.plot(generations, avg_tokens, "b-o", label="Average")
     ax.plot(generations, max_tokens, "r--^", label="Maximum")
     ax.plot(generations, min_tokens, "g--v", label="Minimum")
 
-    # Individual models as scatter
-    scatter = ax.scatter(gen_nums, token_counts, c=fitness, cmap="viridis")
+    # Overlay individual models as scatter (colored by fitness)
+    valid_points = [(all_gen_nums[i], all_tokens[i], f)
+                    for i, f in enumerate(all_fitness) if f > 0]
+    if valid_points:
+        scatter_gens, scatter_tokens, scatter_fitness = zip(*valid_points)
+        scatter = ax.scatter(scatter_gens, scatter_tokens,
+                           c=scatter_fitness, cmap="viridis")
 ```
 
 **Auto-Generation**:

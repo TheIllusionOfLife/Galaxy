@@ -427,3 +427,56 @@ class TestVisualizationFunctions:
         assert (output_dir / "fitness_progression.png").exists()
         assert (output_dir / "accuracy_vs_speed.png").exists()
         assert (output_dir / "cost_progression.png").exists()
+
+    def test_plot_token_progression_all_models_missing_tokens(self, tmp_path):
+        """Test token plot when ALL models in ALL generations lack token_count field."""
+        from visualization import plot_token_progression
+
+        # History where no models have token_count field
+        history_no_tokens = [
+            {
+                "generation": 0,
+                "population": [
+                    {
+                        "civ_id": "civ_0_0",
+                        "fitness": 10000.0,
+                        "accuracy": 0.95,
+                        "speed": 0.00009,
+                        "description": "old_model",
+                        # Deliberately missing token_count
+                    },
+                    {
+                        "civ_id": "civ_0_1",
+                        "fitness": 11000.0,
+                        "accuracy": 0.96,
+                        "speed": 0.00008,
+                        "description": "old_model2",
+                        # Deliberately missing token_count
+                    },
+                ],
+                "best_fitness": 11000.0,
+                "avg_fitness": 10500.0,
+                "worst_fitness": 10000.0,
+            },
+            {
+                "generation": 1,
+                "population": [
+                    {
+                        "civ_id": "civ_1_0",
+                        "fitness": 12000.0,
+                        "accuracy": 0.97,
+                        "speed": 0.00007,
+                        "description": "old_model3",
+                        # Deliberately missing token_count
+                    },
+                ],
+                "best_fitness": 12000.0,
+                "avg_fitness": 12000.0,
+                "worst_fitness": 12000.0,
+            },
+        ]
+
+        output_path = tmp_path / "token_all_missing.png"
+        # Should handle gracefully - plot will show all zeros
+        plot_token_progression(history_no_tokens, str(output_path))
+        assert output_path.exists()

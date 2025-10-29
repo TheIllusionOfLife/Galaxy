@@ -302,12 +302,12 @@ def plot_token_progression(history: list[dict[str, Any]], output_path: str) -> N
 
     # Overlay individual models as scatter plot colored by fitness
     if all_gen_nums and all_token_counts:
-        # Filter out zero fitness for better color scaling
-        valid_indices = [i for i, f in enumerate(all_fitnesses) if f > 0]
-        if valid_indices:
-            scatter_gens = [all_gen_nums[i] for i in valid_indices]
-            scatter_tokens = [all_token_counts[i] for i in valid_indices]
-            scatter_fitness = [all_fitnesses[i] for i in valid_indices]
+        # Filter out zero fitness for better color scaling using zip pattern
+        valid_points = [
+            (all_gen_nums[i], all_token_counts[i], f) for i, f in enumerate(all_fitnesses) if f > 0
+        ]
+        if valid_points:
+            scatter_gens, scatter_tokens, scatter_fitness = zip(*valid_points)  # noqa: B905
 
             scatter = ax.scatter(
                 scatter_gens,
