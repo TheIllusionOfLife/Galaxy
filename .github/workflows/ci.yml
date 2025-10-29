@@ -42,7 +42,7 @@ jobs:
         run: uv run mypy code_validator.py gemini_client.py config.py
 
       - name: Run tests with coverage
-        run: uv run pytest tests/ --cov=. --cov-report=term-missing --cov-report=xml
+        run: uv run pytest tests/ -m "not integration" --cov=. --cov-report=term-missing --cov-report=xml
         env:
           # Use mock mode for CI (no real API calls)
           CI: true
