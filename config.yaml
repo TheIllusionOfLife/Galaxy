@@ -1,0 +1,32 @@
+# Galaxy Prometheus Configuration
+# Single source of truth for all configuration defaults
+# See README.md for documentation
+
+# Model Configuration
+model:
+  name: gemini-2.5-flash-lite  # Gemini model to use for code generation
+  temperature: 0.8  # LLM temperature (0.0-2.0, higher = more creative)
+  max_output_tokens: 2000  # Maximum tokens in LLM response (100-8192)
+
+# Rate Limiting (Free tier: 15 RPM, 1000 RPD)
+rate_limiting:
+  enabled: true  # Enable rate limiting for free tier (15 RPM)
+  requests_per_minute: 15  # Free tier rate limit: 15 requests per minute
+  max_requests_per_run: 50  # Maximum LLM calls per evolution run
+
+# Evolution Parameters
+evolution:
+  population_size: 10  # Number of surrogate models per generation (1-100)
+  num_generations: 5  # Number of evolutionary generations to run (1-100)
+  elite_ratio: 0.2  # Fraction of top performers to keep for breeding (0.0-1.0)
+
+# Mutation Strategy
+mutation:
+  early_temp: 1.0  # High temperature for early generations (exploration, 0.0-2.0)
+  late_temp: 0.6  # Low temperature for late generations (exploitation, 0.0-2.0)
+
+# Code Length Penalty (prevent token bloat in later generations)
+code_penalty:
+  enabled: true  # Enable fitness penalty for long code to prevent bloat
+  weight: 0.1  # Penalty weight (0.0 = no penalty, 1.0 = maximum penalty)
+  max_tokens: 2000  # Token count threshold before penalty applies (100-10000)

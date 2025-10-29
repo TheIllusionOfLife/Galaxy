@@ -198,10 +198,10 @@ class TestEliteSelectionIntegration:
     def test_elite_ratio_from_settings(self, monkeypatch):
         """Test EvolutionaryEngine respects elite_ratio from settings."""
         # Arrange
-        monkeypatch.setenv("ELITE_RATIO", "0.4")
-        from config import Settings
+        from config import settings
 
-        settings = Settings()
+        # Override elite_ratio for this test
+        monkeypatch.setattr(settings, "elite_ratio", 0.4)
 
         crucible = Mock(spec=CosmologyCrucible)
 

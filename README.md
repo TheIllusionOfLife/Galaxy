@@ -58,8 +58,56 @@ cp .env.example .env
 ```
 - Edit the `.env` file and set your API key:
 ```
-GOOGLE_API_KEY=your_api_key_here
+GOOGLE_API_KEY=your_actual_api_key_here
 ```
+
+**Note**: All configuration settings (model selection, hyperparameters, feature flags) are defined in `config.yaml` (single source of truth). The `.env` file only contains API keys (secrets).
+
+## Configuration
+
+### Configuration Architecture
+
+The project follows the "Once and Only Once" (DRY) principle for configuration:
+
+- **`config.yaml`** - Single source of truth for ALL configuration defaults
+  - Model selection (gemini-2.5-flash-lite)
+  - Hyperparameters (temperature, tokens, etc.)
+  - Evolution parameters (population, generations, elite ratio)
+  - Feature flags (rate limiting, code penalty, etc.)
+
+- **`.env`** - Secrets ONLY (API keys)
+  - Never contains configuration parameters
+  - Only stores sensitive credentials
+
+- **Environment variables** - Optional one-off overrides
+  - Can override any config.yaml setting for specific runs
+  - Example: `POPULATION_SIZE=20 uv run python prototype.py`
+
+### Customizing Configuration
+
+Edit `config.yaml` to customize behavior (all parameters documented with comments):
+
+```yaml
+# Model Configuration
+model:
+  name: gemini-2.5-flash-lite  # Change model
+  temperature: 0.8             # Adjust creativity (0.0-2.0)
+  max_output_tokens: 2000      # Limit response length
+
+# Evolution Parameters
+evolution:
+  population_size: 10    # Models per generation
+  num_generations: 5     # Total generations
+  elite_ratio: 0.2       # Top performers kept (0.0-1.0)
+
+# Code Length Penalty (prevent bloat)
+code_penalty:
+  enabled: true          # Enable/disable feature
+  weight: 0.1           # Penalty strength (0.0-1.0)
+  max_tokens: 2000      # Threshold before penalty
+```
+
+**Important**: Never duplicate settings. Each parameter has exactly ONE definition in `config.yaml`.
 
 ## Usage
 
