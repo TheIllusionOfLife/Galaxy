@@ -263,7 +263,11 @@ class TestPenaltyInEvolution:
         cost_tracker = CostTracker(max_cost_usd=1.0)
 
         engine = EvolutionaryEngine(
-            crucible, population_size=3, gemini_client=client, cost_tracker=cost_tracker
+            crucible,
+            population_size=3,
+            elite_ratio=0.2,
+            gemini_client=client,
+            cost_tracker=cost_tracker,
         )
 
         # Run evolution

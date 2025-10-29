@@ -62,6 +62,7 @@ class TestVisualizationIntegration:
         engine = EvolutionaryEngine(
             crucible,
             population_size=population_size,
+            elite_ratio=0.2,
             gemini_client=gemini_client,
             cost_tracker=cost_tracker,
         )
