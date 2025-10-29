@@ -174,6 +174,27 @@ class TestEliteSelection:
 class TestEliteSelectionIntegration:
     """Integration tests for elite_ratio with config system."""
 
+    @pytest.fixture
+    def mock_crucible(self):
+        """Create a mock crucible for testing."""
+        crucible = Mock(spec=CosmologyCrucible)
+        crucible.evaluate_surrogate_model = Mock(return_value=(0.8, 0.001))
+        return crucible
+
+    @pytest.fixture
+    def mock_genome(self):
+        """Create a mock genome for testing."""
+        genome = SurrogateGenome(
+            theta=[1.0, 2.0],
+            description="test genome",
+            raw_code="def predict(p, a): return p",
+            fitness=None,
+            accuracy=None,
+            speed=None,
+        )
+        genome.build_callable = Mock(return_value=lambda p, a: p)
+        return genome
+
     def test_elite_ratio_from_settings(self, monkeypatch):
         """Test EvolutionaryEngine respects elite_ratio from settings."""
         # Arrange
@@ -197,3 +218,76 @@ class TestEliteSelectionIntegration:
         # Verify selection uses this value
         num_elites = max(1, int(engine.population_size * engine.elite_ratio))
         assert num_elites == 4, f"Expected 4 elites with ratio 0.4, got {num_elites}"
+
+    def test_elite_ratio_validation(self, mock_crucible):
+        """Test elite_ratio parameter validation."""
+        # Valid values should work
+        engine = EvolutionaryEngine(mock_crucible, elite_ratio=0.0)
+        assert engine.elite_ratio == 0.0
+
+        engine = EvolutionaryEngine(mock_crucible, elite_ratio=1.0)
+        assert engine.elite_ratio == 1.0
+
+        engine = EvolutionaryEngine(mock_crucible, elite_ratio=0.5)
+        assert engine.elite_ratio == 0.5
+
+        # Invalid values should raise ValueError
+        with pytest.raises(ValueError, match="elite_ratio must be between 0.0 and 1.0"):
+            EvolutionaryEngine(mock_crucible, elite_ratio=-0.1)
+
+        with pytest.raises(ValueError, match="elite_ratio must be between 0.0 and 1.0"):
+            EvolutionaryEngine(mock_crucible, elite_ratio=1.5)
+
+    def test_elite_selection_behavior_integration(self, mock_crucible, mock_genome):
+        """Test that run_evolutionary_cycle actually uses elite_ratio for selection.
+
+        This is a behavior-based integration test that verifies the EvolutionaryEngine
+        calls the selection logic with the correct elite_ratio, rather than just testing
+        the formula calculation.
+        """
+        from unittest.mock import patch
+
+        # Arrange: Create engine with elite_ratio=0.3 (should select 3 of 10)
+        engine = EvolutionaryEngine(
+            crucible=mock_crucible,
+            population_size=10,
+            elite_ratio=0.3,
+        )
+
+        # Initialize population with mock LLM
+        with patch("prototype.LLM_propose_surrogate_model", return_value=mock_genome):
+            engine.initialize_population()
+
+        assert len(engine.civilizations) == 10
+
+        # Set controlled fitness values to establish ranking
+        fitness_values = list(range(10, 0, -1))  # [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
+        for i, (_civ_id, civ) in enumerate(engine.civilizations.items()):
+            civ["fitness"] = fitness_values[i]
+            civ["accuracy"] = 0.9
+            civ["speed"] = 0.001
+            civ["token_count"] = 100
+
+        # Act: Run evolutionary cycle and capture random.choice calls
+        with patch("prototype.LLM_propose_surrogate_model", return_value=mock_genome):
+            with patch("prototype.random.choice") as mock_choice:
+                # Set up mock to return the parent it's called with
+                mock_choice.side_effect = lambda elites: elites[0]
+
+                # Mock evaluate to avoid actual evaluation during mutation
+                mock_crucible.evaluate_surrogate_model.return_value = {
+                    "accuracy": 0.9,
+                    "speed": 0.001,
+                }
+
+                engine.run_evolutionary_cycle()
+
+                # Assert: Verify random.choice was called with exactly 3 elites
+                # (elite_ratio=0.3 * population_size=10 = 3)
+                assert mock_choice.called, "random.choice should be called during breeding"
+
+                # Get the first argument (the list of elites) from the first call
+                elites_list = mock_choice.call_args_list[0][0][0]
+                assert len(elites_list) == 3, (
+                    f"Expected 3 elites with ratio 0.3, got {len(elites_list)}"
+                )

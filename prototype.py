@@ -385,6 +385,21 @@ class EvolutionaryEngine:
         gemini_client: Optional["GeminiClient"] = None,
         cost_tracker: Optional["CostTracker"] = None,
     ):
+        """Initialize the evolutionary engine.
+
+        Args:
+            crucible: CosmologyCrucible for evaluating models
+            population_size: Number of models per generation
+            elite_ratio: Fraction of top performers to keep for breeding (0.0 to 1.0)
+            gemini_client: Optional LLM client for code generation
+            cost_tracker: Optional cost tracking utility
+
+        Raises:
+            ValueError: If elite_ratio is outside valid range [0.0, 1.0]
+        """
+        if not 0.0 <= elite_ratio <= 1.0:
+            raise ValueError(f"elite_ratio must be between 0.0 and 1.0, got {elite_ratio}")
+
         self.crucible = crucible
         self.population_size = population_size
         self.elite_ratio = elite_ratio
