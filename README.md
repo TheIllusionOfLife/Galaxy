@@ -197,7 +197,7 @@ uv run pytest tests/ --cov --cov-report=html
 ### Last Updated: October 29, 2025 11:45 PM JST
 
 #### Recently Completed
-- ✅ **[PR #19 - Fix elite_ratio Configuration Bug]**: Complete TDD implementation with DRY refactor merged to main
+- ✅ **[PR #19 - Fix elite_ratio Configuration Bug](https://github.com/TheIllusionOfLife/Galaxy/pull/19)**: Complete TDD implementation with DRY refactor merged to main
   - **Problem**: `elite_ratio` hardcoded to 0.2, ignoring user configuration
   - **Solution**: Added configurable `elite_ratio` parameter with validation + DRY configuration architecture
   - **Implementation**:
@@ -210,7 +210,7 @@ uv run pytest tests/ --cov --cov-report=html
   - **Security**: Added detect-secrets hook, comprehensive .gitignore patterns, safe test fixtures
   - **Review Fixes**: Addressed 3 CodeRabbit comments (mock type fix, YAML error handling, structure validation)
   - **CI Fix**: Excluded integration tests from CI (no API key needed), all Python 3.10-3.12 passing
-  - **Status**: ✅ Merged (commit 5000cd1), 8 commits squashed, 17 files changed (+884, -155)
+  - **Status**: ✅ Merged (commit [5000cd1](https://github.com/TheIllusionOfLife/Galaxy/commit/5000cd1)), 8 commits squashed, 17 files changed (+884, -155)
 - ✅ **[PR #16 - Token Progression Visualization]**: Complete TDD implementation merged to main
   - **Problem**: No visibility into code length evolution across generations (PR #14 added tracking but no visualization)
   - **Solution**: New `token_progression.png` plot with avg/max/min lines + fitness-colored scatter overlay
