@@ -4,6 +4,7 @@
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 from visualization import generate_all_plots
 
@@ -19,14 +20,16 @@ if not json_path.exists():
     sys.exit(1)
 
 with open(json_path) as f:
-    data = json.load(f)
-    history = data.get("history", data)  # Handle both formats
+    data: dict[str, Any] = json.load(f)
+    history: list[dict[str, Any]] = data.get("history", data)  # Handle both formats
 
 
 # Mock cost tracker
 class MockTracker:
-    def __init__(self):
-        self.calls = []
+    """Mock cost tracker for regenerating visualizations without cost data."""
+
+    def __init__(self) -> None:
+        self.calls: list[Any] = []
 
 
 cost_tracker = MockTracker()

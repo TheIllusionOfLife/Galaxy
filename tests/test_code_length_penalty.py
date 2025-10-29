@@ -364,7 +364,10 @@ class TestPenaltyInEvolution:
         # Verify penalty effect: higher weight → lower tokens (statistically)
         # Note: With small sample size, this is a trend check, not strict ordering
         if len(results[0.0]["token_counts"]) > 0 and len(results[0.2]["token_counts"]) > 0:
-            # At minimum, verify penalty doesn't increase token count
-            assert results[0.2]["avg_tokens"] <= results[0.0]["avg_tokens"] * 1.2, (
-                "High penalty should not significantly increase token count"
+            # At minimum, verify penalty doesn't increase token count significantly
+            max_allowed = results[0.0]["avg_tokens"] * 1.2
+            assert results[0.2]["avg_tokens"] <= max_allowed, (
+                f"High penalty should not significantly increase token count. "
+                f"Expected max {max_allowed:.1f}, got {results[0.2]['avg_tokens']:.1f} "
+                f"(no penalty baseline: {results[0.0]['avg_tokens']:.1f})"
             )

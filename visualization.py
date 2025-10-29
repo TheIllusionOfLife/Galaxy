@@ -278,10 +278,8 @@ def plot_token_progression(history: list[dict[str, Any]], output_path: str) -> N
 
         for model in entry["population"]:
             # Use get() with default 0 for backward compatibility
-            token_count = model.get("token_count", 0)
-            # Ensure token_count is never None to avoid arithmetic errors
-            if token_count is None:
-                token_count = 0
+            # Handle both None and missing key
+            token_count = model.get("token_count") or 0
             token_counts.append(token_count)
 
             # Collect individual points for scatter overlay

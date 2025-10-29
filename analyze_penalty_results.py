@@ -3,9 +3,10 @@
 
 import json
 from pathlib import Path
+from typing import Any
 
 
-def analyze_run(results_dir: Path, weight: float) -> dict:
+def analyze_run(results_dir: Path, weight: float) -> dict[str, Any] | None:
     """Extract key metrics from a results directory."""
     json_path = results_dir / "evolution_history.json"
 
@@ -24,9 +25,7 @@ def analyze_run(results_dir: Path, weight: float) -> dict:
 
     for gen in history:
         gen_tokens = [
-            m.get("token_count", 0)
-            for m in gen["population"]
-            if m.get("token_count") and m.get("token_count") > 0
+            m.get("token_count", 0) for m in gen["population"] if m.get("token_count", 0) > 0
         ]
         if gen_tokens:
             gen_stats.append(
@@ -60,7 +59,7 @@ def analyze_run(results_dir: Path, weight: float) -> dict:
     }
 
 
-def main():
+def main() -> None:
     """Analyze all penalty test results."""
     results_base = Path("results")
 
