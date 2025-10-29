@@ -320,6 +320,13 @@ class TestPenaltyInEvolution:
             # Reload settings with new environment
             test_settings = Settings.load_from_yaml()
 
+            # Patch global settings so EvolutionaryEngine uses the new values
+            import config as config_module
+            import prototype as prototype_module
+
+            monkeypatch.setattr(config_module, "settings", test_settings)
+            monkeypatch.setattr(prototype_module, "settings", test_settings)
+
             # Verify settings loaded correctly
             assert test_settings.code_length_penalty_weight == weight
 

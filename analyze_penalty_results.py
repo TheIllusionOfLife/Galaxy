@@ -13,8 +13,12 @@ def analyze_run(results_dir: Path, weight: float) -> dict[str, Any] | None:
     if not json_path.exists():
         return None
 
-    with open(json_path) as f:
-        data = json.load(f)
+    try:
+        with open(json_path) as f:
+            data = json.load(f)
+    except json.JSONDecodeError as e:
+        print(f"Warning: Invalid JSON in {json_path}: {e}")
+        return None
 
     history = data["history"]
     summary = data["summary"]

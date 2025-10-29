@@ -19,9 +19,18 @@ if not json_path.exists():
     print(f"Error: {json_path} not found")
     sys.exit(1)
 
-with open(json_path) as f:
-    data: dict[str, Any] = json.load(f)
-    history: list[dict[str, Any]] = data.get("history", data)  # Handle both formats
+try:
+    with open(json_path) as f:
+        data: Any = json.load(f)
+except json.JSONDecodeError as e:
+    print(f"Error: Invalid JSON in {json_path}: {e}")
+    sys.exit(1)
+
+# Handle both legacy list format and current dict format
+if isinstance(data, dict) and "history" in data:
+    history: list[dict[str, Any]] = data["history"]
+else:
+    history = data  # Legacy list format
 
 
 # Mock cost tracker
