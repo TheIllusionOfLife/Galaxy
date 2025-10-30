@@ -90,9 +90,8 @@ def predict(particle, attractor):
         # Initialize real API client
         client = GeminiClient(
             api_key=settings.google_api_key,
-            model_name=settings.llm_model,
+            model=settings.llm_model,
             enable_rate_limiting=settings.enable_rate_limiting,
-            requests_per_minute=settings.requests_per_minute,
         )
 
         tracker = CostTracker(max_cost_usd=1.0)
@@ -131,11 +130,11 @@ def predict(particle, attractor):
         assert offspring.parent_ids == ["civ_1_0", "civ_1_5"]
 
         # Verify cost tracking
-        assert tracker.total_cost_usd > 0, "Should track API cost"
-        assert tracker.total_calls == 1, "Should have made 1 API call"
+        assert tracker.total_cost > 0, "Should track API cost"
+        assert len(tracker.calls) == 1, "Should have made 1 API call"
 
         print("\n✓ Crossover integration test passed")
-        print(f"  - API cost: ${tracker.total_cost_usd:.6f}")
+        print(f"  - API cost: ${tracker.total_cost:.6f}")
         print(f"  - Generated code: {len(offspring.raw_code or '')} chars")
         print(f"  - Validation: {'Success' if offspring.raw_code else 'Fallback to parametric'}")
 
@@ -156,9 +155,8 @@ def predict(particle, attractor):
 
         client = GeminiClient(
             api_key=settings.google_api_key,
-            model_name=settings.llm_model,
+            model=settings.llm_model,
             enable_rate_limiting=False,  # Faster for testing
-            requests_per_minute=settings.requests_per_minute,
         )
 
         tracker = CostTracker(max_cost_usd=1.0)
@@ -194,16 +192,16 @@ def predict(particle, attractor):
 
         # With crossover_rate=0.3 and 5 offspring, expect ~1-2 crossover (some variability)
         print("\n✓ Full evolution integration test passed")
-        print(f"  - Total API calls: {tracker.total_calls}")
-        print(f"  - Total cost: ${tracker.total_cost_usd:.6f}")
+        print(f"  - Total API calls: {len(tracker.calls)}")
+        print(f"  - Total cost: ${tracker.total_cost:.6f}")
         print(f"  - Gen 1 offspring: {crossover_count} crossover + {mutation_count} mutation")
         print(f"  - Best fitness Gen 0: {history[0]['best_fitness']:.2f}")
         print(f"  - Best fitness Gen 1: {history[1]['best_fitness']:.2f}")
 
         # Basic sanity checks
-        assert tracker.total_calls >= 10, "Should make at least 10 API calls"
-        assert tracker.total_calls <= 15, "Should not exceed expected calls significantly"
-        assert tracker.total_cost_usd < 0.01, "Cost should be under 1 cent"
+        assert len(tracker.calls) >= 10, "Should make at least 10 API calls"
+        assert len(tracker.calls) <= 15, "Should not exceed expected calls significantly"
+        assert tracker.total_cost < 0.01, "Cost should be under 1 cent"
 
         # Verify evolution completed without errors
         assert history[0]["best_fitness"] > 0, "Should have positive fitness"

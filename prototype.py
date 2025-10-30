@@ -256,7 +256,7 @@ def LLM_propose_surrogate_model(
             temp_override = settings.crossover_temperature
             logger.info(
                 f"Gen {generation}: Crossover between parents "
-                f"(fitness {base_genome.fitness:.2f} x {second_parent.fitness:.2f})"
+                f"(fitness {(base_genome.fitness or 0.0):.2f} x {(second_parent.fitness or 0.0):.2f})"
             )
         else:
             # Mutation - improve existing model
