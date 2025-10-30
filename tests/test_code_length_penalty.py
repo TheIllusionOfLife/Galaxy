@@ -85,8 +85,8 @@ class TestPenaltyCalculation:
         """Code below threshold should not be penalized."""
         from config import settings  # Load from config.yaml
 
-        # Test: 1500 tokens (below 2000 threshold)
-        token_count = 1500
+        # Test: 300 tokens (below 400 threshold)
+        token_count = 300
         base_fitness = 10000.0
 
         # Calculate penalty
@@ -107,14 +107,14 @@ class TestPenaltyCalculation:
         """Code above threshold should be penalized."""
         from config import settings  # Load from config.yaml
 
-        # Test: 3000 tokens (1000 excess)
-        token_count = 3000
+        # Test: 600 tokens (200 excess, threshold=400)
+        token_count = 600
         base_fitness = 10000.0
 
         excess_tokens = max(0, token_count - settings.max_acceptable_tokens)
-        assert excess_tokens == 1000, "1000 excess tokens"
+        assert excess_tokens == 200, "200 excess tokens"
 
-        # Penalty: 0.1 * (1000 / 2000) = 0.05
+        # Penalty: 0.1 * (200 / 400) = 0.05
         # Factor: 1.0 - 0.05 = 0.95
         penalty_factor = 1.0 - (
             settings.code_length_penalty_weight * (excess_tokens / settings.max_acceptable_tokens)
@@ -130,10 +130,10 @@ class TestPenaltyCalculation:
         from config import settings  # Load from config.yaml
 
         test_cases = [
-            (2000, 1.0),  # At threshold - no penalty
-            (2500, 0.975),  # 25% excess = 2.5% penalty
-            (3000, 0.95),  # 50% excess = 5% penalty
-            (4000, 0.90),  # 100% excess = 10% penalty
+            (400, 1.0),  # At threshold - no penalty
+            (500, 0.975),  # 25% excess = 2.5% penalty
+            (600, 0.95),  # 50% excess = 5% penalty
+            (800, 0.90),  # 100% excess = 10% penalty
         ]
 
         for token_count, expected_factor in test_cases:
@@ -260,6 +260,30 @@ class TestPenaltyInEvolution:
                 if token_count is not None and token_count > 0:
                     assert token_count > 50, "LLM code should have >50 tokens"
                     assert token_count < 10000, "Should be in reasonable range"
+
+    def test_new_threshold_relevant_to_typical_models(self):
+        """Verify that new threshold (400) is relevant to typical LLM model sizes.
+
+        Based on PR #21 findings: typical LLM-generated models generate 300-400 tokens.
+        The new threshold (400) is set based on real API results, making penalty relevant.
+
+        NOTE: Token counting is whitespace-based. LLM models include comments, documentation,
+        and verbose code that increases token count significantly beyond minimal implementations.
+        """
+        from config import settings
+
+        # Verify new threshold value is loaded
+        assert settings.max_acceptable_tokens == 400, (
+            f"Expected threshold=400, got {settings.max_acceptable_tokens}. "
+            f"New threshold based on PR #21 findings (typical models: 300-400 tokens)"
+        )
+
+        # Verify threshold is in reasonable range for LLM output
+        # Not too low (would penalize all models) or too high (would never trigger)
+        assert 100 < settings.max_acceptable_tokens < 1000, (
+            f"Threshold {settings.max_acceptable_tokens} should be in reasonable range "
+            f"for LLM-generated code (100-1000 tokens)"
+        )
 
     @pytest.mark.skipif(
         not os.getenv("GOOGLE_API_KEY") or os.getenv("GOOGLE_API_KEY") == "your_api_key_here",

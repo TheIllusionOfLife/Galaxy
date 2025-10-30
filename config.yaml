@@ -29,4 +29,4 @@ mutation:
 code_penalty:
   enabled: true  # Enable fitness penalty for long code to prevent bloat
   weight: 0.1  # Penalty weight (0.0 = no penalty, 1.0 = maximum penalty)
-  max_tokens: 2000  # Token count threshold before penalty applies (100-10000)
+  max_tokens: 400  # Token count threshold before penalty applies (100-10000)
