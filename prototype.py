@@ -563,6 +563,15 @@ class EvolutionaryEngine:
         }
         self.history.append(generation_data)
 
+        # Selection + Reproduction
+        self.breed_next_generation()
+
+    def breed_next_generation(self) -> dict[str, dict]:
+        """Generate next generation via selection, crossover, and mutation.
+
+        Returns:
+            Dictionary of new civilizations {civ_id: {genome, fitness}}
+        """
         # Selection
         sorted_civs = sorted(
             self.civilizations.items(), key=lambda item: item[1].get("fitness", 0), reverse=True
@@ -622,6 +631,8 @@ class EvolutionaryEngine:
 
         self.civilizations = next_generation_civs
         self.generation += 1
+
+        return next_generation_civs
 
 
 # ------------------------------------------------------------------------------

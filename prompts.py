@@ -221,12 +221,12 @@ CRITICAL - Verify code completeness:
 
 OBJECTIVE: Create a HYBRID surrogate model by combining the strengths of TWO parent models.
 
-PARENT 1 (Fitness: {parent1.fitness:.2f}, Accuracy: {parent1.accuracy:.4f}, Speed: {parent1.speed:.6f}s):
+PARENT 1 (Fitness: {parent1.fitness or 0.0:.2f}, Accuracy: {parent1.accuracy or 0.0:.4f}, Speed: {parent1.speed or 0.01:.6f}s):
 ```python
 {parent1.raw_code}
 ```
 
-PARENT 2 (Fitness: {parent2.fitness:.2f}, Accuracy: {parent2.accuracy:.4f}, Speed: {parent2.speed:.6f}s):
+PARENT 2 (Fitness: {parent2.fitness or 0.0:.2f}, Accuracy: {parent2.accuracy or 0.0:.4f}, Speed: {parent2.speed or 0.01:.6f}s):
 ```python
 {parent2.raw_code}
 ```
