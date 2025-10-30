@@ -298,6 +298,15 @@ uv run pytest tests/ --cov --cov-report=html
 - ✅ [PR #7]: ARCHITECTURE.md and production run validation
 - ✅ [PR #5]: CI/CD infrastructure with Ruff, Mypy, Pytest
 
+#### Recently Completed (This Session)
+- ✅ [PR #23]: Penalty Threshold Tuning + Best-Ever Fitness Visualization (October 30, 2025)
+  - **Changes**: Lowered penalty threshold from 2000 → 400 tokens, added best-ever line to fitness plots
+  - **Results**: 11.1% of models now trigger penalty (vs 5% before), 2.2x improvement in relevance
+  - **Validation**: Real API test with 60 calls, $0.0219 cost, best fitness=27,879.23
+  - **Refactoring**: Extracted `calculate_best_ever_fitness()` function with 5 comprehensive unit tests
+  - **Test Coverage**: 71 total tests passing (66 → 71, +5 new tests for edge cases)
+  - **Review**: Addressed gemini-code-assist feedback (clarified discrepancies, improved testability)
+
 #### Next Priority Tasks
 1. **[COMPLETED]** Code Length Penalty - Parameter Tuning ✓
    - **Threshold Updated**: 2000 → 400 tokens (based on PR #21 findings)
@@ -314,13 +323,41 @@ uv run pytest tests/ --cov --cov-report=html
    - **Purpose**: Track cumulative maximum fitness across all generations
    - **Benefit**: Users can see actual evolutionary progress even when fitness regresses
    - **Implementation**: Black dashed line, monotonic increasing, handles inf/nan values
-   - **Tests**: 2 comprehensive tests added and passing
+   - **Tests**: 7 comprehensive tests (2 plot tests + 5 calculation unit tests)
+
+3. **Integration Test Improvements** (Next Session - 2 hours)
+   - **Source**: plan_20251029.md, reviewer consensus
+   - **Current State**: Some integration tests are empty stubs with `pass`
+   - **Task**: Implement or remove empty integration test stubs
+   - **Approach**: Add mock-based smoke tests for evolution loop validation
+   - **Files**: `tests/test_integration.py`, potentially `tests/test_integration_smoke.py`
+
+4. **Documentation Enhancements** (Next Session - 1.5 hours)
+   - **Source**: plan_20251029.md Priority 2.2
+   - **Task 1**: Create CONTRIBUTING.md with development workflow
+   - **Task 2**: Update README "What This Achieves" with concrete impact metrics
+   - **Task 3**: Add troubleshooting section for common errors
+   - **Goal**: Improve onboarding and clarify project impact
 
 #### Known Issues / Blockers
 - **Non-monotonic Fitness**: Fitness fluctuates between generations (not guaranteed to improve)
   - Expected behavior during exploration phase, not a bug
 
 #### Session Learnings
+
+**Last Updated**: October 30, 2025 10:59 AM JST
+
+- **Refactoring for Testability** (2025-10-30 from PR #23): Extract calculations to pure functions for robust testing
+  - **Trigger**: Code review feedback suggesting tests are weak or implicit
+  - **Problem**: Calculation embedded in plotting function → hard to test edge cases directly
+  - **Solution**: Extract `calculate_best_ever_fitness()` as separate function with comprehensive docstring
+  - **Result**: Added 5 unit tests (monotonic, inf, nan, all-inf, empty) - 71 total tests passing
+  - **Pattern**: When reviewers say "test doesn't explicitly verify X", extract X to testable function
+- **Test Analysis Documentation Clarity** (2025-10-30 from PR #23): Always explain number discrepancies
+  - **Trigger**: Reviewer questioned "5/45 vs 50 models" discrepancy in test analysis
+  - **Problem**: Using denominators that differ from total counts without explanation
+  - **Solution**: Explicitly document "45/50 (5 failed validation)" before showing percentages
+  - **Pattern**: When denominators ≠ total attempts, explain what's excluded (failures, timeouts, etc.)
 - **Integration Testing Global Settings Patch** (2025-10-30 from PR #21): `monkeypatch.setenv()` alone insufficient for testing module-level settings
   - **Problem**: Test using `monkeypatch.setenv("PENALTY_WEIGHT", "0.2")` but code still uses default 0.1
   - **Root Cause**: Modules import `settings` at load time; env changes don't update existing references
