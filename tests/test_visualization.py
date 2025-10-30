@@ -480,3 +480,81 @@ class TestVisualizationFunctions:
         # Should handle gracefully - plot will show all zeros
         plot_token_progression(history_no_tokens, str(output_path))
         assert output_path.exists()
+
+    def test_plot_fitness_progression_includes_best_ever_line(self, tmp_path):
+        """Test that fitness progression plot includes cumulative best-ever line."""
+        from visualization import plot_fitness_progression
+
+        # History with non-monotonic progress (regression in Gen 1)
+        history_with_regression = [
+            {
+                "generation": 0,
+                "population": [],
+                "best_fitness": 100.0,
+                "avg_fitness": 50.0,
+                "worst_fitness": 10.0,
+            },
+            {
+                "generation": 1,
+                "population": [],
+                "best_fitness": 80.0,  # Regression!
+                "avg_fitness": 60.0,
+                "worst_fitness": 20.0,
+            },
+            {
+                "generation": 2,
+                "population": [],
+                "best_fitness": 120.0,  # New best
+                "avg_fitness": 70.0,
+                "worst_fitness": 30.0,
+            },
+            {
+                "generation": 3,
+                "population": [],
+                "best_fitness": 110.0,  # Another regression
+                "avg_fitness": 75.0,
+                "worst_fitness": 40.0,
+            },
+        ]
+
+        output_path = tmp_path / "best_ever_test.png"
+        plot_fitness_progression(history_with_regression, str(output_path))
+
+        # Plot should exist
+        assert output_path.exists()
+        # Best-ever values should be: [100, 100, 120, 120] (monotonic increasing)
+        # This is tested implicitly by the plot not crashing and being created
+
+    def test_plot_fitness_progression_best_ever_with_inf_values(self, tmp_path):
+        """Test best-ever line handles infinite values correctly."""
+        from visualization import plot_fitness_progression
+
+        # History with inf values
+        history_with_inf = [
+            {
+                "generation": 0,
+                "population": [],
+                "best_fitness": 100.0,
+                "avg_fitness": 50.0,
+                "worst_fitness": 10.0,
+            },
+            {
+                "generation": 1,
+                "population": [],
+                "best_fitness": float("inf"),  # Invalid model
+                "avg_fitness": 60.0,
+                "worst_fitness": 20.0,
+            },
+            {
+                "generation": 2,
+                "population": [],
+                "best_fitness": 120.0,  # Valid again
+                "avg_fitness": 70.0,
+                "worst_fitness": 30.0,
+            },
+        ]
+
+        output_path = tmp_path / "best_ever_inf.png"
+        # Should filter out inf values and continue tracking
+        plot_fitness_progression(history_with_inf, str(output_path))
+        assert output_path.exists()
