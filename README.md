@@ -304,7 +304,7 @@ uv run pytest tests/ --cov --cov-report=html
   - **Results**: 11.1% of models now trigger penalty (vs 5% before), 2.2x improvement in relevance
   - **Validation**: Real API test with 60 calls, $0.0219 cost, best fitness=27,879.23
   - **Refactoring**: Extracted `calculate_best_ever_fitness()` function with 5 comprehensive unit tests
-  - **Test Coverage**: 71 total tests passing (66 → 71, +5 new tests for edge cases)
+  - **Test Coverage**: 73 total tests passing (66 → 73, +7 new tests: 2 plot tests + 5 unit tests)
   - **Review**: Addressed gemini-code-assist feedback (clarified discrepancies, improved testability)
 
 #### Next Priority Tasks
@@ -334,7 +334,7 @@ uv run pytest tests/ --cov --cov-report=html
 
 4. **Documentation Enhancements** (Next Session - 1.5 hours)
    - **Source**: plan_20251029.md Priority 2.2
-   - **Task 1**: Create CONTRIBUTING.md with development workflow
+   - **Task 1**: Enhance CONTRIBUTING.md with TDD workflow examples (file exists, needs enrichment)
    - **Task 2**: Update README "What This Achieves" with concrete impact metrics
    - **Task 3**: Add troubleshooting section for common errors
    - **Goal**: Improve onboarding and clarify project impact
