@@ -280,11 +280,19 @@ def LLM_propose_surrogate_model(
 
         # Track cost
         if cost_tracker:
+            # Determine operation type for cost tracking
+            if base_genome is None:
+                op_type = "initial"
+            elif second_parent is not None:
+                op_type = "crossover"
+            else:
+                op_type = "mutation"
+
             cost_tracker.add_call(
                 response,
                 {
                     "generation": generation,
-                    "type": "initial" if base_genome is None else "mutation",
+                    "type": op_type,
                 },
             )
 
@@ -297,6 +305,8 @@ def LLM_propose_surrogate_model(
 
         if not validation.valid:
             logger.warning(f"Generated code invalid: {validation.errors}")
+            if second_parent is not None:
+                logger.warning("Crossover validation failed, falling back to parametric mutation")
             return _mock_surrogate_generation(base_genome, generation)
 
         if validation.warnings:
@@ -619,7 +629,11 @@ class EvolutionaryEngine:
                 parent_genome = parent_civ[1]["genome"]
 
                 new_genome = LLM_propose_surrogate_model(
-                    parent_genome, self.generation + 1, self.gemini_client, self.cost_tracker
+                    parent_genome,
+                    self.generation + 1,
+                    self.gemini_client,
+                    self.cost_tracker,
+                    parent_ids=[parent_civ[0]],
                 )
                 mutation_count += 1
 

@@ -4,6 +4,11 @@ This module contains all prompts used to generate and mutate surrogate models.
 Prompts are carefully crafted to maximize code quality and physics accuracy.
 """
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from prototype import SurrogateGenome
+
 # System instruction used for all prompts
 SYSTEM_INSTRUCTION = """You are an expert in numerical methods and physics simulation.
 Generate Python code for a surrogate model that approximates N-body gravitational dynamics.
@@ -193,7 +198,9 @@ MUTATION STRATEGY:
 Generate improved code that maintains the predict(particle, attractor) signature and returns [new_x, new_y, new_vx, new_vy]."""
 
 
-def get_crossover_prompt(parent1, parent2, generation: int) -> str:
+def get_crossover_prompt(
+    parent1: "SurrogateGenome", parent2: "SurrogateGenome", generation: int
+) -> str:
     """Generate crossover prompt combining two high-performing models.
 
     Args:
