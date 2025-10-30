@@ -192,7 +192,22 @@ def select_crossover_parents(
         ValueError: If fewer than 2 LLM elites with raw_code available
     """
     # Filter to only LLM genomes with raw_code for crossover
-    llm_elites = [e for e in elites if e[1]["genome"].raw_code is not None]
+    # Add defensive validation to ensure genome objects are valid
+    llm_elites = []
+    for elite in elites:
+        try:
+            civ_id, civ_data = elite
+            # Validate structure and that genome exists with raw_code
+            if (
+                isinstance(civ_data, dict)
+                and "genome" in civ_data
+                and hasattr(civ_data["genome"], "raw_code")
+                and civ_data["genome"].raw_code is not None
+            ):
+                llm_elites.append(elite)
+        except (TypeError, ValueError, KeyError, AttributeError):
+            # Skip malformed elite entries
+            continue
 
     if len(llm_elites) < 2:
         raise ValueError(f"Need at least 2 LLM elites for crossover, got {len(llm_elites)}")
@@ -254,19 +269,10 @@ def LLM_propose_surrogate_model(
             # Validate both parents have raw_code for LLM crossover
             if base_genome.raw_code is None or second_parent.raw_code is None:
                 logger.warning(
-                    "Crossover requires LLM parents with raw_code, falling back to mutation"
+                    "Crossover requires LLM parents with raw_code, falling back to parametric generation"
                 )
-                # Fall back to mutation of base_genome
-                mutation_type = "explore" if generation < 3 else "exploit"
-                prompt = get_mutation_prompt(
-                    parent_code=base_genome.raw_code,
-                    fitness=base_genome.fitness or 0.0,
-                    accuracy=base_genome.accuracy or 0.5,
-                    speed=base_genome.speed or 0.01,
-                    generation=generation,
-                    mutation_type=mutation_type,
-                )
-                temp_override = settings.get_mutation_temperature(generation)
+                # Both parents need raw_code; if either is None, use parametric fallback
+                return _mock_surrogate_generation(base_genome, generation)
             else:
                 prompt = get_crossover_prompt(
                     parent1=base_genome,
