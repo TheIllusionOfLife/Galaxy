@@ -18,6 +18,39 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
 
 
+def calculate_best_ever_fitness(fitness_values: list[float]) -> list[float]:
+    """
+    Calculate cumulative best (maximum) fitness across generations.
+
+    This function tracks the best-ever fitness seen so far, creating a monotonic
+    increasing sequence. Useful for visualizing actual evolutionary progress even
+    when fitness regresses between generations.
+
+    Args:
+        fitness_values: List of fitness values per generation (may contain inf/nan)
+
+    Returns:
+        List of cumulative best fitness values (same length as input)
+
+    Examples:
+        >>> calculate_best_ever_fitness([100.0, 80.0, 120.0, 110.0])
+        [100.0, 100.0, 120.0, 120.0]
+
+        >>> calculate_best_ever_fitness([float('inf'), 100.0, 120.0])
+        [float('inf'), 100.0, 120.0]
+    """
+    best_ever = []
+    current_best = float("-inf")
+
+    for fitness in fitness_values:
+        if math.isfinite(fitness):
+            current_best = max(current_best, fitness)
+        # Append current best; if still -inf, append fitness (will be filtered later)
+        best_ever.append(current_best if current_best != float("-inf") else fitness)
+
+    return best_ever
+
+
 def _create_empty_plot(output_path: str, title: str, xlabel: str, ylabel: str) -> None:
     """
     Create and save an empty plot with a message for when no data is available.
@@ -72,12 +105,7 @@ def plot_fitness_progression(history: list[dict[str, Any]], output_path: str) ->
     worst_fitness = [entry["worst_fitness"] for entry in history]
 
     # Calculate cumulative best-ever fitness (monotonic increasing)
-    best_ever = []
-    current_best = float("-inf")
-    for fitness in best_fitness:
-        if math.isfinite(fitness):
-            current_best = max(current_best, fitness)
-        best_ever.append(current_best if current_best != float("-inf") else fitness)
+    best_ever = calculate_best_ever_fitness(best_fitness)
 
     # Filter out inf/nan values
     def clean_data(gens, values):

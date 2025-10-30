@@ -558,3 +558,62 @@ class TestVisualizationFunctions:
         # Should filter out inf values and continue tracking
         plot_fitness_progression(history_with_inf, str(output_path))
         assert output_path.exists()
+
+    def test_calculate_best_ever_fitness_monotonic(self):
+        """Test that best-ever calculation is monotonic increasing."""
+        from visualization import calculate_best_ever_fitness
+
+        # Test with regressions
+        fitness_values = [100.0, 80.0, 120.0, 110.0, 150.0]
+        result = calculate_best_ever_fitness(fitness_values)
+
+        # Should be monotonic increasing
+        assert result == [100.0, 100.0, 120.0, 120.0, 150.0]
+
+        # Verify monotonicity
+        for i in range(1, len(result)):
+            assert result[i] >= result[i - 1], f"Not monotonic at index {i}"
+
+    def test_calculate_best_ever_fitness_with_inf(self):
+        """Test best-ever calculation handles infinite values correctly."""
+        from visualization import calculate_best_ever_fitness
+
+        fitness_values = [float("inf"), 100.0, 120.0, 110.0]
+        result = calculate_best_ever_fitness(fitness_values)
+
+        # First value is inf (no finite value yet)
+        assert result[0] == float("inf")
+        # Subsequent values track actual best
+        assert result[1] == 100.0
+        assert result[2] == 120.0
+        assert result[3] == 120.0  # Holds at 120
+
+    def test_calculate_best_ever_fitness_with_nan(self):
+        """Test best-ever calculation handles NaN values correctly."""
+
+        from visualization import calculate_best_ever_fitness
+
+        fitness_values = [100.0, float("nan"), 120.0]
+        result = calculate_best_ever_fitness(fitness_values)
+
+        # NaN should not update best - current_best is used instead
+        assert result[0] == 100.0
+        assert result[1] == 100.0  # Holds at 100 (NaN doesn't update)
+        assert result[2] == 120.0
+
+    def test_calculate_best_ever_fitness_all_inf(self):
+        """Test best-ever when all values are infinite."""
+        from visualization import calculate_best_ever_fitness
+
+        fitness_values = [float("inf"), float("inf"), float("inf")]
+        result = calculate_best_ever_fitness(fitness_values)
+
+        # All should be inf (no finite value ever found)
+        assert all(v == float("inf") for v in result)
+
+    def test_calculate_best_ever_fitness_empty(self):
+        """Test best-ever with empty input."""
+        from visualization import calculate_best_ever_fitness
+
+        result = calculate_best_ever_fitness([])
+        assert result == []

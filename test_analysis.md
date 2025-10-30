@@ -17,7 +17,8 @@
 ### Token Statistics
 - **Average**: 247.3 tokens
 - **Range**: 102-823 tokens
-- **Models > Threshold (400)**: 5/45 (11.1%)
+- **Successful Models**: 45/50 (5 models failed validation during evolution)
+- **Models > Threshold (400)**: 5/45 successful models (11.1%)
 
 ## Key Findings
 
