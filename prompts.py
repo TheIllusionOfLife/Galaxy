@@ -4,6 +4,11 @@ This module contains all prompts used to generate and mutate surrogate models.
 Prompts are carefully crafted to maximize code quality and physics accuracy.
 """
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from prototype import SurrogateGenome
+
 # System instruction used for all prompts
 SYSTEM_INSTRUCTION = """You are an expert in numerical methods and physics simulation.
 Generate Python code for a surrogate model that approximates N-body gravitational dynamics.
@@ -194,39 +199,59 @@ Generate improved code that maintains the predict(particle, attractor) signature
 
 
 def get_crossover_prompt(
-    parent1_code: str, parent1_fitness: float, parent2_code: str, parent2_fitness: float
+    parent1: "SurrogateGenome", parent2: "SurrogateGenome", generation: int
 ) -> str:
     """Generate crossover prompt combining two high-performing models.
 
-    Note: This is optional and not currently used in the main evolution loop.
-
     Args:
-        parent1_code: Python code of first parent
-        parent1_fitness: First parent's fitness
-        parent2_code: Python code of second parent
-        parent2_fitness: Second parent's fitness
+        parent1: First parent SurrogateGenome (must have raw_code)
+        parent2: Second parent SurrogateGenome (must have raw_code)
+        generation: Current generation number
 
     Returns:
         Complete prompt for creating hybrid model
+
+    Raises:
+        ValueError: If either parent lacks raw_code (parametric genome)
     """
+    # Validate both parents have LLM-generated code
+    if parent1.raw_code is None or parent2.raw_code is None:
+        raise ValueError("Crossover requires LLM-generated parents with raw_code")
+    # Use completion reminder for later generations when code gets more complex
+    completion_reminder = (
+        """
+
+CRITICAL - Verify code completeness:
+- Count ALL opening ( [ {{ MUST have matching closing ) ] }}
+- Verify the predict function is complete with all calculations
+- If your code exceeds 2000 characters, STOP and simplify - avoid truncation
+- Completeness > Cleverness (a simple complete model beats a truncated complex one)"""
+        if generation > 1
+        else ""
+    )
+
     return f"""{SYSTEM_INSTRUCTION}
 
-TASK: Combine insights from two high-performing surrogate models.
+OBJECTIVE: Create a HYBRID surrogate model by combining the strengths of TWO parent models.
 
-PARENT 1 (Fitness: {parent1_fitness:.4f}):
+PARENT 1 (Fitness: {parent1.fitness or 0.0:.2f}, Accuracy: {parent1.accuracy or 0.0:.4f}, Speed: {parent1.speed or 0.01:.6f}s):
 ```python
-{parent1_code}
+{parent1.raw_code}
 ```
 
-PARENT 2 (Fitness: {parent2_fitness:.4f}):
+PARENT 2 (Fitness: {parent2.fitness or 0.0:.2f}, Accuracy: {parent2.accuracy or 0.0:.4f}, Speed: {parent2.speed or 0.01:.6f}s):
 ```python
-{parent2_code}
+{parent2.raw_code}
 ```
 
-Create a HYBRID model that:
-- Combines the best ideas from both parents
-- Uses the more accurate force calculation approach
-- Uses the faster computational method
-- May introduce novel elements that neither parent has
+TASK:
+1. Analyze what makes each parent successful
+2. Identify complementary strengths (e.g., Parent 1 has better accuracy, Parent 2 is faster)
+3. Design a NEW approach that combines these strengths
+4. You may introduce novel elements beyond just merging (creative synthesis)
 
-Generate the complete hybrid code with predict(particle, attractor) signature."""
+GENERATION: {generation} (Explore phase: try bold combinations)
+
+{completion_reminder}
+
+Generate the hybrid predict function:"""
