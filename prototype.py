@@ -3,7 +3,7 @@ import math
 import random
 import time
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
 # Import LLM integration modules (will be None if not available)
@@ -11,7 +11,7 @@ try:
     from code_validator import validate_and_compile
     from config import settings
     from gemini_client import CostTracker, GeminiClient
-    from prompts import get_initial_prompt, get_mutation_prompt
+    from prompts import get_crossover_prompt, get_initial_prompt, get_mutation_prompt
 
     LLM_AVAILABLE = True
 except ImportError:
@@ -36,6 +36,7 @@ class SurrogateGenome:
     speed: float | None = None  # Store for LLM prompt context
     token_count: int | None = None  # Track code length for penalty calculation
     compiled_predict: Callable[[list[float]], list[float]] | None = None  # Pre-validated callable
+    parent_ids: list[str] = field(default_factory=list)  # Track crossover parentage
 
     def as_readable(self) -> str:
         if self.raw_code:
@@ -174,19 +175,53 @@ def count_tokens(code: str | None) -> int:
 # ------------------------------------------------------------------------------
 # LLM-powered surrogate model generation (with Mock fallback)
 # ------------------------------------------------------------------------------
+
+
+def select_crossover_parents(
+    elites: list[tuple[str, dict]],
+) -> tuple[tuple[str, dict], tuple[str, dict]]:
+    """Select two different elite parents for crossover.
+
+    Args:
+        elites: List of (civ_id, civ_data) tuples sorted by fitness
+
+    Returns:
+        Two distinct elite tuples (parent1, parent2)
+
+    Raises:
+        ValueError: If fewer than 2 elites available
+    """
+    if len(elites) < 2:
+        raise ValueError(f"Need at least 2 elites for crossover, got {len(elites)}")
+
+    # Simple strategy: Pick two random distinct elites
+    # Future enhancement: Fitness-weighted selection or diversity-based
+    parent1, parent2 = random.sample(elites, 2)
+    return parent1, parent2
+
+
 def LLM_propose_surrogate_model(
     base_genome: SurrogateGenome | None,
     generation: int,
     gemini_client: Optional["GeminiClient"] = None,
     cost_tracker: Optional["CostTracker"] = None,
+    second_parent: SurrogateGenome | None = None,
+    parent_ids: list[str] | None = None,
 ) -> SurrogateGenome:
     """Generate or evolve a new surrogate model using LLM or Mock fallback.
+
+    Modes:
+    - Initial: base_genome=None, second_parent=None → get_initial_prompt()
+    - Mutation: base_genome set, second_parent=None → get_mutation_prompt()
+    - Crossover: base_genome set, second_parent set → get_crossover_prompt()
 
     Args:
         base_genome: Parent genome (None for initial generation)
         generation: Current generation number
         gemini_client: Gemini API client (None for Mock mode)
         cost_tracker: Cost tracker
+        second_parent: Second parent for crossover (None for mutation)
+        parent_ids: List of parent civ_ids for lineage tracking
 
     Returns:
         New SurrogateGenome
@@ -211,6 +246,18 @@ def LLM_propose_surrogate_model(
             seed = generation * 100 + random.randint(0, 99)
             prompt = get_initial_prompt(seed)
             logger.info(f"Generating initial model (seed {seed % 6})")
+        elif second_parent is not None:
+            # Crossover - combine two elite parents
+            prompt = get_crossover_prompt(
+                parent1=base_genome,
+                parent2=second_parent,
+                generation=generation,
+            )
+            temp_override = settings.crossover_temperature
+            logger.info(
+                f"Gen {generation}: Crossover between parents "
+                f"(fitness {base_genome.fitness:.2f} x {second_parent.fitness:.2f})"
+            )
         else:
             # Mutation - improve existing model
             mutation_type = "explore" if generation < 3 else "exploit"
@@ -256,9 +303,9 @@ def LLM_propose_surrogate_model(
             for warning in validation.warnings:
                 logger.debug(f"Code warning: {warning}")
 
-        # Return LLM-generated genome
+        # Return LLM-generated genome with parentage tracking
         logger.info("✓ LLM code validated and compiled successfully")
-        return SurrogateGenome(
+        genome = SurrogateGenome(
             theta=BASE_THETA[:],  # Keep default theta as fallback
             description=f"gemini_gen{generation}",
             raw_code=response.code,
@@ -267,6 +314,9 @@ def LLM_propose_surrogate_model(
             speed=None,
             compiled_predict=compiled_func,
         )
+        if parent_ids is not None:
+            genome.parent_ids = parent_ids
+        return genome
 
     except Exception as e:
         logger.exception(f"LLM generation failed: {e}")
@@ -503,6 +553,7 @@ class EvolutionaryEngine:
                     "speed": civ_data["speed"],
                     "description": civ_data["genome"].description,
                     "token_count": civ_data["genome"].token_count,
+                    "parent_ids": civ_data["genome"].parent_ids,
                 }
                 for civ_id, civ_data in self.civilizations.items()
             ],
@@ -523,17 +574,51 @@ class EvolutionaryEngine:
             f"\n--- Top performing model in Generation {self.generation}: {elites[0][0]} with fitness {elites[0][1]['fitness']:.2f} ---"
         )
 
-        # Reproduction
+        # Reproduction (crossover + mutation)
         next_generation_civs = {}
-        for i in range(self.population_size):
-            parent_civ = random.choice(elites)
-            parent_genome: SurrogateGenome = parent_civ[1]["genome"]
+        crossover_count = 0
+        mutation_count = 0
 
+        for i in range(self.population_size):
             new_civ_id = f"civ_{self.generation + 1}_{i}"
-            new_genome = LLM_propose_surrogate_model(
-                parent_genome, self.generation + 1, self.gemini_client, self.cost_tracker
+
+            # Decide: crossover or mutation?
+            use_crossover = (
+                settings.enable_crossover
+                and len(elites) >= 2
+                and random.random() < settings.crossover_rate
             )
+
+            if use_crossover:
+                # Crossover: Select two parents
+                parent1_civ, parent2_civ = select_crossover_parents(elites)
+                parent1_genome = parent1_civ[1]["genome"]
+                parent2_genome = parent2_civ[1]["genome"]
+
+                new_genome = LLM_propose_surrogate_model(
+                    parent1_genome,
+                    self.generation + 1,
+                    self.gemini_client,
+                    self.cost_tracker,
+                    second_parent=parent2_genome,
+                    parent_ids=[parent1_civ[0], parent2_civ[0]],
+                )
+                crossover_count += 1
+            else:
+                # Mutation: Select single parent
+                parent_civ = random.choice(elites)
+                parent_genome = parent_civ[1]["genome"]
+
+                new_genome = LLM_propose_surrogate_model(
+                    parent_genome, self.generation + 1, self.gemini_client, self.cost_tracker
+                )
+                mutation_count += 1
+
             next_generation_civs[new_civ_id] = {"genome": new_genome, "fitness": 0}
+
+        logger.info(
+            f"Generation {self.generation + 1}: {crossover_count} crossover + {mutation_count} mutation offspring"
+        )
 
         self.civilizations = next_generation_civs
         self.generation += 1
