@@ -30,3 +30,9 @@ code_penalty:
   enabled: true  # Enable fitness penalty for long code to prevent bloat
   weight: 0.1  # Penalty weight (0.0 = no penalty, 1.0 = maximum penalty)
   max_tokens: 400  # Token count threshold before penalty applies (100-10000)
+
+# Crossover Configuration (genetic recombination of elite parents)
+crossover:
+  enabled: true  # Enable crossover operator (LLM-based code recombination)
+  crossover_rate: 0.3  # Fraction using crossover (0.3 = 30% crossover, 70% mutation)
+  temperature: 0.75  # Crossover creativity level (0.0-2.0, between explore/exploit)

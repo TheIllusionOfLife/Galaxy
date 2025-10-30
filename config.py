@@ -109,6 +109,17 @@ class Settings(BaseSettings):
         description="Token count threshold before penalty applies",
     )
 
+    # Crossover Configuration (from config.yaml, no defaults here)
+    enable_crossover: bool = Field(
+        description="Enable crossover operator (LLM-based code recombination)"
+    )
+    crossover_rate: float = Field(
+        ge=0.0, le=1.0, description="Fraction using crossover (rest uses mutation)"
+    )
+    crossover_temperature: float = Field(
+        ge=0.0, le=2.0, description="Crossover creativity level (between explore/exploit)"
+    )
+
     @property
     def total_requests_needed(self) -> int:
         """Calculate total LLM calls needed for one complete evolution run.
@@ -187,7 +198,14 @@ class Settings(BaseSettings):
             ) from e
 
         # Validate YAML structure
-        required_sections = ["model", "rate_limiting", "evolution", "mutation", "code_penalty"]
+        required_sections = [
+            "model",
+            "rate_limiting",
+            "evolution",
+            "mutation",
+            "code_penalty",
+            "crossover",
+        ]
         missing_sections = [s for s in required_sections if s not in yaml_config]
         if missing_sections:
             raise ValueError(
@@ -247,6 +265,17 @@ class Settings(BaseSettings):
                 ),
                 "max_acceptable_tokens": int(
                     os.getenv("MAX_ACCEPTABLE_TOKENS", yaml_config["code_penalty"]["max_tokens"])
+                ),
+                # Crossover
+                "enable_crossover": os.getenv(
+                    "ENABLE_CROSSOVER", str(yaml_config["crossover"]["enabled"])
+                ).lower()
+                == "true",
+                "crossover_rate": float(
+                    os.getenv("CROSSOVER_RATE", yaml_config["crossover"]["crossover_rate"])
+                ),
+                "crossover_temperature": float(
+                    os.getenv("CROSSOVER_TEMPERATURE", yaml_config["crossover"]["temperature"])
                 ),
             }
         except (KeyError, TypeError) as e:
