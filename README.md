@@ -449,8 +449,8 @@ If you encounter issues not covered here:
     - Impact: Eliminates technical debt, future PRs run workflow normally
   - **Task 2 - Crossover Effectiveness Analysis**: Empirical validation with real API
     - Experiments: 3 comparative runs (control, 30%, 50%), 150 API calls, $0.0766 cost
-    - Key Results: Crossover 50% provides +5.3% fitness, +11.6pp improvement rate
-    - Action: Updated default `crossover_rate` from 0.3 to 0.5 based on data
+    - Key Results: Crossover at 50% showed +5.3% fitness and +11.6pp improvement rate vs control
+    - Action: Updated default `crossover_rate` in `config.yaml` from 0.3 to 0.5 based on data
     - Documentation: Full analysis in `experiments/crossover_analysis_20251031/`
   - **Task 3 - Session Documentation**: Updated README with all findings
   - **Reviewer Feedback**: Addressed CodeRabbit (markdown) & Gemini (UTF-8, documentation)
