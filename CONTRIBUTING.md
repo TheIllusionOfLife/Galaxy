@@ -431,7 +431,7 @@ def test_elite_selection_ratios(elite_ratio, expected_count):
 - 📝 Writing documentation (no tests to write)
 - 🔧 Updating configuration files
 - 🎨 Changing UI/visualizations (manual review needed)
-- 📊 Adding non-functional improvements
+- 📊 Exploratory work or research spikes
 
 ### TDD Anti-Patterns to Avoid
 

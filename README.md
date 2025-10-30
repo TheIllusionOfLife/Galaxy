@@ -376,28 +376,6 @@ ValidationResult(valid=False, errors=['Forbidden: import statement'])
 
 ---
 
-#### API Timeout Errors
-
-**Error Message:**
-```
-TimeoutError: Request exceeded 60 second timeout
-```
-
-**Solution:**
-
-Increase timeout in `config.yaml`:
-```yaml
-api:
-  timeout_seconds: 120  # Default: 60
-```
-
-Or set environment variable for one-off override:
-```bash
-DEFAULT_TIMEOUT_SECONDS=120 uv run python prototype.py
-```
-
----
-
 #### Type Checking Errors (Local vs CI Differences)
 
 **Issue:** Mypy passes locally but fails in CI (or vice versa)
@@ -433,7 +411,7 @@ yaml.scanner.ScannerError: mapping values are not allowed here
 **Solution:**
 
 1. Check indentation (use spaces, not tabs)
-2. Ensure colons have space after them (`key: value` not `key:value`)
+2. For consistency, add a space after colons (`key: value` is preferred over `key:value`)
 3. Validate YAML syntax online: https://www.yamllint.com/
 
 Example of correct syntax:
