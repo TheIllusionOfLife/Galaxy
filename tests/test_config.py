@@ -35,7 +35,7 @@ class TestSettings:
         # Code penalty defaults (from config.yaml)
         assert settings.enable_code_length_penalty is True
         assert settings.code_length_penalty_weight == 0.1
-        assert settings.max_acceptable_tokens == 2000
+        assert settings.max_acceptable_tokens == 400  # Updated from 2000 based on PR #21 findings
 
     def test_settings_from_env(self, monkeypatch):
         """Test environment variables can override config.yaml values."""

@@ -18,6 +18,39 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
 
 
+def calculate_best_ever_fitness(fitness_values: list[float]) -> list[float]:
+    """
+    Calculate cumulative best (maximum) fitness across generations.
+
+    This function tracks the best-ever fitness seen so far, creating a monotonic
+    increasing sequence. Useful for visualizing actual evolutionary progress even
+    when fitness regresses between generations.
+
+    Args:
+        fitness_values: List of fitness values per generation (may contain inf/nan)
+
+    Returns:
+        List of cumulative best fitness values (same length as input)
+
+    Examples:
+        >>> calculate_best_ever_fitness([100.0, 80.0, 120.0, 110.0])
+        [100.0, 100.0, 120.0, 120.0]
+
+        >>> calculate_best_ever_fitness([float('inf'), 100.0, 120.0])
+        [float('inf'), 100.0, 120.0]
+    """
+    best_ever = []
+    current_best = float("-inf")
+
+    for fitness in fitness_values:
+        if math.isfinite(fitness):
+            current_best = max(current_best, fitness)
+        # Append current best; if still -inf, append fitness (will be filtered later)
+        best_ever.append(current_best if current_best != float("-inf") else fitness)
+
+    return best_ever
+
+
 def _create_empty_plot(output_path: str, title: str, xlabel: str, ylabel: str) -> None:
     """
     Create and save an empty plot with a message for when no data is available.
@@ -49,7 +82,9 @@ def plot_fitness_progression(history: list[dict[str, Any]], output_path: str) ->
     """
     Plot fitness progression over generations.
 
-    Shows best, average, and worst fitness for each generation as line plots.
+    Shows best, average, worst, and best-ever fitness for each generation as line plots.
+    The "Best Ever" line tracks the cumulative maximum fitness across all generations,
+    providing visibility into actual evolutionary progress even when fitness regresses.
 
     Args:
         history: List of generation data dicts with fitness statistics
@@ -69,6 +104,9 @@ def plot_fitness_progression(history: list[dict[str, Any]], output_path: str) ->
     avg_fitness = [entry["avg_fitness"] for entry in history]
     worst_fitness = [entry["worst_fitness"] for entry in history]
 
+    # Calculate cumulative best-ever fitness (monotonic increasing)
+    best_ever = calculate_best_ever_fitness(best_fitness)
+
     # Filter out inf/nan values
     def clean_data(gens, values):
         cleaned_gens = []
@@ -82,6 +120,7 @@ def plot_fitness_progression(history: list[dict[str, Any]], output_path: str) ->
     best_gens, best_vals = clean_data(generations, best_fitness)
     avg_gens, avg_vals = clean_data(generations, avg_fitness)
     worst_gens, worst_vals = clean_data(generations, worst_fitness)
+    best_ever_gens, best_ever_vals = clean_data(generations, best_ever)
 
     fig, ax = plt.subplots(figsize=(12, 7))
 
@@ -92,6 +131,15 @@ def plot_fitness_progression(history: list[dict[str, Any]], output_path: str) ->
         ax.plot(avg_gens, avg_vals, "b-s", label="Average", linewidth=2, markersize=6)
     if worst_vals:
         ax.plot(worst_gens, worst_vals, "r-^", label="Worst", linewidth=2, markersize=6)
+    if best_ever_vals:
+        ax.plot(
+            best_ever_gens,
+            best_ever_vals,
+            "k--",
+            label="Best Ever",
+            linewidth=2.5,
+            alpha=0.7,
+        )
 
     ax.set_xlabel("Generation", fontsize=12)
     ax.set_ylabel("Fitness (Accuracy / Speed)", fontsize=12)

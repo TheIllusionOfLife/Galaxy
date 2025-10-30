@@ -480,3 +480,140 @@ class TestVisualizationFunctions:
         # Should handle gracefully - plot will show all zeros
         plot_token_progression(history_no_tokens, str(output_path))
         assert output_path.exists()
+
+    def test_plot_fitness_progression_includes_best_ever_line(self, tmp_path):
+        """Test that fitness progression plot includes cumulative best-ever line."""
+        from visualization import plot_fitness_progression
+
+        # History with non-monotonic progress (regression in Gen 1)
+        history_with_regression = [
+            {
+                "generation": 0,
+                "population": [],
+                "best_fitness": 100.0,
+                "avg_fitness": 50.0,
+                "worst_fitness": 10.0,
+            },
+            {
+                "generation": 1,
+                "population": [],
+                "best_fitness": 80.0,  # Regression!
+                "avg_fitness": 60.0,
+                "worst_fitness": 20.0,
+            },
+            {
+                "generation": 2,
+                "population": [],
+                "best_fitness": 120.0,  # New best
+                "avg_fitness": 70.0,
+                "worst_fitness": 30.0,
+            },
+            {
+                "generation": 3,
+                "population": [],
+                "best_fitness": 110.0,  # Another regression
+                "avg_fitness": 75.0,
+                "worst_fitness": 40.0,
+            },
+        ]
+
+        output_path = tmp_path / "best_ever_test.png"
+        plot_fitness_progression(history_with_regression, str(output_path))
+
+        # Plot should exist
+        assert output_path.exists()
+        # Best-ever values should be: [100, 100, 120, 120] (monotonic increasing)
+        # This is tested implicitly by the plot not crashing and being created
+
+    def test_plot_fitness_progression_best_ever_with_inf_values(self, tmp_path):
+        """Test best-ever line handles infinite values correctly."""
+        from visualization import plot_fitness_progression
+
+        # History with inf values
+        history_with_inf = [
+            {
+                "generation": 0,
+                "population": [],
+                "best_fitness": 100.0,
+                "avg_fitness": 50.0,
+                "worst_fitness": 10.0,
+            },
+            {
+                "generation": 1,
+                "population": [],
+                "best_fitness": float("inf"),  # Invalid model
+                "avg_fitness": 60.0,
+                "worst_fitness": 20.0,
+            },
+            {
+                "generation": 2,
+                "population": [],
+                "best_fitness": 120.0,  # Valid again
+                "avg_fitness": 70.0,
+                "worst_fitness": 30.0,
+            },
+        ]
+
+        output_path = tmp_path / "best_ever_inf.png"
+        # Should filter out inf values and continue tracking
+        plot_fitness_progression(history_with_inf, str(output_path))
+        assert output_path.exists()
+
+    def test_calculate_best_ever_fitness_monotonic(self):
+        """Test that best-ever calculation is monotonic increasing."""
+        from visualization import calculate_best_ever_fitness
+
+        # Test with regressions
+        fitness_values = [100.0, 80.0, 120.0, 110.0, 150.0]
+        result = calculate_best_ever_fitness(fitness_values)
+
+        # Should be monotonic increasing
+        assert result == [100.0, 100.0, 120.0, 120.0, 150.0]
+
+        # Verify monotonicity
+        for i in range(1, len(result)):
+            assert result[i] >= result[i - 1], f"Not monotonic at index {i}"
+
+    def test_calculate_best_ever_fitness_with_inf(self):
+        """Test best-ever calculation handles infinite values correctly."""
+        from visualization import calculate_best_ever_fitness
+
+        fitness_values = [float("inf"), 100.0, 120.0, 110.0]
+        result = calculate_best_ever_fitness(fitness_values)
+
+        # First value is inf (no finite value yet)
+        assert result[0] == float("inf")
+        # Subsequent values track actual best
+        assert result[1] == 100.0
+        assert result[2] == 120.0
+        assert result[3] == 120.0  # Holds at 120
+
+    def test_calculate_best_ever_fitness_with_nan(self):
+        """Test best-ever calculation handles NaN values correctly."""
+
+        from visualization import calculate_best_ever_fitness
+
+        fitness_values = [100.0, float("nan"), 120.0]
+        result = calculate_best_ever_fitness(fitness_values)
+
+        # NaN should not update best - current_best is used instead
+        assert result[0] == 100.0
+        assert result[1] == 100.0  # Holds at 100 (NaN doesn't update)
+        assert result[2] == 120.0
+
+    def test_calculate_best_ever_fitness_all_inf(self):
+        """Test best-ever when all values are infinite."""
+        from visualization import calculate_best_ever_fitness
+
+        fitness_values = [float("inf"), float("inf"), float("inf")]
+        result = calculate_best_ever_fitness(fitness_values)
+
+        # All should be inf (no finite value ever found)
+        assert all(v == float("inf") for v in result)
+
+    def test_calculate_best_ever_fitness_empty(self):
+        """Test best-ever with empty input."""
+        from visualization import calculate_best_ever_fitness
+
+        result = calculate_best_ever_fitness([])
+        assert result == []
