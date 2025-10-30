@@ -204,13 +204,19 @@ def get_crossover_prompt(
     """Generate crossover prompt combining two high-performing models.
 
     Args:
-        parent1: First parent SurrogateGenome
-        parent2: Second parent SurrogateGenome
+        parent1: First parent SurrogateGenome (must have raw_code)
+        parent2: Second parent SurrogateGenome (must have raw_code)
         generation: Current generation number
 
     Returns:
         Complete prompt for creating hybrid model
+
+    Raises:
+        ValueError: If either parent lacks raw_code (parametric genome)
     """
+    # Validate both parents have LLM-generated code
+    if parent1.raw_code is None or parent2.raw_code is None:
+        raise ValueError("Crossover requires LLM-generated parents with raw_code")
     # Use completion reminder for later generations when code gets more complex
     completion_reminder = (
         """

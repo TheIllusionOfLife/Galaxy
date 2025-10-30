@@ -28,11 +28,13 @@ class TestCrossoverOperator:
 
     def test_crossover_requires_at_least_two_elites(self):
         """Verify crossover raises error with insufficient elites."""
-        # Setup: Only 1 elite
-        elites = [("civ_0_0", {"genome": Mock(), "fitness": 10})]
+        # Setup: Only 1 elite with raw_code
+        genome = Mock()
+        genome.raw_code = "def predict(particle, attractor): return particle"
+        elites = [("civ_0_0", {"genome": genome, "fitness": 10})]
 
         # Assert: Raises ValueError
-        with pytest.raises(ValueError, match="Need at least 2 elites"):
+        with pytest.raises(ValueError, match="Need at least 2 LLM elites"):
             select_crossover_parents(elites)
 
     def test_crossover_with_exactly_two_elites(self):
@@ -133,10 +135,14 @@ class TestBreedingWithCrossover:
         crucible = Mock(spec=CosmologyCrucible)
         engine = EvolutionaryEngine(crucible, population_size=10)
 
-        # Create mock elites
+        # Create mock elites with raw_code for LLM crossover
         elites = []
         for i in range(3):  # 3 elites (30% of 10)
-            genome = SurrogateGenome(theta=[float(i)], fitness=100.0 - i)
+            genome = SurrogateGenome(
+                theta=[float(i)],
+                fitness=100.0 - i,
+                raw_code=f"def predict(particle, attractor): return particle  # elite {i}",
+            )
             genome.build_callable = Mock(return_value=lambda p, a: p)
             elites.append((f"civ_0_{i}", {"genome": genome, "fitness": 100.0 - i}))
 

@@ -189,14 +189,17 @@ def select_crossover_parents(
         Two distinct elite tuples (parent1, parent2)
 
     Raises:
-        ValueError: If fewer than 2 elites available
+        ValueError: If fewer than 2 LLM elites with raw_code available
     """
-    if len(elites) < 2:
-        raise ValueError(f"Need at least 2 elites for crossover, got {len(elites)}")
+    # Filter to only LLM genomes with raw_code for crossover
+    llm_elites = [e for e in elites if e[1]["genome"].raw_code is not None]
+
+    if len(llm_elites) < 2:
+        raise ValueError(f"Need at least 2 LLM elites for crossover, got {len(llm_elites)}")
 
     # Simple strategy: Pick two random distinct elites
     # Future enhancement: Fitness-weighted selection or diversity-based
-    parent1, parent2 = random.sample(elites, 2)
+    parent1, parent2 = random.sample(llm_elites, 2)
     return parent1, parent2
 
 
@@ -248,16 +251,33 @@ def LLM_propose_surrogate_model(
             logger.info(f"Generating initial model (seed {seed % 6})")
         elif second_parent is not None:
             # Crossover - combine two elite parents
-            prompt = get_crossover_prompt(
-                parent1=base_genome,
-                parent2=second_parent,
-                generation=generation,
-            )
-            temp_override = settings.crossover_temperature
-            logger.info(
-                f"Gen {generation}: Crossover between parents "
-                f"(fitness {(base_genome.fitness or 0.0):.2f} x {(second_parent.fitness or 0.0):.2f})"
-            )
+            # Validate both parents have raw_code for LLM crossover
+            if base_genome.raw_code is None or second_parent.raw_code is None:
+                logger.warning(
+                    "Crossover requires LLM parents with raw_code, falling back to mutation"
+                )
+                # Fall back to mutation of base_genome
+                mutation_type = "explore" if generation < 3 else "exploit"
+                prompt = get_mutation_prompt(
+                    parent_code=base_genome.raw_code,
+                    fitness=base_genome.fitness or 0.0,
+                    accuracy=base_genome.accuracy or 0.5,
+                    speed=base_genome.speed or 0.01,
+                    generation=generation,
+                    mutation_type=mutation_type,
+                )
+                temp_override = settings.get_mutation_temperature(generation)
+            else:
+                prompt = get_crossover_prompt(
+                    parent1=base_genome,
+                    parent2=second_parent,
+                    generation=generation,
+                )
+                temp_override = settings.crossover_temperature
+                logger.info(
+                    f"Gen {generation}: Crossover between parents "
+                    f"(fitness {(base_genome.fitness or 0.0):.2f} x {(second_parent.fitness or 0.0):.2f})"
+                )
         else:
             # Mutation - improve existing model
             mutation_type = "explore" if generation < 3 else "exploit"
@@ -601,10 +621,13 @@ class EvolutionaryEngine:
         for i in range(self.population_size):
             new_civ_id = f"civ_{self.generation + 1}_{i}"
 
+            # Count elites with raw_code for LLM crossover
+            llm_elites = [e for e in elites if e[1]["genome"].raw_code is not None]
+
             # Decide: crossover or mutation?
             use_crossover = (
                 settings.enable_crossover
-                and len(elites) >= 2
+                and len(llm_elites) >= 2
                 and random.random() < settings.crossover_rate
             )
 
