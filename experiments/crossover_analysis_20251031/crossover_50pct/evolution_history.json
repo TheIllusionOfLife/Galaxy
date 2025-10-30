@@ -1,0 +1,598 @@
+{
+  "history": [
+    {
+      "generation": 0,
+      "population": [
+        {
+          "civ_id": "civ_0_0",
+          "fitness": 13361.327389932512,
+          "accuracy": 0.6944716960130226,
+          "speed": 5.1975250244140625e-05,
+          "description": "gemini_gen0",
+          "token_count": 216,
+          "parent_ids": []
+        },
+        {
+          "civ_id": "civ_0_1",
+          "fitness": 19805.804717475858,
+          "accuracy": 0.9963769595511809,
+          "speed": 5.030632019042969e-05,
+          "description": "gemini_gen0",
+          "token_count": 137,
+          "parent_ids": []
+        },
+        {
+          "civ_id": "civ_0_2",
+          "fitness": 17488.834996892143,
+          "accuracy": 0.9965669912690651,
+          "speed": 5.698204040527344e-05,
+          "description": "gemini_gen0",
+          "token_count": 103,
+          "parent_ids": []
+        },
+        {
+          "civ_id": "civ_0_3",
+          "fitness": 9125.547374740067,
+          "accuracy": 0.9964797432305351,
+          "speed": 0.00010919570922851562,
+          "description": "gemini_gen0",
+          "token_count": 290,
+          "parent_ids": []
+        },
+        {
+          "civ_id": "civ_0_4",
+          "fitness": 21769.862543365936,
+          "accuracy": 0.9965669912690651,
+          "speed": 4.57763671875e-05,
+          "description": "gemini_gen0",
+          "token_count": 239,
+          "parent_ids": []
+        },
+        {
+          "civ_id": "civ_0_5",
+          "fitness": 20389.362919811476,
+          "accuracy": 0.9965669912690651,
+          "speed": 4.887580871582031e-05,
+          "description": "gemini_gen0",
+          "token_count": 247,
+          "parent_ids": []
+        },
+        {
+          "civ_id": "civ_0_6",
+          "fitness": 12594.240438721381,
+          "accuracy": 0.7884752719637537,
+          "speed": 6.031990051269531e-05,
+          "description": "gemini_gen0",
+          "token_count": 546,
+          "parent_ids": []
+        },
+        {
+          "civ_id": "civ_0_7",
+          "fitness": 11836.83131006225,
+          "accuracy": 0.674498636811683,
+          "speed": 5.698204040527344e-05,
+          "description": "gemini_gen0",
+          "token_count": 185,
+          "parent_ids": []
+        },
+        {
+          "civ_id": "civ_0_8",
+          "fitness": 23221.15289512654,
+          "accuracy": 0.9965669912570119,
+          "speed": 4.291534423828125e-05,
+          "description": "gemini_gen0",
+          "token_count": 272,
+          "parent_ids": []
+        },
+        {
+          "civ_id": "civ_0_9",
+          "fitness": 9579.537518062349,
+          "accuracy": 0.9958072989863669,
+          "speed": 0.00010395050048828125,
+          "description": "gemini_gen0",
+          "token_count": 163,
+          "parent_ids": []
+        }
+      ],
+      "best_fitness": 23221.15289512654,
+      "avg_fitness": 15917.25021041905,
+      "worst_fitness": 9125.547374740067
+    },
+    {
+      "generation": 1,
+      "population": [
+        {
+          "civ_id": "civ_1_0",
+          "fitness": 13565.76045828253,
+          "accuracy": 0.9961870002923899,
+          "speed": 7.343292236328125e-05,
+          "description": "gemini_gen1",
+          "token_count": 268,
+          "parent_ids": [
+            "civ_0_8"
+          ]
+        },
+        {
+          "civ_id": "civ_1_1",
+          "fitness": 16132.013860079265,
+          "accuracy": 0.7884813556400564,
+          "speed": 4.887580871582031e-05,
+          "description": "gemini_gen1",
+          "token_count": 316,
+          "parent_ids": [
+            "civ_0_4"
+          ]
+        },
+        {
+          "civ_id": "civ_1_2",
+          "fitness": 19999.143709374872,
+          "accuracy": 0.9965669912690651,
+          "speed": 4.982948303222656e-05,
+          "description": "gemini_gen1",
+          "token_count": 220,
+          "parent_ids": [
+            "civ_0_4",
+            "civ_0_8"
+          ]
+        },
+        {
+          "civ_id": "civ_1_3",
+          "fitness": 23748.89379356574,
+          "accuracy": 0.9965669912690651,
+          "speed": 4.1961669921875e-05,
+          "description": "gemini_gen1",
+          "token_count": 246,
+          "parent_ids": [
+            "civ_0_8",
+            "civ_0_4"
+          ]
+        },
+        {
+          "civ_id": "civ_1_4",
+          "fitness": 19391.562389589453,
+          "accuracy": 0.9487616829218515,
+          "speed": 4.696846008300781e-05,
+          "description": "gemini_gen1",
+          "token_count": 560,
+          "parent_ids": [
+            "civ_0_4",
+            "civ_0_8"
+          ]
+        },
+        {
+          "civ_id": "civ_1_5",
+          "fitness": 24160.7143373816,
+          "accuracy": 0.9965669912690651,
+          "speed": 4.124641418457031e-05,
+          "description": "gemini_gen1",
+          "token_count": 300,
+          "parent_ids": [
+            "civ_0_8",
+            "civ_0_4"
+          ]
+        },
+        {
+          "civ_id": "civ_1_6",
+          "fitness": 17213.25341427487,
+          "accuracy": 0.7884783164162736,
+          "speed": 4.506111145019531e-05,
+          "description": "gemini_gen1",
+          "token_count": 465,
+          "parent_ids": [
+            "civ_0_8"
+          ]
+        },
+        {
+          "civ_id": "civ_1_7",
+          "fitness": 21335.748478456622,
+          "accuracy": 0.7884813553752811,
+          "speed": 3.695487976074219e-05,
+          "description": "gemini_gen1",
+          "token_count": 224,
+          "parent_ids": [
+            "civ_0_8"
+          ]
+        },
+        {
+          "civ_id": "civ_1_8",
+          "fitness": 20841.592253690364,
+          "accuracy": 0.8546927651425598,
+          "speed": 4.100799560546875e-05,
+          "description": "mock_mutant_gen1",
+          "token_count": null,
+          "parent_ids": []
+        },
+        {
+          "civ_id": "civ_1_9",
+          "fitness": 12488.701344018864,
+          "accuracy": 0.6759692769887942,
+          "speed": 5.078315734863281e-05,
+          "description": "gemini_gen1",
+          "token_count": 647,
+          "parent_ids": [
+            "civ_0_8",
+            "civ_0_4"
+          ]
+        }
+      ],
+      "best_fitness": 24160.7143373816,
+      "avg_fitness": 18887.738403871415,
+      "worst_fitness": 12488.701344018864
+    },
+    {
+      "generation": 2,
+      "population": [
+        {
+          "civ_id": "civ_2_0",
+          "fitness": 23126.108433346173,
+          "accuracy": 0.7884813556427024,
+          "speed": 3.409385681152344e-05,
+          "description": "gemini_gen2",
+          "token_count": 251,
+          "parent_ids": [
+            "civ_1_3"
+          ]
+        },
+        {
+          "civ_id": "civ_2_1",
+          "fitness": 26793.54190697314,
+          "accuracy": 0.9965669912690651,
+          "speed": 3.719329833984375e-05,
+          "description": "gemini_gen2",
+          "token_count": 341,
+          "parent_ids": [
+            "civ_1_5",
+            "civ_1_3"
+          ]
+        },
+        {
+          "civ_id": "civ_2_2",
+          "fitness": 25385.66366320285,
+          "accuracy": 0.9381495339839666,
+          "speed": 3.695487976074219e-05,
+          "description": "mock_mutant_gen2",
+          "token_count": null,
+          "parent_ids": []
+        },
+        {
+          "civ_id": "civ_2_3",
+          "fitness": 26793.54190697314,
+          "accuracy": 0.9965669912690651,
+          "speed": 3.719329833984375e-05,
+          "description": "gemini_gen2",
+          "token_count": 281,
+          "parent_ids": [
+            "civ_1_5",
+            "civ_1_3"
+          ]
+        },
+        {
+          "civ_id": "civ_2_4",
+          "fitness": 24879.765264576406,
+          "accuracy": 0.9965669912690651,
+          "speed": 4.00543212890625e-05,
+          "description": "gemini_gen2",
+          "token_count": 328,
+          "parent_ids": [
+            "civ_1_3",
+            "civ_1_5"
+          ]
+        },
+        {
+          "civ_id": "civ_2_5",
+          "fitness": 20247.840377022254,
+          "accuracy": 0.788481355642727,
+          "speed": 3.790855407714844e-05,
+          "description": "gemini_gen2",
+          "token_count": 506,
+          "parent_ids": [
+            "civ_1_5"
+          ]
+        },
+        {
+          "civ_id": "civ_2_6",
+          "fitness": 24301.180181456773,
+          "accuracy": 0.9965669912690651,
+          "speed": 4.100799560546875e-05,
+          "description": "gemini_gen2",
+          "token_count": 386,
+          "parent_ids": [
+            "civ_1_5",
+            "civ_1_3"
+          ]
+        },
+        {
+          "civ_id": "civ_2_7",
+          "fitness": 28628.663290276003,
+          "accuracy": 0.9965669912570119,
+          "speed": 3.4809112548828125e-05,
+          "description": "gemini_gen2",
+          "token_count": 230,
+          "parent_ids": [
+            "civ_1_3"
+          ]
+        },
+        {
+          "civ_id": "civ_2_8",
+          "fitness": 24301.180181456773,
+          "accuracy": 0.9965669912690651,
+          "speed": 4.100799560546875e-05,
+          "description": "gemini_gen2",
+          "token_count": 267,
+          "parent_ids": [
+            "civ_1_5",
+            "civ_1_3"
+          ]
+        },
+        {
+          "civ_id": "civ_2_9",
+          "fitness": 23221.152895407395,
+          "accuracy": 0.9965669912690651,
+          "speed": 4.291534423828125e-05,
+          "description": "gemini_gen2",
+          "token_count": 345,
+          "parent_ids": [
+            "civ_1_3",
+            "civ_1_5"
+          ]
+        }
+      ],
+      "best_fitness": 28628.663290276003,
+      "avg_fitness": 24767.86381006909,
+      "worst_fitness": 20247.840377022254
+    },
+    {
+      "generation": 3,
+      "population": [
+        {
+          "civ_id": "civ_3_0",
+          "fitness": 18372.51913315066,
+          "accuracy": 0.7884813556427024,
+          "speed": 4.291534423828125e-05,
+          "description": "gemini_gen3",
+          "token_count": 256,
+          "parent_ids": [
+            "civ_2_7"
+          ]
+        },
+        {
+          "civ_id": "civ_3_1",
+          "fitness": 21038.691954716644,
+          "accuracy": 0.9029037462517777,
+          "speed": 4.291534423828125e-05,
+          "description": "gemini_gen3",
+          "token_count": 289,
+          "parent_ids": [
+            "civ_2_7",
+            "civ_2_1"
+          ]
+        },
+        {
+          "civ_id": "civ_3_2",
+          "fitness": 22556.19850002,
+          "accuracy": 0.9734073963301692,
+          "speed": 4.315376281738281e-05,
+          "description": "gemini_gen3",
+          "token_count": 256,
+          "parent_ids": [
+            "civ_2_7"
+          ]
+        },
+        {
+          "civ_id": "civ_3_3",
+          "fitness": 21601.46773542997,
+          "accuracy": 0.9734077465817436,
+          "speed": 4.506111145019531e-05,
+          "description": "gemini_gen3",
+          "token_count": 281,
+          "parent_ids": [
+            "civ_2_1"
+          ]
+        },
+        {
+          "civ_id": "civ_3_4",
+          "fitness": 25486.573286790233,
+          "accuracy": 0.996566991202803,
+          "speed": 3.910064697265625e-05,
+          "description": "gemini_gen3",
+          "token_count": 364,
+          "parent_ids": [
+            "civ_2_1",
+            "civ_2_7"
+          ]
+        },
+        {
+          "civ_id": "civ_3_5",
+          "fitness": 19339.47010690576,
+          "accuracy": 0.788481355642727,
+          "speed": 4.076957702636719e-05,
+          "description": "gemini_gen3",
+          "token_count": 364,
+          "parent_ids": [
+            "civ_2_1"
+          ]
+        },
+        {
+          "civ_id": "civ_3_6",
+          "fitness": 21900.91817741058,
+          "accuracy": 0.788481355642727,
+          "speed": 3.600120544433594e-05,
+          "description": "gemini_gen3",
+          "token_count": 321,
+          "parent_ids": [
+            "civ_2_1"
+          ]
+        },
+        {
+          "civ_id": "civ_3_7",
+          "fitness": 18790.066435493172,
+          "accuracy": 0.7884813556427024,
+          "speed": 4.1961669921875e-05,
+          "description": "gemini_gen3",
+          "token_count": 370,
+          "parent_ids": [
+            "civ_2_7"
+          ]
+        },
+        {
+          "civ_id": "civ_3_8",
+          "fitness": 21626.653331343907,
+          "accuracy": 0.9487616829218515,
+          "speed": 4.38690185546875e-05,
+          "description": "gemini_gen3",
+          "token_count": 297,
+          "parent_ids": [
+            "civ_2_1",
+            "civ_2_7"
+          ]
+        },
+        {
+          "civ_id": "civ_3_9",
+          "fitness": 22346.41817526696,
+          "accuracy": 0.9029037462415848,
+          "speed": 4.029273986816406e-05,
+          "description": "gemini_gen3",
+          "token_count": 411,
+          "parent_ids": [
+            "civ_2_7"
+          ]
+        }
+      ],
+      "best_fitness": 25486.573286790233,
+      "avg_fitness": 21305.897683652787,
+      "worst_fitness": 18372.51913315066
+    },
+    {
+      "generation": 4,
+      "population": [
+        {
+          "civ_id": "civ_4_0",
+          "fitness": 7779.340497538374,
+          "accuracy": 0.9885838303820894,
+          "speed": 0.0001270771026611328,
+          "description": "gemini_gen4",
+          "token_count": 293,
+          "parent_ids": [
+            "civ_3_2",
+            "civ_3_4"
+          ]
+        },
+        {
+          "civ_id": "civ_4_1",
+          "fitness": 9190.776602384589,
+          "accuracy": 0.9734073963291136,
+          "speed": 0.0001049041748046875,
+          "description": "gemini_gen4",
+          "token_count": 438,
+          "parent_ids": [
+            "civ_3_2",
+            "civ_3_4"
+          ]
+        },
+        {
+          "civ_id": "civ_4_2",
+          "fitness": 9139.383785389704,
+          "accuracy": 0.99656699126786,
+          "speed": 0.00010704994201660156,
+          "description": "gemini_gen4",
+          "token_count": 473,
+          "parent_ids": [
+            "civ_3_2",
+            "civ_3_4"
+          ]
+        },
+        {
+          "civ_id": "civ_4_3",
+          "fitness": 24045.163530682334,
+          "accuracy": 0.9860680055625294,
+          "speed": 4.100799560546875e-05,
+          "description": "gemini_gen4",
+          "token_count": 394,
+          "parent_ids": [
+            "civ_3_4",
+            "civ_3_2"
+          ]
+        },
+        {
+          "civ_id": "civ_4_4",
+          "fitness": 19935.95463892384,
+          "accuracy": 0.9934182493661328,
+          "speed": 4.982948303222656e-05,
+          "description": "gemini_gen4",
+          "token_count": 392,
+          "parent_ids": [
+            "civ_3_4",
+            "civ_3_2"
+          ]
+        },
+        {
+          "civ_id": "civ_4_5",
+          "fitness": 24447.089805513337,
+          "accuracy": 0.9734073963278024,
+          "speed": 3.981590270996094e-05,
+          "description": "gemini_gen4",
+          "token_count": 318,
+          "parent_ids": [
+            "civ_3_4",
+            "civ_3_2"
+          ]
+        },
+        {
+          "civ_id": "civ_4_6",
+          "fitness": 22681.507793079145,
+          "accuracy": 0.9734073962910436,
+          "speed": 4.291534423828125e-05,
+          "description": "gemini_gen4",
+          "token_count": 315,
+          "parent_ids": [
+            "civ_3_4"
+          ]
+        },
+        {
+          "civ_id": "civ_4_7",
+          "fitness": 17507.296093892197,
+          "accuracy": 0.9885838303833747,
+          "speed": 5.3882598876953125e-05,
+          "description": "gemini_gen4",
+          "token_count": 583,
+          "parent_ids": [
+            "civ_3_4",
+            "civ_3_2"
+          ]
+        },
+        {
+          "civ_id": "civ_4_8",
+          "fitness": 23035.136098604617,
+          "accuracy": 0.9885838303833747,
+          "speed": 4.291534423828125e-05,
+          "description": "gemini_gen4",
+          "token_count": 359,
+          "parent_ids": [
+            "civ_3_2",
+            "civ_3_4"
+          ]
+        },
+        {
+          "civ_id": "civ_4_9",
+          "fitness": 24176.301144134228,
+          "accuracy": 0.9683895099094258,
+          "speed": 4.00543212890625e-05,
+          "description": "gemini_gen4",
+          "token_count": 282,
+          "parent_ids": [
+            "civ_3_2"
+          ]
+        }
+      ],
+      "best_fitness": 24447.089805513337,
+      "avg_fitness": 18193.794999014237,
+      "worst_fitness": 7779.340497538374
+    }
+  ],
+  "summary": {
+    "total_generations": 5,
+    "best_overall_fitness": 28628.663290276003,
+    "avg_overall_fitness": 19814.509021405316,
+    "total_models_evaluated": 50
+  }
+}

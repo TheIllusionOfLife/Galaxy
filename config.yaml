@@ -34,5 +34,5 @@ code_penalty:
 # Crossover Configuration (genetic recombination of elite parents)
 crossover:
   enabled: true  # Enable crossover operator (LLM-based code recombination)
-  crossover_rate: 0.3  # Fraction using crossover (0.3 = 30% crossover, 70% mutation)
+  crossover_rate: 0.5  # Fraction using crossover (0.5 = 50% crossover, 50% mutation)
   temperature: 0.75  # Crossover creativity level (0.0-2.0, between explore/exploit)
