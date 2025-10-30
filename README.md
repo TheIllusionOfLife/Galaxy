@@ -12,6 +12,70 @@ This project simulates how AI civilizations can discover solutions that surpass 
 
 **This Prototype**: AI civilizations are tasked with inventing surrogate models to accelerate computationally expensive N-body simulations (gravitational calculations). Fitness is evaluated based on the balance between the surrogate model's prediction accuracy and computational speed.
 
+## What This Achieves
+
+### Proven Results
+
+This prototype has demonstrated measurable improvements in automated code generation and evolution:
+
+#### Code Quality & Reliability
+- **49% Syntax Error Reduction**: Improved from 3.3% to 1.67% through prompt engineering (PR #12)
+- **96.7% Validation Success**: First production run achieved high code generation reliability
+- **98.3% LLM Success Rate**: Consistent across multiple evolution runs (PR #14, #21, #23)
+
+#### Performance Optimization
+- **2x Fitness Improvement**: Evolution consistently doubles baseline fitness (Gen 0 → Gen 4)
+- **Code Bloat Prevention**: Penalty system reduced token count by 5.4% without fitness loss (PR #21)
+- **Penalty Tuning**: Threshold optimization improved relevance by 2.2x (PR #23, 11.1% vs 5% application rate)
+
+#### Cost Efficiency
+- **$0.02 per Full Run**: Typical cost for 50 API calls (10 population × 5 generations)
+- **20 Runs per Day**: Within free tier limit (1,000 requests/day)
+- **Sub-penny Experiments**: Mini runs (2 gen × 3 pop) cost ~$0.002
+
+#### Evolution Effectiveness
+- **Non-monotonic Progress**: Fitness fluctuates during exploration (healthy search behavior)
+- **Best-Ever Tracking**: Cumulative maximum fitness clearly visible (PR #23)
+- **Adaptive Mutation**: Early exploration (temp=1.0) then exploitation (temp=0.6)
+
+#### Visualization & Analysis
+- **5 Comprehensive Plots**: Fitness, accuracy/speed trade-offs, token evolution, cost tracking
+- **High-Resolution Output**: 300 DPI publication-quality visualizations
+- **Complete History**: JSON export for custom analysis
+
+### Real-World Validation
+
+**Production Runs** (from Session Handover):
+- PR #23: 60 API calls, $0.0219 cost, best fitness=27,879.23
+- PR #21: 150 API calls across 3 test runs, $0.05 total
+- PR #16: 9 API calls, $0.002, validated all visualizations
+- PR #14: 60 API calls, $0.02, 98.3% success rate
+
+**Runtime**: ~4 minutes per full evolution (rate-limited to 15 RPM)
+
+### Scientific Contribution
+
+This work demonstrates:
+1. **LLMs as Code Generators**: Using LLMs in evolutionary frameworks rather than direct problem solving
+2. **Automatic Discovery**: Exploring solution space without human guidance
+3. **Multi-Layer Safety**: AST validation + sandbox execution + output validation
+4. **Cost-Effective Research**: Free-tier API enables large-scale experiments
+
+### Current Limitations
+
+**Technical Limitations:**
+- Single LLM provider (Gemini only)
+- Fixed generation count (no convergence detection)
+- Single problem domain (N-body simulation)
+- Whitespace-based token counting (inaccurate)
+
+**Planned Improvements** (see Session Handover → Next Priority Tasks):
+- Multi-LLM support (Claude, GPT-4o)
+- Convergence detection and early stopping
+- Advanced algorithms (crossover, multi-objective optimization)
+- tiktoken migration for accurate token counting
+- Code modularization for better maintainability
+
 ## Setup
 
 ### Requirements
@@ -192,6 +256,205 @@ uv run pytest tests/
 uv run pytest tests/ --cov --cov-report=html
 ```
 
+## Troubleshooting
+
+### Common Setup Issues
+
+#### "GOOGLE_API_KEY not set" Error
+
+**Error Message:**
+```
+ValidationError: GOOGLE_API_KEY
+  Field required [type=missing, input_value={}, input_type=dict]
+```
+
+**Solution:**
+
+1. Create `.env` file from template:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Get API key from [Google AI Studio](https://aistudio.google.com/apikey)
+
+3. Edit `.env` and add your key:
+   ```
+   GOOGLE_API_KEY=your_actual_api_key_here
+   ```
+
+4. Verify configuration:
+   ```bash
+   uv run python test_gemini_connection.py
+   ```
+
+---
+
+#### Rate Limit Errors (429 Too Many Requests)
+
+**Error Message:**
+```
+google.api_core.exceptions.TooManyRequests: 429 Quota exceeded
+```
+
+**Solution:**
+
+Ensure rate limiting is enabled in `config.yaml`:
+```yaml
+rate_limiting:
+  enabled: true
+  requests_per_minute: 15
+```
+
+**If still occurring:**
+- Free tier: 15 requests/minute, 1,000 requests/day
+- Wait 1 minute before retrying
+- Reduce `population_size` or `num_generations` in config.yaml
+
+---
+
+#### Integration Test Failures (No API Key)
+
+**Error Message:**
+```
+SKIPPED [1] tests/test_integration.py:15: API key required
+```
+
+**This is normal!** Integration tests require a real API key and are automatically skipped in CI.
+
+To run integration tests locally:
+```bash
+# Set API key in .env first
+uv run pytest tests/ -m integration
+```
+
+CI automatically excludes integration tests:
+```bash
+pytest tests/ -m "not integration"  # CI command
+```
+
+---
+
+#### Import Errors After Fresh Clone
+
+**Error Message:**
+```
+ModuleNotFoundError: No module named 'google.generativeai'
+```
+
+**Solution:**
+
+Install all dependencies including dev tools:
+```bash
+uv sync --extra dev
+```
+
+Or with pip:
+```bash
+pip install -e ".[dev]"
+```
+
+---
+
+#### Code Validation Failures
+
+**Error Message:**
+```
+ValidationResult(valid=False, errors=['Forbidden: import statement'])
+```
+
+**Cause:** LLM generated code with forbidden operations (imports, file I/O, etc.)
+
+**This is expected behavior:**
+- Validation prevents malicious code execution
+- System automatically falls back to parametric model
+- Check `code_validator.py` for allowed operations
+
+**To reduce validation failures:**
+- Lower `temperature` in `config.yaml` (more conservative)
+- Review prompt engineering in `prompts.py`
+- Check Session Learnings below for prompt patterns
+
+---
+
+#### API Timeout Errors
+
+**Error Message:**
+```
+TimeoutError: Request exceeded 60 second timeout
+```
+
+**Solution:**
+
+Increase timeout in `config.yaml`:
+```yaml
+api:
+  timeout_seconds: 120  # Default: 60
+```
+
+Or set environment variable for one-off override:
+```bash
+DEFAULT_TIMEOUT_SECONDS=120 uv run python prototype.py
+```
+
+---
+
+#### Type Checking Errors (Local vs CI Differences)
+
+**Issue:** Mypy passes locally but fails in CI (or vice versa)
+
+**Cause:** Different type stub availability between environments
+
+**Solution:**
+
+Use `typing.Any` for parameters with environment-dependent types:
+```python
+from typing import Any
+
+# Instead of:
+config: GenerationConfig = {...}  # May fail in CI
+
+# Use:
+config: Any = {...}  # Works in both environments
+```
+
+See PR #7 commits for examples.
+
+---
+
+#### YAML Configuration Errors
+
+**Error Message:**
+```
+yaml.scanner.ScannerError: mapping values are not allowed here
+```
+
+**Cause:** Invalid YAML syntax in `config.yaml`
+
+**Solution:**
+
+1. Check indentation (use spaces, not tabs)
+2. Ensure colons have space after them (`key: value` not `key:value`)
+3. Validate YAML syntax online: https://www.yamllint.com/
+
+Example of correct syntax:
+```yaml
+model:
+  name: gemini-2.5-flash-lite
+  temperature: 0.8
+```
+
+---
+
+### Getting Help
+
+If you encounter issues not covered here:
+
+1. **Check Session Learnings** (below) for recent patterns and fixes
+2. **Review recent PRs** for similar issues and solutions
+3. **Check CI logs** on GitHub Actions for detailed error messages
+4. **Search existing issues**: https://github.com/TheIllusionOfLife/Galaxy/issues
+5. **Open a new issue** if problem persists
+
 ## Session Handover
 
 ### Last Updated: October 30, 2025 04:32 AM JST
@@ -325,18 +588,18 @@ uv run pytest tests/ --cov --cov-report=html
    - **Implementation**: Black dashed line, monotonic increasing, handles inf/nan values
    - **Tests**: 7 comprehensive tests (2 plot tests + 5 calculation unit tests)
 
-3. **Integration Test Improvements** (Next Session - 2 hours)
-   - **Source**: plan_20251029.md, reviewer consensus
-   - **Current State**: Some integration tests are empty stubs with `pass`
-   - **Task**: Implement or remove empty integration test stubs
-   - **Approach**: Add mock-based smoke tests for evolution loop validation
-   - **Files**: `tests/test_integration.py`, potentially `tests/test_integration_smoke.py`
+3. **[COMPLETED]** Integration Test Improvements ✓
+   - **Status**: All 16 integration tests fully implemented (NO empty stubs found)
+   - **Coverage**: API interaction, syntax error rate, evolution cycle, error recovery, visualization
+   - **Files**: `test_integration.py` (13 tests), `test_visualization_integration.py` (1 test), `test_code_length_penalty.py` (3 tests)
+   - **Note**: Task from plan_20251029.md is already complete from previous session
 
-4. **Documentation Enhancements** (Next Session - 1.5 hours)
+4. **[COMPLETED]** Documentation Enhancements ✓
+   - **Completed**: CONTRIBUTING.md enhanced with comprehensive TDD workflow section (300+ lines)
+   - **Completed**: README.md "What This Achieves" section added with concrete impact metrics
+   - **Completed**: README.md Troubleshooting section added (8 common issues + solutions)
+   - **Status**: This session (October 30, 2025)
    - **Source**: plan_20251029.md Priority 2.2
-   - **Task 1**: Enhance CONTRIBUTING.md with TDD workflow examples (file exists, needs enrichment)
-   - **Task 2**: Update README "What This Achieves" with concrete impact metrics
-   - **Task 3**: Add troubleshooting section for common errors
    - **Goal**: Improve onboarding and clarify project impact
 
 #### Known Issues / Blockers
