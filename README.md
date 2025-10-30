@@ -482,7 +482,7 @@ If you encounter issues not covered here:
      - Add debug logging for skipped malformed elites in `select_crossover_parents()` (prototype.py:196-210)
      - Enhance crossover validation failure logging with parent context (prototype.py:334-336)
      - Pass pre-filtered `llm_elites` to avoid redundant filtering (prototype.py:642)
-     - Rename config key from `crossover_rate` to `rate` for consistency (config.py:276, config.yaml:37)
+     - Rename config key from `crossover_rate` to `rate` for consistency (config.py:275, config.yaml:37)
      - Make test mocks more explicit with `spec=SurrogateGenome` (tests/test_crossover.py:21, 262)
    - **Priority**: Low (code quality improvements, not bugs)
    - **Approach**: Create follow-up PR addressing all suggestions together
@@ -534,7 +534,7 @@ If you encounter issues not covered here:
   - **Detection**: Test passes but doesn't actually vary parameter being tested
   - **Pattern**: Always patch global references when testing module-level config objects
 
-**Historical Learnings** (detailed patterns available in `~/.claude/core-patterns.md` and `~/.claude/domain-patterns.md`):
+**Historical Learnings** (detailed patterns in personal reference files: `~/.claude/core-patterns.md` and `~/.claude/domain-patterns.md` - these are user-level patterns spanning all projects):
 - GraphQL PR review efficiency, Zip pattern optimization, Complete test coverage for edge cases
 - TDD with real API integration, Security review priority, Code simplification from AI review
 - Test assertion precision, Prompt engineering for completeness, Statistical testing importance
