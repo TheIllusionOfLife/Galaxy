@@ -9,7 +9,7 @@ from pathlib import Path
 def analyze_run(run_dir: Path) -> dict:
     """Extract metrics from a single run."""
     history_file = run_dir / "evolution_history.json"
-    with open(history_file) as f:
+    with open(history_file, encoding="utf-8") as f:
         data = json.load(f)
 
     history = data["history"]
@@ -77,6 +77,9 @@ def main():
     print("COMPARATIVE ANALYSIS")
     print("=" * 70)
 
+    # NOTE: This comparison logic is specific to the October 31, 2025 experiments
+    # (control, 30%, 50%). For future experiments with different configurations,
+    # this section would need to be adapted or made more dynamic.
     if len(results) == 3:
         control = results["Control (Disabled)"]
         cross30 = results["Crossover 30%"]

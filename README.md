@@ -491,7 +491,7 @@ If you encounter issues not covered here:
    - **Context**: prototype.py at 814 lines mixes evolution, evaluation, and coordination
    - **Goal**: Extract to galaxy/ package structure for SOLID principles
    - **Structure**:
-     ```
+     ```text
      galaxy/
      ├── core/ (genome.py, evolution.py, selection.py)
      ├── crucible/ (base.py, nbody.py)
