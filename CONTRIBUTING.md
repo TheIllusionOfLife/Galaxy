@@ -150,6 +150,308 @@ Skip integration tests during development:
 uv run pytest -m "not integration"
 ```
 
+## Test-Driven Development (TDD) Workflow
+
+This project follows strict TDD practices for all feature development and bug fixes.
+
+### The TDD Cycle
+
+**1. Write Test First (RED phase)**
+
+Before writing any implementation code, write a test that defines the expected behavior:
+
+```python
+# tests/test_new_feature.py
+def test_code_length_penalty_applies_above_threshold():
+    """Test that penalty reduces fitness when code exceeds threshold."""
+    # Arrange
+    code = "def predict(p, a):\n" + "    # comment\n" * 500  # ~2500 tokens
+    base_fitness = 1000.0
+
+    # Act
+    penalized_fitness = apply_code_length_penalty(
+        fitness=base_fitness,
+        code=code,
+        threshold=2000,
+        weight=0.1
+    )
+
+    # Assert
+    assert penalized_fitness < base_fitness  # Penalty applied
+    assert penalized_fitness >= base_fitness * 0.1  # Floor enforced
+```
+
+**2. Run Test - Verify Failure (RED phase)**
+
+Ensure the test fails because the feature doesn't exist yet:
+
+```bash
+uv run pytest tests/test_new_feature.py::test_code_length_penalty_applies_above_threshold -v
+# Expected output: FAILED (function not implemented yet)
+```
+
+**3. Write Minimal Implementation (GREEN phase)**
+
+Write the simplest code that makes the test pass:
+
+```python
+# code_length_penalty.py
+def apply_code_length_penalty(fitness, code, threshold, weight):
+    """Apply penalty to fitness based on code length."""
+    token_count = count_tokens(code)
+
+    if token_count <= threshold:
+        return fitness  # No penalty
+
+    excess_tokens = token_count - threshold
+    penalty_factor = max(0.1, 1.0 - (weight * (excess_tokens / threshold)))
+    return fitness * penalty_factor
+```
+
+**4. Run Test - Verify Success (GREEN phase)**
+
+```bash
+uv run pytest tests/test_new_feature.py::test_code_length_penalty_applies_above_threshold -v
+# Expected output: PASSED ✓
+```
+
+**5. Refactor (REFACTOR phase)**
+
+Improve code quality while keeping tests green:
+
+```python
+# Refactored version with type hints and documentation
+def apply_code_length_penalty(
+    fitness: float,
+    code: str,
+    threshold: int = 2000,
+    weight: float = 0.1
+) -> float:
+    """
+    Apply length penalty to fitness score.
+
+    Args:
+        fitness: Base fitness score
+        code: Generated code to evaluate
+        threshold: Token count before penalty applies
+        weight: Penalty strength (0.0-1.0)
+
+    Returns:
+        Penalized fitness (minimum 10% of original)
+    """
+    token_count = count_tokens(code)
+
+    if token_count <= threshold:
+        return fitness
+
+    excess_ratio = (token_count - threshold) / threshold
+    penalty_factor = max(0.1, 1.0 - (weight * excess_ratio))
+
+    return fitness * penalty_factor
+```
+
+**6. Commit at Logical Milestones**
+
+Make atomic commits that represent complete work units:
+
+```bash
+# Commit 1: Tests
+git add tests/test_code_length_penalty.py
+git commit -m "test: add code length penalty tests"
+
+# Commit 2: Implementation
+git add code_length_penalty.py
+git commit -m "feat: implement code length penalty system"
+
+# Commit 3: Integration
+git add prototype.py
+git commit -m "feat: integrate penalty into evolution engine"
+```
+
+### Real-World TDD Example: Code Length Penalty (PR #14)
+
+This feature demonstrates complete TDD workflow:
+
+**Phase 1: Tests First** (TDD RED phase)
+- Wrote 12 unit tests covering:
+  - Token counting accuracy
+  - Penalty calculation (no penalty, partial, floor)
+  - Edge cases (empty code, very long code)
+  - Configuration integration
+- Created 1 integration test for evolution behavior
+- All tests initially failing ❌
+
+**Phase 2: Implementation** (TDD GREEN phase)
+- Implemented `count_tokens()` function (whitespace-based)
+- Implemented `apply_code_length_penalty()` with floor enforcement
+- Updated `SurrogateGenome` to track token count
+- Modified fitness calculation in evolution engine
+- All tests now passing ✓
+
+**Phase 3: Validation** (Real-world testing)
+- Baseline run: 60 API calls, $0.02 cost
+- Verified token tracking in evolution history
+- Confirmed 98.3% LLM success rate
+- No performance degradation
+
+**Phase 4: Tuning** (PR #21, #23)
+- Comparative testing with different penalty weights
+- Integration test to verify parameter effects
+- Threshold optimization based on real data
+- All changes test-driven
+
+**Key Learnings:**
+- Writing tests first caught edge cases early
+- Integration tests revealed threshold too high
+- Real API validation essential (mocks missed format issues)
+- Incremental commits made review easier
+
+### TDD Best Practices
+
+#### Use Shared Test Fixtures
+
+Leverage `conftest.py` for reusable test setup:
+
+```python
+# tests/conftest.py automatically provides:
+# - Mock API keys (no .env needed in tests)
+# - Test environment configuration
+
+def test_my_feature():
+    # API key already set by conftest.py fixture
+    client = GeminiClient()
+    response = client.generate_surrogate_code(prompt)
+    assert response.success
+```
+
+Create module-specific fixtures:
+
+```python
+@pytest.fixture
+def mock_genome():
+    """Reusable genome fixture for tests."""
+    return SurrogateGenome(
+        theta=[],
+        raw_code="def predict(p, a): return [p[0]+1, p[1]+1, p[2], p[3]]",
+        fitness=100.0,
+        accuracy=0.95,
+        speed=0.001
+    )
+
+def test_elite_selection(mock_genome):
+    population = [mock_genome for _ in range(10)]
+    # ... test logic
+```
+
+#### Integration Tests with Real API
+
+Mark tests requiring actual API calls:
+
+```python
+@pytest.mark.integration
+@pytest.mark.skipif(not os.getenv("GOOGLE_API_KEY"), reason="API key required")
+def test_penalty_weight_affects_token_count():
+    """Integration test: Verify penalty weight reduces code bloat."""
+    # Use small population to minimize cost
+    settings_override = Settings(
+        population_size=3,
+        num_generations=2,
+        enable_code_length_penalty=True,
+        penalty_weight=0.2,  # Aggressive penalty
+        enable_rate_limiting=False  # Speed up test
+    )
+
+    # Run mini evolution
+    crucible = CosmologyCrucible(num_test_particles=20)
+    engine = EvolutionaryEngine(crucible, settings=settings_override)
+    # ... run and verify
+```
+
+Run integration tests:
+
+```bash
+# Run ALL tests (including integration)
+uv run pytest tests/
+
+# Run ONLY integration tests
+uv run pytest tests/ -m integration
+
+# Skip integration tests (faster, used in CI)
+uv run pytest tests/ -m "not integration"
+```
+
+#### Test Organization
+
+Follow this structure:
+
+```python
+class TestFeatureName:
+    """Group related tests together."""
+
+    def test_normal_case(self):
+        """Test expected behavior with valid input."""
+        # Arrange, Act, Assert
+
+    def test_edge_case_empty(self):
+        """Test behavior with empty input."""
+        # Arrange, Act, Assert
+
+    def test_edge_case_invalid(self):
+        """Test error handling with invalid input."""
+        with pytest.raises(ValueError, match="expected error message"):
+            # Act that should raise exception
+```
+
+#### Parametric Testing
+
+Test multiple scenarios efficiently:
+
+```python
+@pytest.mark.parametrize("elite_ratio,expected_count", [
+    (0.0, 1),   # Floor: minimum 1 elite
+    (0.2, 2),   # 20% of 10 = 2
+    (0.3, 3),   # 30% of 10 = 3
+    (0.5, 5),   # 50% of 10 = 5
+    (1.0, 10),  # 100% = all models
+])
+def test_elite_selection_ratios(elite_ratio, expected_count):
+    engine = EvolutionaryEngine(crucible, elite_ratio=elite_ratio)
+    # ... verify expected_count elites selected
+```
+
+### When to Use TDD vs EPCC
+
+**Use TDD when:**
+- ✅ Adding new features (code changes)
+- ✅ Fixing bugs (add regression test first)
+- ✅ Refactoring (tests protect against breakage)
+- ✅ Working with algorithms/logic
+
+**Use EPCC (Explore-Plan-Code-Commit) when:**
+- 📝 Writing documentation (no tests to write)
+- 🔧 Updating configuration files
+- 🎨 Changing UI/visualizations (manual review needed)
+- 📊 Exploratory work or research spikes
+
+### TDD Anti-Patterns to Avoid
+
+❌ **Don't write implementation before tests**
+- Leads to tests that just verify what code does (not what it should do)
+
+❌ **Don't skip the RED phase**
+- If test passes immediately, you're not testing new behavior
+
+❌ **Don't write tests after implementation**
+- Tests become less thorough, miss edge cases
+
+❌ **Don't test implementation details**
+- Test behavior, not internal structure
+
+✅ **Do write tests first**
+✅ **Do verify tests fail initially**
+✅ **Do commit tests separately** (shows TDD process)
+✅ **Do test behavior and contracts**
+
 ## Project Structure
 
 ```
