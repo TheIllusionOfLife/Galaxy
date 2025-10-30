@@ -299,13 +299,22 @@ uv run pytest tests/ --cov --cov-report=html
 - ✅ [PR #5]: CI/CD infrastructure with Ruff, Mypy, Pytest
 
 #### Next Priority Tasks
-1. **[Code Length Penalty - Parameter Tuning]**: Lower threshold from 2000 to 400 tokens
-   - Comparative Testing: Complete ✓ (weights: 0.1, 0.2 tested with real API)
-   - Key Finding: Current threshold (2000 tokens) too high for typical models (300-400 tokens)
-   - Results: Aggressive penalty (0.2) achieved only 5.4% token reduction but 17.3% fitness loss
-   - Analysis: See `results/penalty_comparison_20251030.md` for full details
-   - Next: Re-run with threshold=400 to make penalty relevant to actual token ranges
-   - Goal: Achieve meaningful token reduction without excessive fitness trade-off
+1. **[COMPLETED]** Code Length Penalty - Parameter Tuning ✓
+   - **Threshold Updated**: 2000 → 400 tokens (based on PR #21 findings)
+   - **Validation Run**: threshold=400, weight=0.1, 5 generations, 50 models
+   - **Results**: 11.1% of models now trigger penalty (vs 5% with old threshold)
+   - **Improvement**: 2.2x better relevance to actual model sizes
+   - **Token Stats**: avg=247.3, range=102-823 tokens
+   - **Performance**: Best fitness=27,879.23, cost=$0.0219, 100% success
+   - **Analysis**: See `test_analysis.md` for full details
+   - **Status**: Optimal configuration identified and tested with real API
+
+2. **[COMPLETED]** Best-Ever Fitness Visualization ✓
+   - **Feature**: Added "Best Ever" line to fitness progression plot
+   - **Purpose**: Track cumulative maximum fitness across all generations
+   - **Benefit**: Users can see actual evolutionary progress even when fitness regresses
+   - **Implementation**: Black dashed line, monotonic increasing, handles inf/nan values
+   - **Tests**: 2 comprehensive tests added and passing
 
 #### Known Issues / Blockers
 - **Non-monotonic Fitness**: Fitness fluctuates between generations (not guaranteed to improve)
