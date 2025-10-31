@@ -11,28 +11,35 @@ if TYPE_CHECKING:
 
 # System instruction used for all prompts
 SYSTEM_INSTRUCTION = """You are an expert in numerical methods and physics simulation.
-Generate Python code for a surrogate model that approximates N-body gravitational dynamics.
+Generate Python code for a surrogate model that approximates 3D N-body gravitational dynamics.
 
 CRITICAL REQUIREMENTS:
 1. Define EXACTLY this function signature:
-   def predict(particle, attractor):
+   def predict(particle, all_particles):
        # Your code here
-       return [new_x, new_y, new_vx, new_vy]
+       return [new_x, new_y, new_z, new_vx, new_vy, new_vz, mass]
 
 2. Input format:
-   - particle: [x, y, vx, vy] (position x, y and velocity vx, vy)
-   - attractor: [ax, ay] (central gravity source position)
+   - particle: [x, y, z, vx, vy, vz, mass] (3D position, velocity, and mass of THIS particle)
+   - all_particles: list of ALL particles [[x,y,z,vx,vy,vz,mass], ...] (entire particle system)
 
-3. Output: [new_x, new_y, new_vx, new_vy] (next state after one timestep)
+3. Output: [new_x, new_y, new_z, new_vx, new_vy, new_vz, mass] (next state after timestep dt=0.1)
 
-4. Physics: Approximate gravity (force ∝ 1/r² or similar)
+4. Physics: True 3D N-body gravity between ALL particles (not single attractor!)
+   - Each particle exerts gravitational force on 'particle': F_ij = G * m_i * m_j / r²
+   - Direction: unit vector from 'particle' to other particle
+   - Acceleration on 'particle': a = Σ(F_ij / m_particle) for all other particles
+   - Integration timestep: dt = 0.1
+   - Gravitational constant: G = 1.0
+   - Softening (optional): epsilon = 0.01 to prevent singularities
 
 5. Constraints:
    - The 'math' module is ALREADY AVAILABLE (do NOT import it)
    - Use math.sqrt(), math.sin(), etc. directly
-   - Use basic Python functions: abs, min, max, sum, len
-   - FORBIDDEN: import statements, loops over large arrays, recursion, file I/O
-   - Fast and simple (will be called 50 times per evaluation)
+   - Use basic Python functions: abs, min, max, sum, len, range, enumerate, zip
+   - FORBIDDEN: import statements, recursion, file I/O
+   - PERFORMANCE: Ground truth is O(N²). Your approximation MUST be faster (e.g., cutoff radius, K-NN, grid)
+   - Fast and simple (will be called 50 times per evaluation with 50 particles)
 
 6. CODE COMPLETENESS (CRITICAL - READ CAREFULLY):
    - ALWAYS generate COMPLETE, syntactically VALID Python code with NO syntax errors
@@ -67,29 +74,36 @@ def get_initial_prompt(seed: int) -> str:
         Complete prompt for initial model generation
     """
     approaches = [
-        "Use classic Euler integration with adaptive timestep based on distance from attractor",
-        "Use semi-implicit Euler (symplectic) integration for better energy conservation",
-        "Use polynomial approximation for distance calculations to improve speed",
-        "Use damping proportional to velocity to stabilize the system",
-        "Use a Verlet-inspired approach with position and velocity updates",
-        "Use softened gravity (add epsilon to distance) to prevent singularities at close range",
+        "Use CUTOFF RADIUS approximation: only compute forces from particles within distance R_cutoff=20.0 (ignore distant particles)",
+        "Use K-NEAREST NEIGHBORS: find K=5 closest particles, only compute forces from those (O(N) with simple linear search)",
+        "Use GRID-BASED APPROXIMATION: divide space into cells, only compute forces from particles in nearby cells",
+        "Use SOFTENED GRAVITY with large epsilon=1.0 to approximate long-range forces as weaker (reduces sensitivity to distant particles)",
+        "Use HIERARCHICAL APPROXIMATION: compute center-of-mass for distant particle clusters, treat as single particle",
+        "Use VELOCITY-WEIGHTED SELECTION: prioritize forces from fast-moving particles, ignore slow/static ones",
     ]
 
     approach = approaches[seed % len(approaches)]
 
     return f"""{SYSTEM_INSTRUCTION}
 
-TASK: Create an initial surrogate model for N-body gravity simulation.
+TASK: Create an initial surrogate model for 3D N-body gravity simulation.
 
 Approach to try: {approach}
 
 Remember:
-- Gravity force typically: F = G / r²
-- Acceleration = Force × direction / distance
+- Ground truth is O(N²) all-pairs. Your model MUST be faster (O(N) or O(N log N))
+- Timestep: dt = 0.1
+- Gravity force from particle j to particle i: F = G * m_i * m_j / r²  (G=1.0)
+- Acceleration on particle i: a_i = Σ(F_ij / m_i) for selected particles j
 - Update velocity: v_new = v + a × dt
 - Update position: x_new = x + v × dt
-- Keep code simple, fast, and numerically stable
-- Return [new_x, new_y, new_vx, new_vy]
+- Preserve mass: mass stays constant
+- Return [new_x, new_y, new_z, new_vx, new_vy, new_vz, mass]
+
+PERFORMANCE EXAMPLES:
+- Cutoff radius: Loop over all_particles, skip if distance > R_cutoff
+- K-NN: Find K closest, compute only those forces
+- Grid: Only check particles in same/adjacent cells
 
 Generate the complete Python code now."""
 
@@ -168,7 +182,7 @@ CRITICAL - Final Verification Before Submitting:
 You MUST verify these items BEFORE finishing (this prevents syntax errors):
 
 ✓ Count brackets: ALL opening ( [ { MUST have matching closing ) ] }
-✓ Return statement: The function MUST end with "return [new_x, new_y, new_vx, new_vy]"
+✓ Return statement: The function MUST end with "return [new_x, new_y, new_z, new_vx, new_vy, new_vz, mass]"
 ✓ All blocks closed: Every if/for/while MUST have proper closing and indentation
 ✓ No truncation: The code MUST be complete - no "..." or incomplete lines
 ✓ Zero syntax errors: The code must parse as valid Python
@@ -195,7 +209,7 @@ MUTATION STRATEGY:
 
 {completion_reminder}
 
-Generate improved code that maintains the predict(particle, attractor) signature and returns [new_x, new_y, new_vx, new_vy]."""
+Generate improved code that maintains the predict(particle, all_particles) signature and returns [new_x, new_y, new_z, new_vx, new_vy, new_vz, mass]."""
 
 
 def get_crossover_prompt(
