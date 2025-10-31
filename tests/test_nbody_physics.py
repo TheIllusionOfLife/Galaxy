@@ -212,7 +212,7 @@ class TestTwoBodyOrbits:
         for _ in range(50):  # Reduced from 100 to 50 timesteps
             current_particles = crucible.brute_force_step(current_particles)
 
-        final_energy = self._compute_total_energy(current_particles, G=1.0)
+        final_energy = self._compute_total_energy(current_particles, grav_constant=1.0)
 
         # Check both relative and absolute energy drift
         # Initial energy should be significantly non-zero
