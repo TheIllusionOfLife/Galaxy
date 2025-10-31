@@ -205,7 +205,7 @@ class TestTwoBodyOrbits:
         crucible.particles = particles
 
         # Compute initial energy
-        initial_energy = self._compute_total_energy(particles, G=1.0)
+        initial_energy = self._compute_total_energy(particles, grav_constant=1.0)
 
         # Evolve for several timesteps (reduced to avoid excessive drift)
         current_particles = particles[:]
