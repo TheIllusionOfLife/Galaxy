@@ -380,43 +380,132 @@ def _mock_surrogate_generation(
 # ------------------------------------------------------------------------------
 class CosmologyCrucible:
     """
-    Simple N-body simulation environment.
-    Compare and evaluate the accurate but slow 'true physical laws'
-    with the fast 'surrogate models' proposed by civilizations.
+    True 3D N-body gravitational simulation environment.
+
+    Every particle interacts with every other particle via Newton's law of gravitation.
+    This is the computationally expensive O(N²) ground truth that surrogate models
+    attempt to approximate faster.
+
+    Particles: [x, y, z, vx, vy, vz, mass]
+    Physics: F_ij = G * m_i * m_j / r_ij²
+    Complexity: O(N²) force calculations per timestep
     """
 
-    def __init__(self, num_particles: int = 50, attractor: list[float] | None = None):
-        # List of [x, y, vx, vy]
+    def __init__(self, num_particles: int = 50, mass_range: tuple[float, float] = (0.5, 2.0)):
+        """Initialize N-body system with random particles.
+
+        Args:
+            num_particles: Number of particles in the system
+            mass_range: (min, max) range for particle masses
+        """
+        # List of [x, y, z, vx, vy, vz, mass]
         self.particles = [
             [
-                random.uniform(0, 100),
-                random.uniform(0, 100),
-                random.uniform(-1, 1),
-                random.uniform(-1, 1),
+                random.uniform(0, 100),  # x position
+                random.uniform(0, 100),  # y position
+                random.uniform(0, 100),  # z position
+                random.uniform(-1, 1),  # vx velocity
+                random.uniform(-1, 1),  # vy velocity
+                random.uniform(-1, 1),  # vz velocity
+                random.uniform(*mass_range),  # mass
             ]
             for _ in range(num_particles)
         ]
-        self.attractor = attractor or DEFAULT_ATTRACTOR[:]  # Central gravity source
+        self.G = 1.0  # Gravitational constant (simulation units)
+        self.dt = 0.1  # Timestep
+        self.epsilon = 0.01  # Softening parameter to avoid singularities
+
+    def _compute_accelerations(
+        self, particles: list[list[float]]
+    ) -> list[tuple[float, float, float]]:
+        """Compute accelerations for all particles (O(N²)).
+
+        Args:
+            particles: List of [x, y, z, vx, vy, vz, mass]
+
+        Returns:
+            List of (ax, ay, az) acceleration tuples
+        """
+        accelerations = []
+
+        for i, p_i in enumerate(particles):
+            x_i, y_i, z_i, _, _, _, mass_i = p_i
+            ax_total, ay_total, az_total = 0.0, 0.0, 0.0
+
+            # Sum forces from all other particles
+            for j, p_j in enumerate(particles):
+                if i == j:
+                    continue
+
+                x_j, y_j, z_j, _, _, _, mass_j = p_j
+
+                dx = x_j - x_i
+                dy = y_j - y_i
+                dz = z_j - z_i
+
+                r_sq = dx * dx + dy * dy + dz * dz + self.epsilon * self.epsilon
+                r = math.sqrt(r_sq)
+
+                force_magnitude = self.G * mass_j / r_sq
+
+                ax_total += force_magnitude * (dx / r)
+                ay_total += force_magnitude * (dy / r)
+                az_total += force_magnitude * (dz / r)
+
+            accelerations.append((ax_total, ay_total, az_total))
+
+        return accelerations
 
     def brute_force_step(self, particles: list[list[float]]) -> list[list[float]]:
-        """True physical laws (Ground Truth). Accurate but intentionally slow."""
+        """True N-body physics: every particle interacts with every other particle.
+
+        Uses leapfrog (velocity Verlet) integration for better energy conservation.
+        This is the ground truth O(N²) calculation. No artificial delays - the
+        computational cost comes from nested loops over all particle pairs.
+
+        Args:
+            particles: List of [x, y, z, vx, vy, vz, mass]
+
+        Returns:
+            Updated particles after one timestep
+        """
+        # Leapfrog integration (symplectic, conserves energy better than Euler):
+        # 1. v(t + dt/2) = v(t) + a(t) * dt/2       (half-step velocity)
+        # 2. x(t + dt) = x(t) + v(t + dt/2) * dt    (full-step position)
+        # 3. v(t + dt) = v(t + dt/2) + a(t + dt) * dt/2  (half-step velocity)
+
+        # Step 1: Half-step velocity update using current accelerations
+        accelerations_t = self._compute_accelerations(particles)
+        particles_half = []
+
+        for p, (ax, ay, az) in zip(particles, accelerations_t, strict=True):
+            x, y, z, vx, vy, vz, mass = p
+            vx_half = vx + ax * self.dt / 2
+            vy_half = vy + ay * self.dt / 2
+            vz_half = vz + az * self.dt / 2
+            particles_half.append([x, y, z, vx_half, vy_half, vz_half, mass])
+
+        # Step 2: Full-step position update using half-step velocities
+        particles_drift = []
+        for p in particles_half:
+            x, y, z, vx, vy, vz, mass = p
+            x_new = x + vx * self.dt
+            y_new = y + vy * self.dt
+            z_new = z + vz * self.dt
+            particles_drift.append([x_new, y_new, z_new, vx, vy, vz, mass])
+
+        # Step 3: Half-step velocity update using new accelerations
+        accelerations_t_plus_dt = self._compute_accelerations(particles_drift)
         new_particles = []
-        for p in particles:
-            dx = self.attractor[0] - p[0]
-            dy = self.attractor[1] - p[1]
-            dist_sq = dx**2 + dy**2 + 1e-6  # Avoid division by zero
-            force = 10.0 / dist_sq
 
-            ax = force * dx / math.sqrt(dist_sq)
-            ay = force * dy / math.sqrt(dist_sq)
+        for p, (ax, ay, az) in zip(particles_drift, accelerations_t_plus_dt, strict=True):
+            x, y, z, vx, vy, vz, mass = p
+            vx_new = vx + ax * self.dt / 2
+            vy_new = vy + ay * self.dt / 2
+            vz_new = vz + az * self.dt / 2
+            new_particles.append([x, y, z, vx_new, vy_new, vz_new, mass])
 
-            new_vx = p[2] + ax * 0.1
-            new_vy = p[3] + ay * 0.1
-            new_x = p[0] + new_vx * 0.1
-            new_y = p[1] + new_vy * 0.1
-            new_particles.append([new_x, new_y, new_vx, new_vy])
-
-        time.sleep(0.05)  # Simulate heavy computation
+        # NO artificial delay - real computational cost from O(N²) nested loops
         return new_particles
 
     def evaluate_surrogate_model(

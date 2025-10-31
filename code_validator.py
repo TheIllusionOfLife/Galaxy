@@ -94,7 +94,7 @@ class CodeValidator:
         num_args = len(predict_func.args.args)
         if num_args != 2:
             errors.append(
-                f"predict() must take exactly 2 arguments (particle, attractor), found {num_args}"
+                f"predict() must take exactly 2 arguments (particle, all_particles), found {num_args}"
             )
 
         # Check 4: Scan for forbidden operations
@@ -158,12 +158,12 @@ class CodeValidator:
         return ValidationResult(len(errors) == 0, errors, warnings)
 
     @classmethod
-    def compile_safely(cls, code: str, attractor: list[float]) -> Callable | None:
+    def compile_safely(cls, code: str, all_particles: list[list[float]]) -> Callable | None:
         """Compile code in restricted namespace and return predict function.
 
         Args:
             code: Python code string containing predict function
-            attractor: Attractor position to bind to function
+            all_particles: List of all particles for testing (each: [x,y,z,vx,vy,vz,mass])
 
         Returns:
             Wrapped predict function, or None if compilation fails
@@ -194,21 +194,28 @@ class CodeValidator:
 
         predict_func = local_namespace["predict"]
 
-        # Test call to verify it works
-        # Use a particle away from attractor to avoid division by zero
-        # Test particle: [x=45, y=45, vx=0.5, vy=0.5] with default attractor [50, 50]
-        # This creates a realistic scenario: particle approaching attractor with small velocity
+        # Test call to verify it works with 3D N-body particles
+        # Use a realistic test scenario: 3 particles in 3D space
+        # Test particles: [x, y, z, vx, vy, vz, mass]
         try:
-            test_particle = [45.0, 45.0, 0.5, 0.5]
-            result = predict_func(test_particle, attractor)
+            test_all_particles = [
+                [10.0, 20.0, 30.0, 0.1, 0.2, 0.3, 1.0],  # Particle 1
+                [40.0, 50.0, 60.0, -0.1, -0.2, -0.3, 1.5],  # Particle 2
+                [70.0, 80.0, 90.0, 0.0, 0.0, 0.0, 2.0],  # Particle 3
+            ]
+            test_particle = test_all_particles[0]
+
+            result = predict_func(test_particle, test_all_particles)
 
             # Validate output format
             if not isinstance(result, (list, tuple)):
                 logger.error(f"predict() must return list/tuple, got {type(result)}")
                 return None
 
-            if len(result) != 4:
-                logger.error(f"predict() must return 4 values, got {len(result)}")
+            if len(result) != 7:
+                logger.error(
+                    f"predict() must return 7 values [x,y,z,vx,vy,vz,mass], got {len(result)}"
+                )
                 return None
 
             # Check all values are numeric
@@ -227,22 +234,22 @@ class CodeValidator:
             logger.error(f"Test call failed: {e}")
             return None
 
-        # Return wrapped function with attractor bound
-        def wrapped(particle: list[float]) -> list[float]:
-            """Wrapped predict function with attractor pre-bound."""
-            return list(predict_func(particle, attractor))
+        # Return wrapped function with all_particles bound
+        def wrapped(particle: list[float], particles_list: list[list[float]]) -> list[float]:
+            """Wrapped predict function that accepts (particle, all_particles)."""
+            return list(predict_func(particle, particles_list))
 
         return wrapped
 
 
 def validate_and_compile(
-    code: str, attractor: list[float]
+    code: str, all_particles: list[list[float]]
 ) -> tuple[Callable | None, ValidationResult]:
     """Convenience function to validate and compile in one step.
 
     Args:
         code: Python code string
-        attractor: Attractor position
+        all_particles: List of all particles for testing
 
     Returns:
         Tuple of (compiled_function or None, validation_result)
@@ -257,7 +264,7 @@ def validate_and_compile(
         for warning in validation.warnings:
             logger.info(f"Code warning: {warning}")
 
-    compiled_func = CodeValidator.compile_safely(code, attractor)
+    compiled_func = CodeValidator.compile_safely(code, all_particles)
 
     if compiled_func is None:
         # Add error to validation result
