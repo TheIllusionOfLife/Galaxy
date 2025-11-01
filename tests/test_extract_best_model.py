@@ -15,7 +15,7 @@ def test_find_best_model_from_history():
     from scripts.extract_best_model import find_best_model
 
     history = {
-        "generations": [
+        "history": [
             {
                 "generation": 0,
                 "population": [
@@ -67,7 +67,7 @@ def test_find_best_model_single_generation():
     from scripts.extract_best_model import find_best_model
 
     history = {
-        "generations": [
+        "history": [
             {
                 "generation": 0,
                 "population": [
@@ -89,7 +89,7 @@ def test_find_best_model_with_inf():
     from scripts.extract_best_model import find_best_model
 
     history = {
-        "generations": [
+        "history": [
             {
                 "generation": 0,
                 "population": [
@@ -110,7 +110,7 @@ def test_find_best_model_all_inf():
     from scripts.extract_best_model import find_best_model
 
     history = {
-        "generations": [
+        "history": [
             {
                 "generation": 0,
                 "population": [
@@ -180,7 +180,7 @@ def test_load_evolution_history():
     from scripts.extract_best_model import load_evolution_history
 
     history_data = {
-        "generations": [{"generation": 0, "population": [{"civ_id": "civ_0_0", "fitness": 100.0}]}]
+        "history": [{"generation": 0, "population": [{"civ_id": "civ_0_0", "fitness": 100.0}]}]
     }
 
     with tempfile.TemporaryDirectory() as tmpdir:

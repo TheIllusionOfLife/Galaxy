@@ -52,7 +52,10 @@ def find_best_model(history: dict) -> dict:
     best_model = None
     best_fitness = float("-inf")
 
-    for gen_data in history["generations"]:
+    # Handle both "history" and "generations" keys for compatibility
+    generations = history.get("history", history.get("generations", []))
+
+    for gen_data in generations:
         gen_num = gen_data["generation"]
         for model in gen_data["population"]:
             fitness = model["fitness"]
