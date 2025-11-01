@@ -18,6 +18,9 @@ except ImportError:
     LLM_AVAILABLE = False
     settings = None
 
+# Import initial conditions for multi-problem validation
+from initial_conditions import plummer_sphere, three_body_figure_eight, two_body_circular_orbit
+
 logger = logging.getLogger(__name__)
 
 # ------------------------------------------------------------------------------
@@ -27,6 +30,45 @@ _VALIDATION_PARTICLES = [
     [40.0, 50.0, 60.0, -0.1, -0.2, -0.3, 1.5],
     [70.0, 80.0, 90.0, 0.0, 0.0, 0.0, 2.0],
 ]
+
+
+def get_initial_particles(test_problem: str, num_particles: int = 50) -> list[list[float]]:
+    """Get initial particle configuration for the specified test problem.
+
+    Maps test_problem configuration to the appropriate initial_conditions function.
+    Note: two_body and figure_eight ignore num_particles (fixed counts).
+
+    Args:
+        test_problem: Which test problem to use ("two_body", "figure_eight", "plummer")
+        num_particles: Number of particles (only used for plummer, default 50)
+
+    Returns:
+        List of particles in format [[x,y,z,vx,vy,vz,mass], ...]
+
+    Raises:
+        ValueError: If test_problem is not recognized
+
+    Example:
+        >>> particles = get_initial_particles("two_body", num_particles=100)
+        >>> len(particles)  # Always 2, ignores num_particles
+        2
+        >>> particles = get_initial_particles("plummer", num_particles=50)
+        >>> len(particles)  # Uses num_particles
+        50
+    """
+    if test_problem == "two_body":
+        # Two-body circular orbit (always 2 particles)
+        return two_body_circular_orbit()
+    elif test_problem == "figure_eight":
+        # Three-body figure-eight (always 3 particles)
+        return three_body_figure_eight()
+    elif test_problem == "plummer":
+        # Plummer sphere (uses num_particles)
+        return plummer_sphere(n_particles=num_particles, random_seed=42)
+    else:
+        raise ValueError(
+            f"Unknown test_problem: {test_problem}. Valid options: two_body, figure_eight, plummer"
+        )
 
 
 @dataclass
