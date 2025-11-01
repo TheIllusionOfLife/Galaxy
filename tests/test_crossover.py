@@ -30,7 +30,7 @@ class TestCrossoverOperator:
         """Verify crossover raises error with insufficient elites."""
         # Setup: Only 1 elite with raw_code
         genome = Mock()
-        genome.raw_code = "def predict(particle, attractor): return particle"
+        genome.raw_code = "def predict(particle, all_particles): return particle"
         elites = [("civ_0_0", {"genome": genome, "fitness": 10})]
 
         # Assert: Raises ValueError
@@ -141,7 +141,7 @@ class TestBreedingWithCrossover:
             genome = SurrogateGenome(
                 theta=[float(i)],
                 fitness=100.0 - i,
-                raw_code=f"def predict(particle, attractor): return particle  # elite {i}",
+                raw_code=f"def predict(particle, all_particles): return particle  # elite {i}",
             )
             genome.build_callable = Mock(return_value=lambda p, a: p)
             elites.append((f"civ_0_{i}", {"genome": genome, "fitness": 100.0 - i}))
@@ -348,41 +348,68 @@ class TestCrossoverValidation:
                 mock_fallback.assert_called_once()
 
     def test_crossover_preserves_function_signature(self):
-        """Verify crossover offspring has predict(particle, attractor)."""
+        """Verify crossover offspring has predict(particle, all_particles) for 3D N-body."""
         from code_validator import validate_and_compile
 
-        # Valid crossover code (hybrid of Euler + damping)
+        # Valid crossover code for 3D N-body (hybrid approach)
         crossover_code = """
-def predict(particle, attractor):
-    x, y, vx, vy = particle
-    ax, ay = attractor
+def predict(particle, all_particles):
+    x, y, z, vx, vy, vz, mass = particle
 
-    # Hybrid: Euler integration + damping
-    dx = x - ax
-    dy = y - ay
-    r = max(0.1, (dx**2 + dy**2)**0.5)
+    # Hybrid: Simple cutoff radius + damping
+    R_cutoff = 20.0
+    G = 1.0
+    epsilon = 0.01
+    dt = 0.1
 
-    fx = -dx / (r**3)
-    fy = -dy / (r**3)
+    ax, ay, az = 0.0, 0.0, 0.0
+
+    for other in all_particles:
+        ox, oy, oz, _, _, _, omass = other
+        if ox == x and oy == y and oz == z:
+            continue
+
+        dx = ox - x
+        dy = oy - y
+        dz = oz - z
+        r_sq = dx*dx + dy*dy + dz*dz + epsilon*epsilon
+
+        if r_sq > R_cutoff * R_cutoff:
+            continue
+
+        r = r_sq ** 0.5
+        force = G * omass / r_sq
+        ax += force * (dx / r)
+        ay += force * (dy / r)
+        az += force * (dz / r)
 
     damping = 0.99
-    new_vx = (vx + fx * 0.1) * damping
-    new_vy = (vy + fy * 0.1) * damping
+    new_vx = (vx + ax * dt) * damping
+    new_vy = (vy + ay * dt) * damping
+    new_vz = (vz + az * dt) * damping
 
-    new_x = x + new_vx * 0.1
-    new_y = y + new_vy * 0.1
+    new_x = x + new_vx * dt
+    new_y = y + new_vy * dt
+    new_z = z + new_vz * dt
 
-    return [new_x, new_y, new_vx, new_vy]
+    return [new_x, new_y, new_z, new_vx, new_vy, new_vz, mass]
 """
 
+        # Create test particles for validation
+        test_all_particles = [
+            [10.0, 20.0, 30.0, 0.1, 0.2, 0.3, 1.0],
+            [40.0, 50.0, 60.0, -0.1, -0.2, -0.3, 1.5],
+        ]
+
         # Validate
-        compiled_func, result = validate_and_compile(crossover_code, attractor=[0.0, 0.0])
+        compiled_func, result = validate_and_compile(crossover_code, test_all_particles)
 
         # Assert: Valid
         assert result.valid, f"Crossover code should be valid: {result.errors}"
         assert compiled_func is not None, "Should compile successfully"
 
-        # Test function signature
-        test_output = compiled_func([10.0, 0.0, 0.0, 0.0])
+        # Test function signature with 3D particles
+        test_particle = test_all_particles[0]
+        test_output = compiled_func(test_particle, test_all_particles)
         assert isinstance(test_output, list), "Output should be a list"
-        assert len(test_output) == 4, "Output should have 4 elements"
+        assert len(test_output) == 7, "Output should have 7 elements [x,y,z,vx,vy,vz,mass]"

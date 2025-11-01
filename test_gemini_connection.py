@@ -99,8 +99,13 @@ def main():
 
     # Validate code
     print("Validating generated code...")
-    attractor = [50.0, 50.0]
-    compiled_func, validation = validate_and_compile(response.code, attractor)
+    # 3D N-body validation particles: [x, y, z, vx, vy, vz, mass]
+    validation_particles = [
+        [10.0, 20.0, 30.0, 0.1, 0.2, 0.3, 1.0],
+        [40.0, 50.0, 60.0, -0.1, -0.2, -0.3, 1.5],
+        [70.0, 80.0, 90.0, 0.0, 0.0, 0.0, 2.0],
+    ]
+    compiled_func, validation = validate_and_compile(response.code, validation_particles)
 
     if not validation.valid:
         print("❌ Validation failed:")

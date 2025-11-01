@@ -19,10 +19,10 @@ class TestTokenCounting:
         """Test basic token counting with simple code."""
         from prototype import count_tokens
 
-        code = "def predict(particle, attractor):\n    return [1, 2, 3, 4]"
+        code = "def predict(particle, all_particles):\n    return [1, 2, 3, 4, 5, 6, 7]"
         tokens = count_tokens(code)
-        # Whitespace split: def, predict(particle,, attractor):, return, [1,, 2,, 3,, 4]
-        assert tokens == 8, f"Expected 8 tokens, got {tokens}"
+        # Whitespace split: def, predict(particle,, all_particles):, return, [1,, 2,, 3,, 4,, 5,, 6,, 7]
+        assert tokens == 11, f"Expected 11 tokens, got {tokens}"
 
     def test_count_tokens_empty(self):
         """Test empty code returns zero."""
@@ -41,38 +41,42 @@ class TestTokenCounting:
         """Test realistic surrogate model code."""
         from prototype import count_tokens
 
-        code = """def predict(particle, attractor):
-    x, y, vx, vy = particle
-    ax, ay = attractor
-    dx = ax - x
-    dy = ay - y
-    dist_sq = dx*dx + dy*dy + 0.01
+        code = """def predict(particle, all_particles):
+    x, y, z, vx, vy, vz, mass = particle
+    cx = sum(p[0] for p in all_particles) / len(all_particles)
+    cy = sum(p[1] for p in all_particles) / len(all_particles)
+    cz = sum(p[2] for p in all_particles) / len(all_particles)
+    dx, dy, dz = cx - x, cy - y, cz - z
+    dist_sq = dx*dx + dy*dy + dz*dz + 0.01
     force = 10.0 / dist_sq
     dist = math.sqrt(dist_sq)
     accel_x = force * dx / dist
     accel_y = force * dy / dist
+    accel_z = force * dz / dist
     new_vx = vx + accel_x * 0.1
     new_vy = vy + accel_y * 0.1
+    new_vz = vz + accel_z * 0.1
     new_x = x + new_vx * 0.1
     new_y = y + new_vy * 0.1
-    return [new_x, new_y, new_vx, new_vy]"""
+    new_z = z + new_vz * 0.1
+    return [new_x, new_y, new_z, new_vx, new_vy, new_vz, mass]"""
         tokens = count_tokens(code)
         # Count actual tokens in this specific code
-        # This realistic model has approximately 86 tokens
-        assert 80 <= tokens <= 90, f"Expected ~86 tokens, got {tokens}"
+        # This realistic 3D model has approximately 140 tokens
+        assert 130 <= tokens <= 150, f"Expected ~140 tokens, got {tokens}"
 
     def test_count_tokens_very_long(self):
         """Test very long code (3000+ tokens)."""
         from prototype import count_tokens
 
         # Generate long code similar to Gen 3-4 models
-        code = "def predict(particle, attractor):\n"
-        code += "    x, y, vx, vy = particle\n"
-        code += "    ax, ay = attractor\n"
+        code = "def predict(particle, all_particles):\n"
+        code += "    x, y, z, vx, vy, vz, mass = particle\n"
+        code += "    cx = sum(p[0] for p in all_particles) / len(all_particles)\n"
         # Add many lines of computations
         for i in range(200):
-            code += f"    temp_{i} = x + y * {i} + vx - vy\n"
-        code += "    return [x, y, vx, vy]\n"
+            code += f"    temp_{i} = x + y * {i} + vx - vy + z * vz\n"
+        code += "    return [x, y, z, vx, vy, vz, mass]\n"
 
         tokens = count_tokens(code)
         assert tokens > 1000, "Very long code should have >1000 tokens"
@@ -296,7 +300,9 @@ class TestPenaltyInEvolution:
 
         # Create a genome with very long code
         long_code = (
-            "def predict(particle, attractor):\n    " + "x = 1\n    " * 1000 + "return [1, 2, 3, 4]"
+            "def predict(particle, all_particles):\n    "
+            + "x = 1\n    " * 1000
+            + "return [1, 2, 3, 4, 5, 6, 7]"
         )
         token_count = count_tokens(long_code)
 

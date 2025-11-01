@@ -337,21 +337,21 @@ class ValidationResult:
 **Content**:
 ```python
 SYSTEM_INSTRUCTION = """You are an expert in numerical methods and physics simulation.
-Generate Python code for a surrogate model that approximates N-body gravitational dynamics.
+Generate Python code for a surrogate model that approximates 3D N-body gravitational dynamics.
 
 CRITICAL REQUIREMENTS:
 1. Define EXACTLY this function signature:
-   def predict(particle, attractor):
+   def predict(particle, all_particles):
        # Your code here
-       return [new_x, new_y, new_vx, new_vy]
+       return [new_x, new_y, new_z, new_vx, new_vy, new_vz, mass]
 
 2. Input format:
-   - particle: [x, y, vx, vy] (position and velocity)
-   - attractor: [ax, ay] (central gravity source)
+   - particle: [x, y, z, vx, vy, vz, mass] (3D position, velocity, and mass of THIS particle)
+   - all_particles: list of ALL particles [[x,y,z,vx,vy,vz,mass], ...] (entire particle system)
 
-3. Output: [new_x, new_y, new_vx, new_vy] (next state after one timestep)
+3. Output: [new_x, new_y, new_z, new_vx, new_vy, new_vz, mass] (next state after timestep dt=0.1)
 
-4. Physics: Approximate gravity (force ∝ 1/r²)
+4. Physics: True 3D N-body gravity between ALL particles (F = G·m₁·m₂/r²)
 
 5. Constraints:
    - Use ONLY: math module, basic Python
@@ -579,7 +579,7 @@ if not gemini_client or cost_tracker.check_budget_exceeded():
 
 try:
     response = gemini_client.generate_surrogate_code(prompt)
-    compiled_func, validation = validate_and_compile(response.code, attractor)
+    compiled_func, validation = validate_and_compile(response.code, validation_particles)
 
     if validation.valid:
         return SurrogateGenome(theta=[], raw_code=response.code, compiled_predict=compiled_func)

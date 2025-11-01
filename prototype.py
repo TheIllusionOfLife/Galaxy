@@ -21,7 +21,12 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 # ------------------------------------------------------------------------------
-DEFAULT_ATTRACTOR = [50.0, 50.0]
+# Sample particles for validation (3D N-body format: [x, y, z, vx, vy, vz, mass])
+_VALIDATION_PARTICLES = [
+    [10.0, 20.0, 30.0, 0.1, 0.2, 0.3, 1.0],
+    [40.0, 50.0, 60.0, -0.1, -0.2, -0.3, 1.5],
+    [70.0, 80.0, 90.0, 0.0, 0.0, 0.0, 2.0],
+]
 
 
 @dataclass
@@ -35,7 +40,9 @@ class SurrogateGenome:
     accuracy: float | None = None  # Store for LLM prompt context
     speed: float | None = None  # Store for LLM prompt context
     token_count: int | None = None  # Track code length for penalty calculation
-    compiled_predict: Callable[[list[float]], list[float]] | None = None  # Pre-validated callable
+    compiled_predict: Callable[[list[float], list[list[float]]], list[float]] | None = (
+        None  # Pre-validated callable (3D N-body signature)
+    )
     parent_ids: list[str] = field(default_factory=list)  # Track crossover parentage
 
     def as_readable(self) -> str:
@@ -45,7 +52,17 @@ class SurrogateGenome:
         coeffs = ", ".join(f"{value:.4f}" for value in self.theta)
         return f"theta=[{coeffs}]"
 
-    def build_callable(self, attractor: list[float]) -> Callable[[list[float]], list[float]]:
+    def build_callable(
+        self, all_particles: list[list[float]]
+    ) -> Callable[[list[float], list[list[float]]], list[float]]:
+        """Build callable surrogate model.
+
+        Args:
+            all_particles: Sample particles for validation (3D N-body format)
+
+        Returns:
+            Callable with signature predict(particle, all_particles) -> [x,y,z,vx,vy,vz,mass]
+        """
         # Prefer the pre-validated callable to avoid TOCTOU security issues
         if self.compiled_predict is not None:
             return self.compiled_predict
@@ -55,48 +72,82 @@ class SurrogateGenome:
                 try:
                     from code_validator import validate_and_compile
 
-                    compiled, validation = validate_and_compile(self.raw_code, attractor)
+                    compiled, validation = validate_and_compile(self.raw_code, all_particles)
                     if not validation.valid or compiled is None:
                         raise ValueError(f"Invalid surrogate code: {validation.errors}")
                     self.compiled_predict = compiled
                     return compiled
                 except ImportError:
                     pass
-            return compile_external_surrogate(self.raw_code, attractor)
-        return make_parametric_surrogate(self.theta, attractor)
+            return compile_external_surrogate(self.raw_code, all_particles)
+        return make_parametric_surrogate(self.theta, all_particles)
 
 
 def make_parametric_surrogate(
-    theta: list[float], attractor: list[float]
-) -> Callable[[list[float]], list[float]]:
-    """Generate a surrogate model defined by theta parameters."""
+    theta: list[float], all_particles: list[list[float]]
+) -> Callable[[list[float], list[list[float]]], list[float]]:
+    """Generate a surrogate model defined by theta parameters.
+
+    Uses center-of-mass approximation for 3D N-body gravity.
+
+    Args:
+        theta: [g_const, epsilon, dt_velocity, dt_position, velocity_correction, damping]
+        all_particles: Sample particles (unused, kept for signature compatibility)
+
+    Returns:
+        Model with signature predict(particle, all_particles) -> [x,y,z,vx,vy,vz,mass]
+    """
 
     g_const, epsilon, dt_velocity, dt_position, velocity_correction, damping = theta
 
-    def model(particle: list[float]) -> list[float]:
-        x, y, vx, vy = particle
-        dx = attractor[0] - x
-        dy = attractor[1] - y
-        dist_sq = dx * dx + dy * dy + epsilon
+    def model(particle: list[float], all_particles: list[list[float]]) -> list[float]:
+        x, y, z, vx, vy, vz, mass = particle
+
+        # Calculate center of mass from all particles
+        if all_particles:
+            cx = sum(p[0] for p in all_particles) / len(all_particles)
+            cy = sum(p[1] for p in all_particles) / len(all_particles)
+            cz = sum(p[2] for p in all_particles) / len(all_particles)
+        else:
+            cx, cy, cz = x, y, z
+
+        dx = cx - x
+        dy = cy - y
+        dz = cz - z
+        dist_sq = dx * dx + dy * dy + dz * dz + epsilon
         dist = math.sqrt(dist_sq)
         denom = max(dist_sq * dist, 1e-6)
         ax = g_const * dx / denom
         ay = g_const * dy / denom
+        az = g_const * dz / denom
 
         new_vx = (1.0 - damping) * vx + ax * dt_velocity
         new_vy = (1.0 - damping) * vy + ay * dt_velocity
+        new_vz = (1.0 - damping) * vz + az * dt_velocity
         new_x = x + (vx + velocity_correction * ax) * dt_position
         new_y = y + (vy + velocity_correction * ay) * dt_position
+        new_z = z + (vz + velocity_correction * az) * dt_position
 
-        return [new_x, new_y, new_vx, new_vy]
+        return [new_x, new_y, new_z, new_vx, new_vy, new_vz, mass]
 
     return model
 
 
 def compile_external_surrogate(
-    code: str, attractor: list[float]
-) -> Callable[[list[float]], list[float]]:
-    """Execute LLM-generated code in a safe namespace and retrieve the predict function."""
+    code: str, validation_particles: list[list[float]]
+) -> Callable[[list[float], list[list[float]]], list[float]]:
+    """Execute LLM-generated code in a safe namespace and retrieve the predict function.
+
+    Args:
+        code: Python code defining predict(particle, all_particles) function
+        validation_particles: Sample 3D particles for output validation
+
+    Returns:
+        Callable with signature predict(particle, all_particles) -> [x,y,z,vx,vy,vz,mass]
+
+    Raises:
+        ValueError: If code doesn't define predict function or output is invalid
+    """
 
     # Use same builtins as CodeValidator.SAFE_BUILTINS to maintain consistency
     allowed_builtins = {
@@ -108,18 +159,33 @@ def compile_external_surrogate(
         "range": range,
         "enumerate": enumerate,
         "zip": zip,
+        "float": float,
+        "int": int,
+        "list": list,
     }
     sandbox_globals = {"__builtins__": allowed_builtins, "math": math}
     local_namespace: dict[str, Callable] = {}
     exec(code, sandbox_globals, local_namespace)
 
     if "predict" not in local_namespace:
-        raise ValueError("Surrogate model code must define predict(particle, attractor) function.")
+        raise ValueError(
+            "Surrogate model code must define predict(particle, all_particles) function."
+        )
 
     predict_func = local_namespace["predict"]
 
-    def wrapped(particle: list[float]) -> list[float]:
-        return predict_func(particle, attractor)
+    # Validate output format with sample particles
+    if validation_particles:
+        sample = validation_particles[0]
+        test_output = predict_func(sample, validation_particles)
+        if not isinstance(test_output, (list, tuple)) or len(test_output) != 7:
+            raise ValueError(
+                "Surrogate model output must be a sequence of length 7 [x, y, z, vx, vy, vz, mass]."
+            )
+
+    def wrapped(particle: list[float], all_particles: list[list[float]]) -> list[float]:
+        result = predict_func(particle, all_particles)
+        return list(result)
 
     return wrapped
 
@@ -326,8 +392,8 @@ def LLM_propose_surrogate_model(
             logger.error(f"LLM call failed: {response.error}")
             return _mock_surrogate_generation(base_genome, generation)
 
-        # Validate code
-        compiled_func, validation = validate_and_compile(response.code, DEFAULT_ATTRACTOR)
+        # Validate code with sample 3D N-body particles
+        compiled_func, validation = validate_and_compile(response.code, _VALIDATION_PARTICLES)
 
         if not validation.valid:
             logger.warning(f"Generated code invalid: {validation.errors}")
@@ -380,51 +446,200 @@ def _mock_surrogate_generation(
 # ------------------------------------------------------------------------------
 class CosmologyCrucible:
     """
-    Simple N-body simulation environment.
-    Compare and evaluate the accurate but slow 'true physical laws'
-    with the fast 'surrogate models' proposed by civilizations.
+    True 3D N-body gravitational simulation environment.
+
+    Every particle interacts with every other particle via Newton's law of gravitation.
+    This is the computationally expensive O(N²) ground truth that surrogate models
+    attempt to approximate faster.
+
+    Particles: [x, y, z, vx, vy, vz, mass]
+    Physics: F_ij = G * m_i * m_j / r_ij²
+    Complexity: O(N²) force calculations per timestep
     """
 
-    def __init__(self, num_particles: int = 50, attractor: list[float] | None = None):
-        # List of [x, y, vx, vy]
+    def __init__(self, num_particles: int = 50, mass_range: tuple[float, float] = (0.5, 2.0)):
+        """Initialize N-body system with random particles.
+
+        Args:
+            num_particles: Number of particles in the system (minimum 2 for meaningful N-body physics)
+            mass_range: (min, max) range for particle masses
+
+        Raises:
+            ValueError: If num_particles < 2 or mass_range is invalid
+
+        Note:
+            N-body physics requires at least 2 particles for meaningful gravitational interactions.
+            For testing with custom particles, use the with_particles() class method instead.
+        """
+        # Input validation
+        if num_particles < 2:
+            raise ValueError(
+                f"N-body simulation requires at least 2 particles for meaningful interactions, got {num_particles}. "
+                "For testing with custom particles, use CosmologyCrucible.with_particles(particles) instead."
+            )
+        if mass_range[0] <= 0 or mass_range[1] <= mass_range[0]:
+            raise ValueError(f"mass_range must be (min, max) with 0 < min < max, got {mass_range}")
+
+        # List of [x, y, z, vx, vy, vz, mass]
         self.particles = [
             [
-                random.uniform(0, 100),
-                random.uniform(0, 100),
-                random.uniform(-1, 1),
-                random.uniform(-1, 1),
+                random.uniform(0, 100),  # x position
+                random.uniform(0, 100),  # y position
+                random.uniform(0, 100),  # z position
+                random.uniform(-1, 1),  # vx velocity
+                random.uniform(-1, 1),  # vy velocity
+                random.uniform(-1, 1),  # vz velocity
+                random.uniform(*mass_range),  # mass
             ]
             for _ in range(num_particles)
         ]
-        self.attractor = attractor or DEFAULT_ATTRACTOR[:]  # Central gravity source
+        self.G = 1.0  # Gravitational constant (simulation units)
+        self.dt = 0.1  # Timestep
+        self.epsilon = 0.01  # Softening parameter to avoid singularities
+
+    @classmethod
+    def with_particles(cls, particles: list[list[float]]) -> "CosmologyCrucible":
+        """Create crucible with specific particles (for testing).
+
+        This factory method bypasses the minimum particle count validation,
+        allowing tests to use custom particle configurations including
+        edge cases like empty lists, single particles, or specific scenarios.
+
+        Args:
+            particles: List of particles, each [x, y, z, vx, vy, vz, mass]
+
+        Returns:
+            CosmologyCrucible instance with the specified particles
+
+        Example:
+            >>> particles = [[10.0, 20.0, 30.0, 0.1, 0.2, 0.3, 1.0]]
+            >>> crucible = CosmologyCrucible.with_particles(particles)
+        """
+        instance = cls.__new__(cls)
+        instance.particles = particles
+        instance.G = 1.0
+        instance.dt = 0.1
+        instance.epsilon = 0.01
+        return instance
+
+    def _compute_accelerations(
+        self, particles: list[list[float]]
+    ) -> list[tuple[float, float, float]]:
+        """Compute accelerations for all particles (O(N²)).
+
+        Args:
+            particles: List of [x, y, z, vx, vy, vz, mass]
+
+        Returns:
+            List of (ax, ay, az) acceleration tuples
+        """
+        accelerations = []
+
+        for i, p_i in enumerate(particles):
+            x_i, y_i, z_i, _, _, _, mass_i = p_i
+            ax_total, ay_total, az_total = 0.0, 0.0, 0.0
+
+            # Sum forces from all other particles
+            for j, p_j in enumerate(particles):
+                if i == j:
+                    continue
+
+                x_j, y_j, z_j, _, _, _, mass_j = p_j
+
+                dx = x_j - x_i
+                dy = y_j - y_i
+                dz = z_j - z_i
+
+                r_sq = dx * dx + dy * dy + dz * dz + self.epsilon * self.epsilon
+                r = math.sqrt(r_sq)
+
+                force_magnitude = self.G * mass_j / r_sq
+
+                ax_total += force_magnitude * (dx / r)
+                ay_total += force_magnitude * (dy / r)
+                az_total += force_magnitude * (dz / r)
+
+            accelerations.append((ax_total, ay_total, az_total))
+
+        return accelerations
 
     def brute_force_step(self, particles: list[list[float]]) -> list[list[float]]:
-        """True physical laws (Ground Truth). Accurate but intentionally slow."""
+        """True N-body physics: every particle interacts with every other particle.
+
+        Uses leapfrog (velocity Verlet) integration for better energy conservation.
+        This is the ground truth O(N²) calculation. No artificial delays - the
+        computational cost comes from nested loops over all particle pairs.
+
+        Args:
+            particles: List of [x, y, z, vx, vy, vz, mass]
+
+        Returns:
+            Updated particles after one timestep
+        """
+        # Leapfrog integration (symplectic, conserves energy better than Euler):
+        # 1. v(t + dt/2) = v(t) + a(t) * dt/2       (half-step velocity)
+        # 2. x(t + dt) = x(t) + v(t + dt/2) * dt    (full-step position)
+        # 3. v(t + dt) = v(t + dt/2) + a(t + dt) * dt/2  (half-step velocity)
+
+        # Step 1: Half-step velocity update using current accelerations
+        accelerations_t = self._compute_accelerations(particles)
+        particles_half = []
+
+        for p, (ax, ay, az) in zip(particles, accelerations_t, strict=True):
+            x, y, z, vx, vy, vz, mass = p
+            vx_half = vx + ax * self.dt / 2
+            vy_half = vy + ay * self.dt / 2
+            vz_half = vz + az * self.dt / 2
+            particles_half.append([x, y, z, vx_half, vy_half, vz_half, mass])
+
+        # Step 2: Full-step position update using half-step velocities
+        particles_drift = []
+        for p in particles_half:
+            x, y, z, vx, vy, vz, mass = p
+            x_new = x + vx * self.dt
+            y_new = y + vy * self.dt
+            z_new = z + vz * self.dt
+            particles_drift.append([x_new, y_new, z_new, vx, vy, vz, mass])
+
+        # Step 3: Half-step velocity update using new accelerations
+        accelerations_t_plus_dt = self._compute_accelerations(particles_drift)
         new_particles = []
-        for p in particles:
-            dx = self.attractor[0] - p[0]
-            dy = self.attractor[1] - p[1]
-            dist_sq = dx**2 + dy**2 + 1e-6  # Avoid division by zero
-            force = 10.0 / dist_sq
 
-            ax = force * dx / math.sqrt(dist_sq)
-            ay = force * dy / math.sqrt(dist_sq)
+        for p, (ax, ay, az) in zip(particles_drift, accelerations_t_plus_dt, strict=True):
+            x, y, z, vx, vy, vz, mass = p
+            vx_new = vx + ax * self.dt / 2
+            vy_new = vy + ay * self.dt / 2
+            vz_new = vz + az * self.dt / 2
+            new_particles.append([x, y, z, vx_new, vy_new, vz_new, mass])
 
-            new_vx = p[2] + ax * 0.1
-            new_vy = p[3] + ay * 0.1
-            new_x = p[0] + new_vx * 0.1
-            new_y = p[1] + new_vy * 0.1
-            new_particles.append([new_x, new_y, new_vx, new_vy])
-
-        time.sleep(0.05)  # Simulate heavy computation
+        # NO artificial delay - real computational cost from O(N²) nested loops
         return new_particles
 
     def evaluate_surrogate_model(
-        self, model: Callable[[list[float]], list[float]]
+        self, model: Callable[[list[float], list[list[float]]], list[float]]
     ) -> tuple[float, float]:
         """
         Evaluate the 'accuracy' and 'speed' of the surrogate model.
+
+        Args:
+            model: Surrogate model with signature predict(particle, all_particles)
+
+        Returns:
+            Tuple of (accuracy, speed) where accuracy is 0-1 and speed is execution time
+
+        Raises:
+            ValueError: If particle system is empty
+
+        Note:
+            Uses parallel evaluation semantics: all particles see the same initial_state.
+            This matches brute_force_step which computes all forces at time t before
+            updating any positions. Each model call is independent and makes predictions
+            based on the full particle set at the current timestep.
         """
+        # Input validation
+        if not self.particles:
+            raise ValueError("Cannot evaluate model with empty particle system")
+
         initial_state = [p[:] for p in self.particles]  # Copy state
 
         # 1. Accuracy evaluation
@@ -434,20 +649,34 @@ class CosmologyCrucible:
         try:
             predicted_next_state = []
             for particle in initial_state:
-                prediction = model(particle)
-                if not isinstance(prediction, (list, tuple)) or len(prediction) != 4:
-                    raise ValueError("Surrogate model output must be a sequence of length 4.")
+                # Call model with both particle and all_particles
+                # NOTE: Parallel evaluation semantics - all particles see the same initial_state.
+                # This matches brute_force_step which computes all forces before updating positions.
+                # Each model call is independent and makes predictions based on the full particle
+                # set at time t.
+                prediction = model(particle, initial_state)
+                if not isinstance(prediction, (list, tuple)) or len(prediction) != 7:
+                    raise ValueError(
+                        "Surrogate model output must be a sequence of length 7 "
+                        "[x, y, z, vx, vy, vz, mass]."
+                    )
                 predicted_next_state.append(list(prediction))
         except Exception:
             return 0.0, 999.9  # Invalid code gets worst evaluation
 
         speed = time.time() - start_time
 
+        # Calculate error using all 3 spatial dimensions
         error = 0.0
         for i in range(len(initial_state)):
             true_p = ground_truth_next_state[i]
             pred_p = predicted_next_state[i]
-            error += (true_p[0] - pred_p[0]) ** 2 + (true_p[1] - pred_p[1]) ** 2
+            # Compare x, y, z positions
+            error += (
+                (true_p[0] - pred_p[0]) ** 2
+                + (true_p[1] - pred_p[1]) ** 2
+                + (true_p[2] - pred_p[2]) ** 2
+            )
 
         accuracy = 1.0 / (1.0 + math.sqrt(error))  # Smaller error approaches 1
 
@@ -512,7 +741,7 @@ class EvolutionaryEngine:
         for civ_id, civ_data in self.civilizations.items():
             genome: SurrogateGenome = civ_data["genome"]
             try:
-                model_func = genome.build_callable(self.crucible.attractor)
+                model_func = genome.build_callable(self.crucible.particles)
                 accuracy, speed = self.crucible.evaluate_surrogate_model(model_func)
 
                 # Validate speed is positive and finite

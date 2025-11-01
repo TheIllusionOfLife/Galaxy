@@ -55,19 +55,23 @@ class TestGeminiIntegration:
         self.cost_tracker.add_call(response, "test_single_generation")
         assert self.cost_tracker.total_cost > 0
 
-        # Validate generated code
-        attractor = [50.0, 50.0]
-        compiled_func, validation = validate_and_compile(response.code, attractor)
+        # Validate generated code (3D N-body format)
+        validation_particles = [
+            [10.0, 20.0, 30.0, 0.1, 0.2, 0.3, 1.0],
+            [40.0, 50.0, 60.0, -0.1, -0.2, -0.3, 1.5],
+            [70.0, 80.0, 90.0, 0.0, 0.0, 0.0, 2.0],
+        ]
+        compiled_func, validation = validate_and_compile(response.code, validation_particles)
 
         assert validation.valid, f"Invalid code: {validation.errors}"
         assert compiled_func is not None, "Failed to compile valid code"
 
-        # Test execution
-        test_input = [45.0, 45.0, 1.0, 1.0]
-        result = compiled_func(test_input)
+        # Test execution with 3D particle [x, y, z, vx, vy, vz, mass]
+        test_particle = [45.0, 45.0, 45.0, 1.0, 1.0, 1.0, 1.0]
+        result = compiled_func(test_particle, validation_particles)
 
         assert isinstance(result, list), "Output not a list"
-        assert len(result) == 4, f"Output length {len(result)} != 4"
+        assert len(result) == 7, f"Output length {len(result)} != 7"
         assert all(isinstance(v, int | float) for v in result), "Non-numeric output"
 
     def test_mutation_generation(self):
@@ -77,9 +81,15 @@ class TestGeminiIntegration:
         parent_response = self.client.generate_surrogate_code(initial_prompt)
         assert parent_response.success
 
-        # Validate parent
-        attractor = [50.0, 50.0]
-        parent_func, parent_validation = validate_and_compile(parent_response.code, attractor)
+        # Validate parent (3D N-body format)
+        validation_particles = [
+            [10.0, 20.0, 30.0, 0.1, 0.2, 0.3, 1.0],
+            [40.0, 50.0, 60.0, -0.1, -0.2, -0.3, 1.5],
+            [70.0, 80.0, 90.0, 0.0, 0.0, 0.0, 2.0],
+        ]
+        parent_func, parent_validation = validate_and_compile(
+            parent_response.code, validation_particles
+        )
         assert parent_validation.valid
 
         # Now mutate
@@ -98,7 +108,9 @@ class TestGeminiIntegration:
         assert child_response.code != parent_response.code, "Child identical to parent"
 
         # Validate child
-        child_func, child_validation = validate_and_compile(child_response.code, attractor)
+        child_func, child_validation = validate_and_compile(
+            child_response.code, validation_particles
+        )
         assert child_validation.valid, f"Invalid child code: {child_validation.errors}"
 
     def test_rate_limiting_enforcement(self):
@@ -204,8 +216,9 @@ class TestGeminiIntegration:
         )
 
         prompt = """Generate a Python function called predict that:
-        1. Takes two arguments: particle and attractor
-        2. Returns a list of 4 numbers
+        1. Takes two arguments: particle and all_particles
+        2. particle is [x, y, z, vx, vy, vz, mass]
+        3. Returns a list of 7 numbers [new_x, new_y, new_z, new_vx, new_vy, new_vz, mass]
 
         IMPORTANT: Make it as short as possible (1-2 lines).
         """
@@ -214,8 +227,11 @@ class TestGeminiIntegration:
 
         # Even if generation succeeds, validation might fail
         if response.success and response.code:
-            attractor = [50.0, 50.0]
-            compiled_func, validation = validate_and_compile(response.code, attractor)
+            validation_particles = [
+                [10.0, 20.0, 30.0, 0.1, 0.2, 0.3, 1.0],
+                [40.0, 50.0, 60.0, -0.1, -0.2, -0.3, 1.5],
+            ]
+            compiled_func, validation = validate_and_compile(response.code, validation_particles)
 
             # Code might be invalid (too simple, missing logic, etc.)
             # Test that validator catches issues
@@ -254,8 +270,10 @@ class TestGeminiIntegration:
     def test_explore_vs_exploit_mutation(self):
         """Test that explore and exploit produce different mutation prompts."""
         parent_code = """
-def predict(particle, attractor):
-    return [particle[0] + 1, particle[1] + 1, particle[2], particle[3]]
+def predict(particle, all_particles):
+    # Simple 3D N-body placeholder
+    x, y, z, vx, vy, vz, mass = particle
+    return [x + vx * 0.1, y + vy * 0.1, z + vz * 0.1, vx, vy, vz, mass]
 """
 
         # Get explore prompt
@@ -293,12 +311,14 @@ def predict(particle, attractor):
 class TestSyntaxErrorRate:
     """Test that LLM syntax error rate is below 2%."""
 
-    def _check_for_syntax_error(self, response, attractor, validation_errors, error_prefix) -> int:
+    def _check_for_syntax_error(
+        self, response, validation_particles, validation_errors, error_prefix
+    ) -> int:
         """Check response for syntax errors and log them.
 
         Args:
             response: Gemini API response
-            attractor: Attractor position for validation
+            validation_particles: 3D N-body particles for validation
             validation_errors: List to append error messages to
             error_prefix: Prefix for error message (e.g., "Initial Gen (seed=0)")
 
@@ -308,7 +328,7 @@ class TestSyntaxErrorRate:
         if not (response.success and response.code):
             return 0
 
-        _, validation = validate_and_compile(response.code, attractor)
+        _, validation = validate_and_compile(response.code, validation_particles)
         if validation.valid:
             return 0
 
@@ -337,7 +357,12 @@ class TestSyntaxErrorRate:
             enable_rate_limiting=False,  # Faster for tests
         )
 
-        attractor = [50.0, 50.0]
+        # 3D N-body validation particles
+        validation_particles = [
+            [10.0, 20.0, 30.0, 0.1, 0.2, 0.3, 1.0],
+            [40.0, 50.0, 60.0, -0.1, -0.2, -0.3, 1.5],
+            [70.0, 80.0, 90.0, 0.0, 0.0, 0.0, 2.0],
+        ]
         total_attempts = 20
         syntax_errors = 0
         validation_errors = []
@@ -348,20 +373,23 @@ class TestSyntaxErrorRate:
             prompt = get_initial_prompt(seed=seed % 6)
             response = client.generate_surrogate_code(prompt)
             syntax_errors += self._check_for_syntax_error(
-                response, attractor, validation_errors, f"Initial Gen (seed={seed % 6})"
+                response, validation_particles, validation_errors, f"Initial Gen (seed={seed % 6})"
             )
 
         # Test Phase 2: Mutation generation (exploit phase, temperature 0.6)
         # This tests refinement mode where historical errors occurred (Gen 3-4)
-        parent_code = """def predict(particle, attractor):
-    # Simple baseline - will be mutated
-    x, y, vx, vy = particle
-    ax, ay = attractor
-    dx = ax - x
-    dy = ay - y
-    r_squared = dx * dx + dy * dy + 0.1
+        parent_code = """def predict(particle, all_particles):
+    # Simple 3D N-body baseline - will be mutated
+    x, y, z, vx, vy, vz, mass = particle
+    # Center of mass approximation
+    cx = sum(p[0] for p in all_particles) / len(all_particles)
+    cy = sum(p[1] for p in all_particles) / len(all_particles)
+    cz = sum(p[2] for p in all_particles) / len(all_particles)
+    dx, dy, dz = cx - x, cy - y, cz - z
+    r_squared = dx * dx + dy * dy + dz * dz + 0.1
     force = 1.0 / r_squared
-    return [x + vx * 0.01, y + vy * 0.01, vx + dx * force * 0.01, vy + dy * force * 0.01]
+    return [x + vx * 0.01, y + vy * 0.01, z + vz * 0.01,
+            vx + dx * force * 0.01, vy + dy * force * 0.01, vz + dz * force * 0.01, mass]
 """
 
         for gen in range(10):
@@ -375,7 +403,7 @@ class TestSyntaxErrorRate:
             )
             response = client.generate_surrogate_code(prompt)
             syntax_errors += self._check_for_syntax_error(
-                response, attractor, validation_errors, f"Exploit Gen {gen + 3}"
+                response, validation_particles, validation_errors, f"Exploit Gen {gen + 3}"
             )
 
         # Calculate error rate
