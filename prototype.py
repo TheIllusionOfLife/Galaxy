@@ -461,16 +461,23 @@ class CosmologyCrucible:
         """Initialize N-body system with random particles.
 
         Args:
-            num_particles: Number of particles in the system
+            num_particles: Number of particles in the system (minimum 2 for meaningful N-body physics)
             mass_range: (min, max) range for particle masses
 
         Raises:
             ValueError: If num_particles < 2 or mass_range is invalid
+
+        Note:
+            N-body physics requires at least 2 particles for meaningful gravitational interactions.
+            For testing with custom particles, use the with_particles() class method instead.
         """
         # Input validation
-        if num_particles < 0:
-            raise ValueError(f"num_particles must be >= 0, got {num_particles}")
-        if num_particles > 0 and (mass_range[0] <= 0 or mass_range[1] <= mass_range[0]):
+        if num_particles < 2:
+            raise ValueError(
+                f"N-body simulation requires at least 2 particles for meaningful interactions, got {num_particles}. "
+                "For testing with custom particles, use CosmologyCrucible.with_particles(particles) instead."
+            )
+        if mass_range[0] <= 0 or mass_range[1] <= mass_range[0]:
             raise ValueError(f"mass_range must be (min, max) with 0 < min < max, got {mass_range}")
 
         # List of [x, y, z, vx, vy, vz, mass]
@@ -489,6 +496,31 @@ class CosmologyCrucible:
         self.G = 1.0  # Gravitational constant (simulation units)
         self.dt = 0.1  # Timestep
         self.epsilon = 0.01  # Softening parameter to avoid singularities
+
+    @classmethod
+    def with_particles(cls, particles: list[list[float]]) -> "CosmologyCrucible":
+        """Create crucible with specific particles (for testing).
+
+        This factory method bypasses the minimum particle count validation,
+        allowing tests to use custom particle configurations including
+        edge cases like empty lists, single particles, or specific scenarios.
+
+        Args:
+            particles: List of particles, each [x, y, z, vx, vy, vz, mass]
+
+        Returns:
+            CosmologyCrucible instance with the specified particles
+
+        Example:
+            >>> particles = [[10.0, 20.0, 30.0, 0.1, 0.2, 0.3, 1.0]]
+            >>> crucible = CosmologyCrucible.with_particles(particles)
+        """
+        instance = cls.__new__(cls)
+        instance.particles = particles
+        instance.G = 1.0
+        instance.dt = 0.1
+        instance.epsilon = 0.01
+        return instance
 
     def _compute_accelerations(
         self, particles: list[list[float]]
@@ -594,7 +626,20 @@ class CosmologyCrucible:
 
         Returns:
             Tuple of (accuracy, speed) where accuracy is 0-1 and speed is execution time
+
+        Raises:
+            ValueError: If particle system is empty
+
+        Note:
+            Uses parallel evaluation semantics: all particles see the same initial_state.
+            This matches brute_force_step which computes all forces at time t before
+            updating any positions. Each model call is independent and makes predictions
+            based on the full particle set at the current timestep.
         """
+        # Input validation
+        if not self.particles:
+            raise ValueError("Cannot evaluate model with empty particle system")
+
         initial_state = [p[:] for p in self.particles]  # Copy state
 
         # 1. Accuracy evaluation
@@ -605,10 +650,10 @@ class CosmologyCrucible:
             predicted_next_state = []
             for particle in initial_state:
                 # Call model with both particle and all_particles
-                # TODO: This passes initial_state (not updated particles) for parallel evaluation
-                # semantics. This is intentional - each particle prediction is independent and
-                # doesn't see other particles' updates. This differs from brute_force_step which
-                # updates state sequentially.
+                # NOTE: Parallel evaluation semantics - all particles see the same initial_state.
+                # This matches brute_force_step which computes all forces before updating positions.
+                # Each model call is independent and makes predictions based on the full particle
+                # set at time t.
                 prediction = model(particle, initial_state)
                 if not isinstance(prediction, (list, tuple)) or len(prediction) != 7:
                     raise ValueError(

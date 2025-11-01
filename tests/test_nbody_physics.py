@@ -72,7 +72,7 @@ class TestNBodyPhysics:
             [10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],  # Stationary at x=10
         ]
 
-        crucible = CosmologyCrucible(num_particles=0)
+        crucible = CosmologyCrucible.with_particles([])
         crucible.particles = particles
 
         result = crucible.brute_force_step(particles)
@@ -94,7 +94,7 @@ class TestNBodyPhysics:
             [50.0, 50.0, 50.0, 0.0, 0.0, 0.0, 1.0],
         ]
 
-        crucible = CosmologyCrucible(num_particles=0)
+        crucible = CosmologyCrucible.with_particles([])
         crucible.particles = particles
 
         result = crucible.brute_force_step(particles)
@@ -114,7 +114,7 @@ class TestNBodyPhysics:
             [2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],  # Distance 2
         ]
 
-        crucible = CosmologyCrucible(num_particles=0)
+        crucible = CosmologyCrucible.with_particles([])
 
         # Measure acceleration from particle at distance 1
         crucible.particles = particles[:2]
@@ -141,7 +141,7 @@ class TestNBodyPhysics:
             [0.0, 0.0, 10.0, 0.0, 0.0, 0.0, 1.0],
         ]
 
-        crucible = CosmologyCrucible(num_particles=0)
+        crucible = CosmologyCrucible.with_particles([])
         crucible.particles = particles
 
         result = crucible.brute_force_step(particles)
@@ -167,7 +167,7 @@ class TestNBodyPhysics:
             [10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.0],  # Heavy source (mass=2)
         ]
 
-        crucible = CosmologyCrucible(num_particles=0)
+        crucible = CosmologyCrucible.with_particles([])
 
         crucible.particles = particles_light
         result_light = crucible.brute_force_step(particles_light)
@@ -201,7 +201,7 @@ class TestTwoBodyOrbits:
             [1.0, 0.0, 0.0, 0.0, -v, 0.0, m],  # Right particle moving down (separation=2.0)
         ]
 
-        crucible = CosmologyCrucible(num_particles=0)
+        crucible = CosmologyCrucible.with_particles([])
         crucible.particles = particles
 
         # Compute initial energy
@@ -237,7 +237,7 @@ class TestTwoBodyOrbits:
             [0.5, 0.0, 0.0, 0.0, -v_orbit, 0.0, m],
         ]
 
-        crucible = CosmologyCrucible(num_particles=0)
+        crucible = CosmologyCrucible.with_particles([])
         crucible.particles = particles
 
         initial_angular_momentum = self._compute_angular_momentum(particles)
@@ -306,7 +306,7 @@ class TestComplexityScaling:
         """Should not use time.sleep() for artificial slowdown."""
         particles = [[float(i), 0.0, 0.0, 0.0, 0.0, 0.0, 1.0] for i in range(10)]
 
-        crucible = CosmologyCrucible(num_particles=0)
+        crucible = CosmologyCrucible.with_particles([])
         crucible.particles = particles
 
         start = time.time()
@@ -324,7 +324,7 @@ class TestComplexityScaling:
         for num_particles in [10, 20, 40]:
             particles = [[float(i), 0.0, 0.0, 0.0, 0.0, 0.0, 1.0] for i in range(num_particles)]
 
-            crucible = CosmologyCrucible(num_particles=0)
+            crucible = CosmologyCrucible.with_particles([])
             crucible.particles = particles
 
             # Measure time for multiple runs to reduce noise
@@ -387,7 +387,7 @@ class TestNoAttractor:
                     ]
                 )
 
-        crucible = CosmologyCrucible(num_particles=0)
+        crucible = CosmologyCrucible.with_particles([])
         crucible.particles = particles
 
         # Compute center of mass
