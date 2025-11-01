@@ -197,10 +197,10 @@ def format_comparison_summary(evolved: dict, kdtree: dict, direct: dict) -> str:
 
     # Compare evolved vs KDTree
     if evolved["fitness"] > kdtree["fitness"]:
-        ratio = evolved["fitness"] / kdtree["fitness"]
+        ratio = evolved["fitness"] / kdtree["fitness"] if kdtree["fitness"] > 0 else float("inf")
         lines.append(f"✅ Evolved model beats KDTree by {ratio:.2f}x fitness")
     else:
-        ratio = kdtree["fitness"] / evolved["fitness"]
+        ratio = kdtree["fitness"] / evolved["fitness"] if evolved["fitness"] > 0 else float("inf")
         lines.append(f"❌ KDTree beats evolved model by {ratio:.2f}x fitness")
 
     if evolved["accuracy"] > kdtree["accuracy"]:
@@ -213,17 +213,20 @@ def format_comparison_summary(evolved: dict, kdtree: dict, direct: dict) -> str:
     # Compare evolved vs Direct
     lines.append("")
     if evolved["speed"] < direct["speed"]:
-        ratio = direct["speed"] / evolved["speed"]
+        ratio = direct["speed"] / evolved["speed"] if evolved["speed"] > 0 else float("inf")
         lines.append(f"✅ Evolved model is {ratio:.2f}x faster than direct N-body")
     else:
-        ratio = evolved["speed"] / direct["speed"]
+        ratio = evolved["speed"] / direct["speed"] if direct["speed"] > 0 else float("inf")
         lines.append(f"❌ Direct N-body is {ratio:.2f}x faster than evolved model")
 
     if evolved["accuracy"] > 0.9 * direct["accuracy"]:
         lines.append("✅ Evolved model maintains >90% of direct N-body accuracy")
     else:
-        acc_pct = (evolved["accuracy"] / direct["accuracy"]) * 100
-        lines.append(f"⚠️  Evolved model has {acc_pct:.1f}% of direct N-body accuracy")
+        if direct["accuracy"] > 0:
+            acc_pct = (evolved["accuracy"] / direct["accuracy"]) * 100
+            lines.append(f"⚠️  Evolved model has {acc_pct:.1f}% of direct N-body accuracy")
+        else:
+            lines.append("⚠️  Cannot calculate accuracy percentage (direct N-body accuracy is zero)")
 
     lines.append("")
     lines.append("=" * 70)
