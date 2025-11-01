@@ -502,7 +502,7 @@ If you encounter issues not covered here:
   - **Real Execution Validated**: Ran full benchmark suite with actual baselines
     - Results: `results/benchmarks/run_YYYYMMDD_HHMMSS/` with JSON, markdown, plots, scaling analysis
     - Verified: No timeouts, no truncation, no errors, complete formatted output
-  - **Review Fixes**: Addressed all feedback from 3 AI reviewers (gemini-code-assist, claude, coderabbitai)
+  - **Review Fixes**: Addressed all feedback from 3 AI reviewers (gemini-code-assist, claude, CodeRabbit)
     - HIGH: Refactored if/elif chains → dictionary mappings for extensibility
     - MEDIUM: Moved imports to top (PEP 8), extracted duplicated simulation loop to helper
     - MEDIUM: Renamed plot_accuracy_heatmap → plot_accuracy_bars (accurate naming)
@@ -605,6 +605,7 @@ If you encounter issues not covered here:
      - Compare evolved models vs KDTree baseline (target: better accuracy/speed trade-off)
      - Analyze which models evolution discovers (physics-informed? learned patterns?)
      - Document findings: Can LLM-based evolution beat hand-crafted baselines?
+   - **Note**: Current KDTree baseline has O(N² log N) complexity (rebuilds tree per particle) vs optimal O(N log N). Comparisons will be against this specific implementation. Future work may optimize baseline or document this explicitly in findings.
    - **Benefits**: Validate entire system end-to-end, publishable results, proof of concept
    - **Estimated time**: 2-3 hours (mostly runtime and analysis)
    - **Approach**: Single evolution run → compare best genome vs benchmarks → document
@@ -646,12 +647,12 @@ If you encounter issues not covered here:
   - **Problem**: Long if/elif chains (`if name=="x": fn_x() elif name=="y": fn_y()`) hard to extend
   - **Solution**: Class-level dict mapping + `.get()` with dynamic error messages showing valid options
   - **Benefits**: Add new options by updating dict only, cleaner code, easier testing
-  - **Pattern**: See `~/.claude/core-patterns.md` → "Dictionary Mapping Refactoring"
+  - **Pattern**: See `~/.claude/core-patterns.md` → "Dictionary Mapping Refactoring" (local AI assistant config, not in repo)
 - **Pydantic Validators for Config** (2025-11-01): Use `@field_validator` to catch invalid config at load time
   - **Trigger**: PR #34 review recommendation from claude
   - **Implementation**: Validate list fields against known valid values (e.g., test_problems vs known problems)
   - **Benefits**: Fail-fast on config errors, prevents runtime failures from typos
-  - **Pattern**: See `~/.claude/domain-patterns.md` → "DRY Configuration Architecture"
+  - **Pattern**: See `~/.claude/domain-patterns.md` → "DRY Configuration Architecture" (local AI assistant config, not in repo)
 - **Extract Duplicated Code to Helpers** (2025-11-01): When seeing duplicate logic blocks, extract immediately
   - **Trigger**: PR #34 review identified nearly identical simulation loops
   - **Solution**: Created `_run_simulation()` helper method used by both baseline and ground truth paths
