@@ -1005,8 +1005,18 @@ if __name__ == "__main__":
         logger.info("=" * 70)
         print()
 
-    # Create crucible and engine
-    crucible = CosmologyCrucible()
+    # Get initial particles based on test_problem configuration
+    test_problem = settings.evolution_test_problem if LLM_AVAILABLE and settings else "plummer"
+    num_particles = settings.evolution_num_particles if LLM_AVAILABLE and settings else 50
+    initial_particles = get_initial_particles(test_problem, num_particles)
+
+    logger.info(f"Test problem: {test_problem}")
+    logger.info(f"Number of particles: {len(initial_particles)}")
+    logger.info("=" * 70)
+    print()
+
+    # Create crucible and engine with test problem particles
+    crucible = CosmologyCrucible.with_particles(initial_particles)
     engine = EvolutionaryEngine(
         crucible,
         population_size=POPULATION_SIZE,
@@ -1060,9 +1070,13 @@ if __name__ == "__main__":
 
             print(f"Saving results to: {output_dir}")
 
-            # Export history as JSON
+            # Export history as JSON with metadata
             history_path = output_dir / "evolution_history.json"
-            export_history_json(engine.history, str(history_path))
+            metadata = {
+                "test_problem": test_problem,
+                "num_particles": len(initial_particles),
+            }
+            export_history_json(engine.history, str(history_path), metadata=metadata)
             print(f"  ✓ Evolution history saved: {history_path}")
 
             # Generate all plots
