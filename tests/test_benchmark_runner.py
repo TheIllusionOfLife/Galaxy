@@ -6,6 +6,8 @@ Following TDD discipline:
 3. Refactor for quality (REFACTOR phase)
 """
 
+import pytest
+
 from config import Settings
 
 
@@ -142,3 +144,118 @@ benchmark:
         # This test will pass once we make benchmark section optional
         # For now, it should fail since we require the section
         pass
+
+
+class TestBenchmarkResult:
+    """Test BenchmarkResult dataclass."""
+
+    def test_benchmark_result_creation(self):
+        """Verify BenchmarkResult can be created with all required fields."""
+        from benchmarks import BenchmarkResult
+
+        result = BenchmarkResult(
+            baseline_name="kdtree",
+            test_problem="two_body",
+            num_particles=10,
+            accuracy=0.987,
+            speed=0.0021,
+            energy_drift=0.024,
+            trajectory_rmse=0.15,
+        )
+
+        assert result.baseline_name == "kdtree"
+        assert result.test_problem == "two_body"
+        assert result.num_particles == 10
+        assert result.accuracy == 0.987
+        assert result.speed == 0.0021
+        assert result.energy_drift == 0.024
+        assert result.trajectory_rmse == 0.15
+
+
+class TestBenchmarkRunner:
+    """Test BenchmarkRunner core functionality."""
+
+    def test_get_test_problem_particles_two_body(self):
+        """Verify two_body test problem particles are generated correctly."""
+        from benchmarks import BenchmarkRunner
+        from config import Settings
+
+        # Load config
+        settings = Settings.load_from_yaml()
+        runner = BenchmarkRunner(settings)
+
+        # Get two-body particles
+        particles = runner._get_test_problem_particles("two_body", n_particles=2)
+
+        # Verify structure
+        assert len(particles) == 2
+        assert all(len(p) == 7 for p in particles)  # [x,y,z,vx,vy,vz,mass]
+
+    def test_get_test_problem_particles_plummer(self):
+        """Verify plummer test problem generates N particles."""
+        from benchmarks import BenchmarkRunner
+        from config import Settings
+
+        settings = Settings.load_from_yaml()
+        runner = BenchmarkRunner(settings)
+
+        # Get plummer sphere with 50 particles
+        particles = runner._get_test_problem_particles("plummer", n_particles=50)
+
+        # Verify structure
+        assert len(particles) == 50
+        assert all(len(p) == 7 for p in particles)
+
+    def test_get_test_problem_invalid_name(self):
+        """Verify invalid test problem name raises error."""
+        from benchmarks import BenchmarkRunner
+        from config import Settings
+
+        settings = Settings.load_from_yaml()
+        runner = BenchmarkRunner(settings)
+
+        # Should raise ValueError for unknown problem
+        with pytest.raises(ValueError, match="Unknown test problem"):
+            runner._get_test_problem_particles("invalid_problem", n_particles=10)
+
+    def test_get_baseline_model_kdtree(self):
+        """Verify KDTree baseline model is created correctly."""
+        from benchmarks import BenchmarkRunner
+        from config import Settings
+
+        settings = Settings.load_from_yaml()
+        runner = BenchmarkRunner(settings)
+
+        # Get KDTree baseline
+        genome = runner._get_baseline_model("kdtree")
+
+        # Verify it's a SurrogateGenome with compiled predict function
+        assert hasattr(genome, "compiled_predict")
+        assert callable(genome.compiled_predict)
+
+    def test_get_baseline_model_direct_nbody(self):
+        """Verify direct N-body baseline model is created correctly."""
+        from benchmarks import BenchmarkRunner
+        from config import Settings
+
+        settings = Settings.load_from_yaml()
+        runner = BenchmarkRunner(settings)
+
+        # Get direct N-body baseline
+        genome = runner._get_baseline_model("direct_nbody")
+
+        # Verify it's a SurrogateGenome
+        assert hasattr(genome, "compiled_predict")
+        assert callable(genome.compiled_predict)
+
+    def test_get_baseline_invalid_name(self):
+        """Verify invalid baseline name raises error."""
+        from benchmarks import BenchmarkRunner
+        from config import Settings
+
+        settings = Settings.load_from_yaml()
+        runner = BenchmarkRunner(settings)
+
+        # Should raise ValueError for unknown baseline
+        with pytest.raises(ValueError, match="Unknown baseline"):
+            runner._get_baseline_model("invalid_baseline")
