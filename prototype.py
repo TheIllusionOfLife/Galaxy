@@ -463,7 +463,16 @@ class CosmologyCrucible:
         Args:
             num_particles: Number of particles in the system
             mass_range: (min, max) range for particle masses
+
+        Raises:
+            ValueError: If num_particles < 2 or mass_range is invalid
         """
+        # Input validation
+        if num_particles < 0:
+            raise ValueError(f"num_particles must be >= 0, got {num_particles}")
+        if num_particles > 0 and (mass_range[0] <= 0 or mass_range[1] <= mass_range[0]):
+            raise ValueError(f"mass_range must be (min, max) with 0 < min < max, got {mass_range}")
+
         # List of [x, y, z, vx, vy, vz, mass]
         self.particles = [
             [
@@ -596,6 +605,10 @@ class CosmologyCrucible:
             predicted_next_state = []
             for particle in initial_state:
                 # Call model with both particle and all_particles
+                # TODO: This passes initial_state (not updated particles) for parallel evaluation
+                # semantics. This is intentional - each particle prediction is independent and
+                # doesn't see other particles' updates. This differs from brute_force_step which
+                # updates state sequentially.
                 prediction = model(particle, initial_state)
                 if not isinstance(prediction, (list, tuple)) or len(prediction) != 7:
                     raise ValueError(
