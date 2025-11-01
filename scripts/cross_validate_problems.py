@@ -90,7 +90,7 @@ def _build_model_callable(model: dict) -> Callable[[list[float], list[list[float
         ValueError: If model has neither raw_code nor theta
     """
     # LLM-generated models have raw_code
-    if "raw_code" in model:
+    if "raw_code" in model and model["raw_code"]:
         # Need validation particles for compile_external_surrogate
         # Use simple 2-particle system as validation
         validation_particles = [
