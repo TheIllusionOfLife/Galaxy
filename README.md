@@ -490,31 +490,9 @@ If you encounter issues not covered here:
 
 #### Recently Completed (Current Session)
 - ✅ **[PR #36 - Phase 3: Evolution with Validated Baselines](https://github.com/TheIllusionOfLife/Galaxy/pull/36)**: LLM-based evolution dramatically outperforms hand-crafted baselines (November 1, 2025)
-  - **Achievement**: **7890x better fitness** than KDTree baseline, **219x faster** than direct N-body with 98.56% accuracy
-  - **Core Implementation**:
-    - scripts/extract_best_model.py (206 lines): Extracts best evolved model from evolution history with metadata
-    - scripts/compare_to_baselines.py (361 lines): Systematic comparison vs benchmarks with fitness ratios
-    - PHASE3_RESULTS.md (278 lines): Comprehensive scientific analysis with key findings
-  - **Testing**: 24 new comprehensive tests (208/208 total passing)
-    - Unit tests: Best model selection, JSON compatibility, baseline filtering, fitness calculations
-    - Real-world validation: Full evolution run (10 pop × 5 gen = 50 models, N=50 particles)
-  - **Real Evolution Results**:
-    - Runtime: ~5 minutes (rate-limited to 15 RPM)
-    - Cost: $0.0332 (3.3% of daily budget, 20 runs possible per day)
-    - Validation: 5/50 models failed (10%), fallback strategy worked perfectly
-    - Best Model: civ_2_7 (Gen 2, parametric, fitness=3963.64)
-  - **Review Fixes**: Addressed 4 issues from PR feedback (1 CRITICAL, 3 HIGH)
-    - CRITICAL: Fixed parametric model metadata not saved (early return bug)
-    - HIGH: Added zero-division protection in 3 comparison calculations
-    - All fixes verified with real data before push
-  - **Key Findings**:
-    - Evolution consistently discovers models 100-1000x better than worst-case baseline
-    - Parametric models competitive with LLM-generated code (fallback strategy effective)
-    - Validation critical (10% failure rate, multi-layer safety caught all)
-    - Cost-efficient: 50 models for $0.03 enables rapid iteration
-  - **Documentation**: PHASE3_RESULTS.md with executive summary, methodology, comparison analysis, limitations, future work
-  - **Quality**: All CI passing (Python 3.10/3.11/3.12), 208/208 tests passing, no regressions
-  - **Files**: 7 changed (+1,317 lines), 2 new scripts, 2 new test suites, 1 comprehensive results doc
+  - **Achievement**: **7890x better fitness** than KDTree baseline and **219x faster** than direct N-body, while maintaining 98.56% accuracy
+  - **Key Finding**: Evolutionary optimization successfully discovers high-performance surrogate models, with the parametric fallback strategy proving critical for robustness (10% LLM failure rate)
+  - **Details**: See the full analysis in [PHASE3_RESULTS.md](PHASE3_RESULTS.md) (278 lines with methodology, results, comparison analysis, limitations, future work)
   - **Status**: ✅ Merged (commit [0fa9e5d](https://github.com/TheIllusionOfLife/Galaxy/commit/0fa9e5d))
 
 #### Recently Completed (Previous Sessions)
@@ -615,7 +593,7 @@ If you encounter issues not covered here:
   - **Status**: ✅ Merged (commit [924199d](https://github.com/TheIllusionOfLife/Galaxy/commit/924199d)), 7 files changed (+828, -30)
 
 #### Recently Completed (Previous Sessions)
-- ✅ **Earlier PRs**: Code length penalty (#23, #21, #14), token visualization (#16), prompt engineering (#12), uv migration (#10), config fixes (#19) - See git history for details
+- ✅ **Earlier PRs**: Code length penalty ([#23](https://github.com/TheIllusionOfLife/Galaxy/pull/23), [#21](https://github.com/TheIllusionOfLife/Galaxy/pull/21), [#14](https://github.com/TheIllusionOfLife/Galaxy/pull/14)), config fixes ([#19](https://github.com/TheIllusionOfLife/Galaxy/pull/19)), token visualization ([#16](https://github.com/TheIllusionOfLife/Galaxy/pull/16)), prompt engineering ([#12](https://github.com/TheIllusionOfLife/Galaxy/pull/12)), uv migration ([#10](https://github.com/TheIllusionOfLife/Galaxy/pull/10)) - See git history for details
 
 #### Next Priority Tasks
 
