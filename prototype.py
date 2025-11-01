@@ -40,7 +40,9 @@ class SurrogateGenome:
     accuracy: float | None = None  # Store for LLM prompt context
     speed: float | None = None  # Store for LLM prompt context
     token_count: int | None = None  # Track code length for penalty calculation
-    compiled_predict: Callable[[list[float]], list[float]] | None = None  # Pre-validated callable
+    compiled_predict: Callable[[list[float], list[list[float]]], list[float]] | None = (
+        None  # Pre-validated callable (3D N-body signature)
+    )
     parent_ids: list[str] = field(default_factory=list)  # Track crossover parentage
 
     def as_readable(self) -> str:
@@ -82,36 +84,70 @@ class SurrogateGenome:
 
 
 def make_parametric_surrogate(
-    theta: list[float], attractor: list[float]
-) -> Callable[[list[float]], list[float]]:
-    """Generate a surrogate model defined by theta parameters."""
+    theta: list[float], all_particles: list[list[float]]
+) -> Callable[[list[float], list[list[float]]], list[float]]:
+    """Generate a surrogate model defined by theta parameters.
+
+    Uses center-of-mass approximation for 3D N-body gravity.
+
+    Args:
+        theta: [g_const, epsilon, dt_velocity, dt_position, velocity_correction, damping]
+        all_particles: Sample particles (unused, kept for signature compatibility)
+
+    Returns:
+        Model with signature predict(particle, all_particles) -> [x,y,z,vx,vy,vz,mass]
+    """
 
     g_const, epsilon, dt_velocity, dt_position, velocity_correction, damping = theta
 
-    def model(particle: list[float]) -> list[float]:
-        x, y, vx, vy = particle
-        dx = attractor[0] - x
-        dy = attractor[1] - y
-        dist_sq = dx * dx + dy * dy + epsilon
+    def model(particle: list[float], all_particles: list[list[float]]) -> list[float]:
+        x, y, z, vx, vy, vz, mass = particle
+
+        # Calculate center of mass from all particles
+        if all_particles:
+            cx = sum(p[0] for p in all_particles) / len(all_particles)
+            cy = sum(p[1] for p in all_particles) / len(all_particles)
+            cz = sum(p[2] for p in all_particles) / len(all_particles)
+        else:
+            cx, cy, cz = x, y, z
+
+        dx = cx - x
+        dy = cy - y
+        dz = cz - z
+        dist_sq = dx * dx + dy * dy + dz * dz + epsilon
         dist = math.sqrt(dist_sq)
         denom = max(dist_sq * dist, 1e-6)
         ax = g_const * dx / denom
         ay = g_const * dy / denom
+        az = g_const * dz / denom
 
         new_vx = (1.0 - damping) * vx + ax * dt_velocity
         new_vy = (1.0 - damping) * vy + ay * dt_velocity
+        new_vz = (1.0 - damping) * vz + az * dt_velocity
         new_x = x + (vx + velocity_correction * ax) * dt_position
         new_y = y + (vy + velocity_correction * ay) * dt_position
+        new_z = z + (vz + velocity_correction * az) * dt_position
 
-        return [new_x, new_y, new_vx, new_vy]
+        return [new_x, new_y, new_z, new_vx, new_vy, new_vz, mass]
 
     return model
 
 
 def compile_external_surrogate(
-    code: str, attractor: list[float]
-) -> Callable[[list[float]], list[float]]:
-    """Execute LLM-generated code in a safe namespace and retrieve the predict function."""
+    code: str, validation_particles: list[list[float]]
+) -> Callable[[list[float], list[list[float]]], list[float]]:
+    """Execute LLM-generated code in a safe namespace and retrieve the predict function.
+
+    Args:
+        code: Python code defining predict(particle, all_particles) function
+        validation_particles: Sample 3D particles for output validation
+
+    Returns:
+        Callable with signature predict(particle, all_particles) -> [x,y,z,vx,vy,vz,mass]
+
+    Raises:
+        ValueError: If code doesn't define predict function or output is invalid
+    """
 
     # Use same builtins as CodeValidator.SAFE_BUILTINS to maintain consistency
     allowed_builtins = {
@@ -123,18 +159,33 @@ def compile_external_surrogate(
         "range": range,
         "enumerate": enumerate,
         "zip": zip,
+        "float": float,
+        "int": int,
+        "list": list,
     }
     sandbox_globals = {"__builtins__": allowed_builtins, "math": math}
     local_namespace: dict[str, Callable] = {}
     exec(code, sandbox_globals, local_namespace)
 
     if "predict" not in local_namespace:
-        raise ValueError("Surrogate model code must define predict(particle, attractor) function.")
+        raise ValueError(
+            "Surrogate model code must define predict(particle, all_particles) function."
+        )
 
     predict_func = local_namespace["predict"]
 
-    def wrapped(particle: list[float]) -> list[float]:
-        return predict_func(particle, attractor)
+    # Validate output format with sample particles
+    if validation_particles:
+        sample = validation_particles[0]
+        test_output = predict_func(sample, validation_particles)
+        if not isinstance(test_output, (list, tuple)) or len(test_output) != 7:
+            raise ValueError(
+                "Surrogate model output must be a sequence of length 7 [x, y, z, vx, vy, vz, mass]."
+            )
+
+    def wrapped(particle: list[float], all_particles: list[list[float]]) -> list[float]:
+        result = predict_func(particle, all_particles)
+        return list(result)
 
     return wrapped
 
@@ -632,7 +683,7 @@ class EvolutionaryEngine:
         for civ_id, civ_data in self.civilizations.items():
             genome: SurrogateGenome = civ_data["genome"]
             try:
-                model_func = genome.build_callable(self.crucible.attractor)
+                model_func = genome.build_callable(self.crucible.particles)
                 accuracy, speed = self.crucible.evaluate_surrogate_model(model_func)
 
                 # Validate speed is positive and finite
