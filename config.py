@@ -303,7 +303,7 @@ class Settings(BaseSettings):
                     os.getenv("ELITE_RATIO", yaml_config["evolution"]["elite_ratio"])
                 ),
                 "evolution_num_particles": int(
-                    os.getenv("NUM_PARTICLES", yaml_config["evolution"]["num_particles"])
+                    os.getenv("NUM_PARTICLES", yaml_config["evolution"].get("num_particles", 50))
                 ),
                 "evolution_test_problem": os.getenv(
                     "TEST_PROBLEM", yaml_config["evolution"].get("test_problem", "plummer")

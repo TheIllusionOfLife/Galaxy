@@ -16,6 +16,7 @@ Output:
 
 import argparse
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -56,8 +57,12 @@ def extract_best_model(history_data: dict) -> dict:
     for generation in history_data.get("history", []):
         for model in generation.get("population", []):
             fitness = model.get("fitness", float("-inf"))
-            # Skip infinite fitness (validation failures)
-            if fitness != float("inf") and fitness > best_fitness:
+            # Skip non-numeric or infinite fitness (validation failures, NaN converted to null)
+            if (
+                isinstance(fitness, (int, float))
+                and math.isfinite(fitness)
+                and fitness > best_fitness
+            ):
                 best_fitness = fitness
                 best_model = model
 
@@ -100,7 +105,7 @@ def create_comparison_table(results: list[dict]) -> str:
         speed = result["best_speed"]
 
         lines.append(
-            f"| {test_problem:12} | {num_particles:3} | {fitness:12.2f} | {accuracy:8.4f} | {speed:9.6f} |"
+            f"| {test_problem:12} | {num_particles:3} | {int(fitness):12,} | {accuracy * 100:8.2f}% | {speed:9.6f} |"
         )
 
     lines.append("")
@@ -112,14 +117,14 @@ def create_comparison_table(results: list[dict]) -> str:
         best_result = max(results, key=lambda r: r["best_fitness"])
         lines.append(
             f"- **Best fitness**: {best_result['test_problem']} "
-            f"(fitness={best_result['best_fitness']:.2f})"
+            f"(fitness={int(best_result['best_fitness']):,})"
         )
 
         # Find most accurate
         best_accuracy = max(results, key=lambda r: r["best_accuracy"])
         lines.append(
             f"- **Highest accuracy**: {best_accuracy['test_problem']} "
-            f"(accuracy={best_accuracy['best_accuracy']:.4f})"
+            f"(accuracy={best_accuracy['best_accuracy'] * 100:.2f}%)"
         )
 
         # Find fastest
