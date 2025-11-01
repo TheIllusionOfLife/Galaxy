@@ -486,9 +486,16 @@ If you encounter issues not covered here:
 
 ## Session Handover
 
-### Last Updated: November 01, 2025 08:16 PM JST
+### Last Updated: November 01, 2025 11:28 PM JST
 
 #### Recently Completed (Current Session)
+- ✅ **[PR #36 - Phase 3: Evolution with Validated Baselines](https://github.com/TheIllusionOfLife/Galaxy/pull/36)**: LLM-based evolution dramatically outperforms hand-crafted baselines (November 1, 2025)
+  - **Achievement**: **7890x better fitness** than KDTree baseline and **219x faster** than direct N-body, while maintaining 98.56% accuracy
+  - **Key Finding**: Evolutionary optimization successfully discovers high-performance surrogate models, with the parametric fallback strategy proving critical for robustness (10% LLM failure rate)
+  - **Details**: See the full analysis in [PHASE3_RESULTS.md](PHASE3_RESULTS.md) (278 lines with methodology, results, comparison analysis, limitations, future work)
+  - **Status**: ✅ Merged (commit [0fa9e5d](https://github.com/TheIllusionOfLife/Galaxy/commit/0fa9e5d))
+
+#### Recently Completed (Previous Sessions)
 - ✅ **[PR #34 - Comprehensive Benchmark Suite](https://github.com/TheIllusionOfLife/Galaxy/pull/34)**: Systematic performance evaluation infrastructure (November 1, 2025)
   - **Achievement**: Production-ready benchmark suite for baseline performance analysis and scaling validation
   - **Core Implementation**:
@@ -586,31 +593,37 @@ If you encounter issues not covered here:
   - **Status**: ✅ Merged (commit [924199d](https://github.com/TheIllusionOfLife/Galaxy/commit/924199d)), 7 files changed (+828, -30)
 
 #### Recently Completed (Previous Sessions)
-- ✅ **[PR #23](https://github.com/TheIllusionOfLife/Galaxy/pull/23)**: Penalty threshold tuning (2000→400 tokens) + best-ever fitness visualization
-- ✅ **[PR #21](https://github.com/TheIllusionOfLife/Galaxy/pull/21)**: Code length penalty comparative testing (3 runs, $0.05, validated effectiveness)
-- ✅ **[PR #19](https://github.com/TheIllusionOfLife/Galaxy/pull/19)**: Fix elite_ratio configuration bug + DRY config refactor (config.yaml as single source)
-- ✅ **[PR #16](https://github.com/TheIllusionOfLife/Galaxy/pull/16)**: Token progression visualization (avg/max/min lines + fitness-colored scatter)
-- ✅ **[PR #14](https://github.com/TheIllusionOfLife/Galaxy/pull/14)**: Code length penalty system implementation (configurable fitness penalty)
-- ✅ **[PR #12](https://github.com/TheIllusionOfLife/Galaxy/pull/12)**: Prompt engineering improvements (49% syntax error reduction: 3.3%→1.67%)
-- ✅ **[PR #10](https://github.com/TheIllusionOfLife/Galaxy/pull/10)**: uv package manager adoption (10-100x faster dependency installation)
+- ✅ **Earlier PRs**: Code length penalty ([#23](https://github.com/TheIllusionOfLife/Galaxy/pull/23), [#21](https://github.com/TheIllusionOfLife/Galaxy/pull/21), [#14](https://github.com/TheIllusionOfLife/Galaxy/pull/14)), config fixes ([#19](https://github.com/TheIllusionOfLife/Galaxy/pull/19)), token visualization ([#16](https://github.com/TheIllusionOfLife/Galaxy/pull/16)), prompt engineering ([#12](https://github.com/TheIllusionOfLife/Galaxy/pull/12)), uv migration ([#10](https://github.com/TheIllusionOfLife/Galaxy/pull/10)) - See git history for details
 
 #### Next Priority Tasks
 
-1. **Phase 3: Evolution with Validated Baselines** (HIGH PRIORITY)
-   - **Source**: MIGRATION_STATUS.md Phase 3 roadmap, completed PR #32 and #34
-   - **Context**: All infrastructure complete (3D physics, baselines, metrics, benchmarks)
-   - **Goal**: Run evolution to discover surrogate models that outperform baselines
+1. **Multi-Problem Validation** (HIGH PRIORITY)
+   - **Source**: PHASE3_RESULTS.md recommendations, Phase 3 completion
+   - **Context**: Phase 3 validated LLM evolution on Plummer sphere (N=50), need cross-problem generalization
+   - **Goal**: Verify evolved models generalize across different gravitational problems
    - **Tasks**:
-     - Run evolution with CosmologyCrucible using Phase 1 migration
-     - Compare evolved models vs KDTree baseline (target: better accuracy/speed trade-off)
-     - Analyze which models evolution discovers (physics-informed? learned patterns?)
-     - Document findings: Can LLM-based evolution beat hand-crafted baselines?
-   - **Note**: Current KDTree baseline has O(N² log N) complexity (rebuilds tree per particle) vs optimal O(N log N). Comparisons will be against this specific implementation. Future work may optimize baseline or document this explicitly in findings.
-   - **Benefits**: Validate entire system end-to-end, publishable results, proof of concept
-   - **Estimated time**: 2-3 hours (mostly runtime and analysis)
-   - **Approach**: Single evolution run → compare best genome vs benchmarks → document
+     - Run evolution on two-body problem (N=2, analytical solution available)
+     - Run evolution on figure-eight problem (N=3, periodic orbit validation)
+     - Compare strategies: Do models learn problem-specific tricks or general patterns?
+     - Measure generalization: Train on Plummer, test on two-body and vice versa
+   - **Benefits**: Proves system isn't overfitting single problem type, validates scientific robustness
+   - **Estimated time**: 2-3 hours (3 evolution runs + comparative analysis)
+   - **Approach**: Run evolution per problem → compare discovered strategies → document findings
 
-2. **Code Modularization** (MEDIUM PRIORITY - Deferred)
+2. **Physics Validation of Evolved Models** (MEDIUM PRIORITY)
+   - **Source**: PHASE3_RESULTS.md limitations section
+   - **Context**: Best evolved model (civ_2_7) has no energy drift or trajectory RMSE metrics
+   - **Goal**: Validate evolved model maintains physical plausibility beyond accuracy
+   - **Tasks**:
+     - Run best model through validation_metrics.py
+     - Measure energy conservation drift, angular momentum conservation
+     - Compare trajectory RMSE vs baselines (KDTree: 120.57, Direct: 0.00)
+     - Ensure evolved approximations don't violate conservation laws
+   - **Benefits**: Scientific rigor, publishable results, identifies physics-breaking shortcuts
+   - **Estimated time**: 1 hour (run metrics + analysis)
+   - **Approach**: Extract civ_2_7 code → run validation suite → compare vs baselines
+
+3. **Code Modularization** (MEDIUM PRIORITY - Deferred)
    - **Source**: 4/5 reviewers consensus from previous planning
    - **Context**: prototype.py now at 1044 lines after Phase 1 migration
    - **Goal**: Extract to galaxy/ package structure for SOLID principles
@@ -640,8 +653,15 @@ If you encounter issues not covered here:
 
 #### Session Learnings
 
-**Last Updated**: November 01, 2025 08:16 PM JST
+**Last Updated**: November 01, 2025 11:28 PM JST
 
+- **Post-Fix Verification Success** (2025-11-01 PR #36): Real example of verification catching issues before push
+  - **Context**: Fixed parametric model metadata saving bug (early return prevented file creation)
+  - **Verification**: Ran `uv run python scripts/extract_best_model.py results/run_20251101_220542` after fix
+  - **Result**: Caught that metadata was correctly saved, verified JSON file created
+  - **Impact**: Prevented broken workflow from reaching CI, validated fix works with real data
+  - **Pattern**: Always run the actual user command after fixing to verify it works, not just assume
+  - **Time**: 30 seconds verification prevented potential CI debugging hours
 - **Dictionary Mapping Refactoring** (2025-11-01): Replace if/elif chains with dictionary mappings for extensibility
   - **Trigger**: PR #34 review feedback from gemini-code-assist (HIGH priority)
   - **Problem**: Long if/elif chains (`if name=="x": fn_x() elif name=="y": fn_y()`) hard to extend
