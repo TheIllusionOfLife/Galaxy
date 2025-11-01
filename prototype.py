@@ -509,10 +509,16 @@ class CosmologyCrucible:
         return new_particles
 
     def evaluate_surrogate_model(
-        self, model: Callable[[list[float]], list[float]]
+        self, model: Callable[[list[float], list[list[float]]], list[float]]
     ) -> tuple[float, float]:
         """
         Evaluate the 'accuracy' and 'speed' of the surrogate model.
+
+        Args:
+            model: Surrogate model with signature predict(particle, all_particles)
+
+        Returns:
+            Tuple of (accuracy, speed) where accuracy is 0-1 and speed is execution time
         """
         initial_state = [p[:] for p in self.particles]  # Copy state
 
@@ -523,20 +529,30 @@ class CosmologyCrucible:
         try:
             predicted_next_state = []
             for particle in initial_state:
-                prediction = model(particle)
-                if not isinstance(prediction, (list, tuple)) or len(prediction) != 4:
-                    raise ValueError("Surrogate model output must be a sequence of length 4.")
+                # Call model with both particle and all_particles
+                prediction = model(particle, initial_state)
+                if not isinstance(prediction, (list, tuple)) or len(prediction) != 7:
+                    raise ValueError(
+                        "Surrogate model output must be a sequence of length 7 "
+                        "[x, y, z, vx, vy, vz, mass]."
+                    )
                 predicted_next_state.append(list(prediction))
         except Exception:
             return 0.0, 999.9  # Invalid code gets worst evaluation
 
         speed = time.time() - start_time
 
+        # Calculate error using all 3 spatial dimensions
         error = 0.0
         for i in range(len(initial_state)):
             true_p = ground_truth_next_state[i]
             pred_p = predicted_next_state[i]
-            error += (true_p[0] - pred_p[0]) ** 2 + (true_p[1] - pred_p[1]) ** 2
+            # Compare x, y, z positions
+            error += (
+                (true_p[0] - pred_p[0]) ** 2
+                + (true_p[1] - pred_p[1]) ** 2
+                + (true_p[2] - pred_p[2]) ** 2
+            )
 
         accuracy = 1.0 / (1.0 + math.sqrt(error))  # Smaller error approaches 1
 
