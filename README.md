@@ -572,6 +572,29 @@ If you encounter issues not covered here:
   - **Dependencies**: Added scipy>=1.9.0, numpy>=1.21.0
   - **Status**: ✅ Merged (commit [fd80a6c](https://github.com/TheIllusionOfLife/Galaxy/commit/fd80a6c))
 
+#### Recently Completed
+
+- ✅ **[PR #38 - Multi-Problem Validation (Phase 4)](https://github.com/TheIllusionOfLife/Galaxy/pull/38)**: Cross-problem generalization infrastructure (November 2, 2025)
+  - **Achievement**: Enabled Galaxy to evolve surrogate models on different N-body test problems
+  - **Implementation**:
+    - Configuration: Added `test_problem` (two_body/figure_eight/plummer) and `num_particles` fields
+    - Helper Function: `get_initial_particles()` maps test problems to initial conditions
+    - Pipeline Integration: Modified prototype.py to use configurable test problems
+    - Metadata Tracking: Evolution history now includes test_problem and num_particles
+    - Comparison Tooling: `scripts/compare_problems.py` for systematic cross-problem analysis
+  - **Testing**: 18 new tests (7 config + 11 helper), 226/226 tests passing, TDD discipline throughout
+  - **Real Validation**: 3 complete evolution runs with real API ($0.029 total cost)
+    - two_body (N=2): fitness=523,752, accuracy=99.95%
+    - figure_eight (N=3): fitness=259,637, accuracy=99.07%
+    - plummer (N=20): fitness=9,392, accuracy=55.53%
+  - **Review Fixes**: Addressed all 5 reviewer feedback items (2 HIGH, 3 MEDIUM)
+    - Robust config loading with `.get()` defaults (gemini-code-assist)
+    - Null fitness handling with type/finiteness checks (chatgpt-codex-connector)
+    - Consistent output formatting matching documentation (gemini-code-assist)
+  - **Quality**: "APPROVED - Production Ready" from claude reviewer, all CI checks passing
+  - **Files**: 8 changed (+796 lines), 3 new test suites, 1 new comparison script
+  - **Status**: ✅ Merged (commit [2345cd2](https://github.com/TheIllusionOfLife/Galaxy/commit/2345cd2))
+
 #### Recently Completed (Previous Sessions)
 - ✅ **[PR #30 - Phase 1 Complete: 3D N-body Migration](https://github.com/TheIllusionOfLife/Galaxy/pull/30)**: Production-ready 3D particle-particle N-body physics (November 1, 2025)
   - **Achievement**: Transformed from toy 2D single-attractor to true 3D N-body gravitational simulator
@@ -619,18 +642,19 @@ If you encounter issues not covered here:
 
 #### Next Priority Tasks
 
-1. **Multi-Problem Validation** (HIGH PRIORITY)
-   - **Source**: PHASE3_RESULTS.md recommendations, Phase 3 completion
-   - **Context**: Phase 3 validated LLM evolution on Plummer sphere (N=50), need cross-problem generalization
-   - **Goal**: Verify evolved models generalize across different gravitational problems
+1. **Cross-Problem Generalization Analysis** (HIGH PRIORITY)
+   - **Source**: PR #38 completion, Phase 4 infrastructure now available
+   - **Context**: Infrastructure ready, need to analyze if models generalize across problems
+   - **Goal**: Test whether models trained on one problem work on others (transfer learning)
    - **Tasks**:
-     - Run evolution on two-body problem (N=2, analytical solution available)
-     - Run evolution on figure-eight problem (N=3, periodic orbit validation)
-     - Compare strategies: Do models learn problem-specific tricks or general patterns?
-     - Measure generalization: Train on Plummer, test on two-body and vice versa
-   - **Benefits**: Proves system isn't overfitting single problem type, validates scientific robustness
-   - **Estimated time**: 2-3 hours (3 evolution runs + comparative analysis)
-   - **Approach**: Run evolution per problem → compare discovered strategies → document findings
+     - Extract best models from each problem's evolution run
+     - Test two_body best model on figure_eight and plummer problems
+     - Test plummer best model on two_body and figure_eight problems
+     - Measure generalization performance (fitness drop, accuracy change)
+     - Document findings: problem-specific tricks vs general patterns
+   - **Benefits**: Validates scientific robustness, identifies universal vs specialized strategies
+   - **Estimated time**: 1-2 hours (model extraction + cross-testing + analysis)
+   - **Approach**: Use `compare_problems.py` framework + custom cross-validation script
 
 2. **Physics Validation of Evolved Models** (MEDIUM PRIORITY)
    - **Source**: PHASE3_RESULTS.md limitations section
@@ -675,8 +699,20 @@ If you encounter issues not covered here:
 
 #### Session Learnings
 
-**Last Updated**: November 01, 2025 11:28 PM JST
+**Last Updated**: November 02, 2025 01:31 AM JST
 
+- **Null Fitness Handling from JSON Sanitization** (2025-11-02 PR #38): `_sanitize_for_json()` converts NaN/Inf to null requiring type checks
+  - **Problem**: `scripts/compare_problems.py` crashed with `TypeError` when comparing null fitness values
+  - **Root Cause**: JSON sanitization converts non-finite floats to `null`, but code assumed numeric values
+  - **Solution**: Add `isinstance(fitness, (int, float)) and math.isfinite(fitness)` before comparisons
+  - **Pattern**: Always validate type and finiteness when loading numeric data from JSON that may contain sanitized values
+  - **Caught By**: chatgpt-codex-connector reviewer (P1 priority feedback)
+- **Output Formatting Consistency** (2025-11-02 PR #38): User-facing output must match documentation examples
+  - **Problem**: README showed "523,752" and "99.95%" but script output "523752.00" and "0.9995"
+  - **Impact**: Format mismatch suggests bugs even when functionality is correct
+  - **Solution**: Format numbers to match docs: `f"{int(fitness):12,}"` (comma-separated int), `f"{accuracy * 100:.2f}%"` (percentage)
+  - **Pattern**: Review all user-facing output (CLI, tables, reports) against documentation before declaring complete
+  - **Caught By**: gemini-code-assist reviewer (MEDIUM priority feedback)
 - **Post-Fix Verification Success** (2025-11-01 PR #36): Real example of verification catching issues before push
   - **Context**: Fixed parametric model metadata saving bug (early return prevented file creation)
   - **Verification**: Ran `uv run python scripts/extract_best_model.py results/run_20251101_220542` after fix
