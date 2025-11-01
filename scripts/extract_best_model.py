@@ -178,6 +178,14 @@ def main():
     print(format_model_summary(best_model))
     print()
 
+    # Save metadata (always, even for parametric models)
+    output_dir = args.output.parent if args.output else args.run_dir
+    metadata_path = output_dir / "best_model_info.json"
+    metadata = {k: v for k, v in best_model.items() if k != "raw_code"}  # Exclude code
+    with open(metadata_path, "w") as f:
+        json.dump(metadata, f, indent=2)
+    print(f"✅ Model metadata saved to: {metadata_path}")
+
     # Extract code
     code = extract_model_code(best_model)
 
@@ -190,13 +198,6 @@ def main():
     output_path = args.output or (args.run_dir / "best_model.py")
     save_model_to_file(code, output_path)
     print(f"✅ Best model code saved to: {output_path}")
-
-    # Save metadata
-    metadata_path = output_path.parent / "best_model_info.json"
-    metadata = {k: v for k, v in best_model.items() if k != "raw_code"}  # Exclude code
-    with open(metadata_path, "w") as f:
-        json.dump(metadata, f, indent=2)
-    print(f"✅ Model metadata saved to: {metadata_path}")
 
     return 0
 
