@@ -5,6 +5,7 @@ import math
 from pathlib import Path
 
 import pytest
+
 from scripts.cross_validate_problems import (
     CrossValidationResult,
     compute_generalization_penalty,
@@ -139,7 +140,7 @@ class TestEvaluateModelOnProblem:
             "test_problem": "two_body",
             "num_particles": 2,
             "description": "parametric_model",
-            "theta": [1.0, 0.5, 0.3],
+            "theta": [1.0, 0.5, 0.1, 0.1, 1.0, 0.99],  # 6 params for make_parametric_surrogate
         }
 
         result = evaluate_model_on_problem(model, "two_body", 2)
@@ -161,7 +162,7 @@ class TestEvaluateModelOnProblem:
             "test_problem": "two_body",
             "num_particles": 2,
             "description": "parametric_model",
-            "theta": [1.0, 0.5, 0.3],
+            "theta": [1.0, 0.5, 0.1, 0.1, 1.0, 0.99],  # 6 params for make_parametric_surrogate
         }
 
         # Evaluate two_body model on plummer problem
@@ -183,7 +184,7 @@ class TestEvaluateModelOnProblem:
             "test_problem": "plummer",
             "num_particles": 20,
             "description": "parametric_model",
-            "theta": [1.0, 0.5, 0.3],
+            "theta": [1.0, 0.5, 0.1, 0.1, 1.0, 0.99],  # 6 params for make_parametric_surrogate
         }
 
         # Evaluate 20-particle model on 2-particle problem
@@ -200,7 +201,7 @@ class TestEvaluateModelOnProblem:
             "fitness": 500.0,
             "test_problem": "two_body",
             "num_particles": 2,
-            "theta": [1.0, 0.5, 0.3],
+            "theta": [1.0, 0.5, 0.1, 0.1, 1.0, 0.99],  # 6 params for make_parametric_surrogate
         }
 
         with pytest.raises(ValueError, match="Unknown test_problem"):
@@ -264,7 +265,14 @@ class TestCrossValidationMatrix:
                                 "fitness": 500.0,
                                 "accuracy": 0.95,
                                 "speed": 0.0019,
-                                "theta": [1.0, 0.5, 0.3],
+                                "theta": [
+                                    1.0,
+                                    0.5,
+                                    0.1,
+                                    0.1,
+                                    1.0,
+                                    0.99,
+                                ],  # 6 params for make_parametric_surrogate
                             }
                         ],
                     }
@@ -306,7 +314,14 @@ class TestCrossValidationMatrix:
                             "fitness": 500.0,
                             "accuracy": 0.95,
                             "speed": 0.0019,
-                            "theta": [1.0, 0.5, 0.3],
+                            "theta": [
+                                1.0,
+                                0.5,
+                                0.1,
+                                0.1,
+                                1.0,
+                                0.99,
+                            ],  # 6 params for make_parametric_surrogate
                         }
                     ],
                 }
