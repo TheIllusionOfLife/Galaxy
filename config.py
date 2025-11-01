@@ -120,6 +120,24 @@ class Settings(BaseSettings):
         ge=0.0, le=2.0, description="Crossover creativity level (between explore/exploit)"
     )
 
+    # Benchmark Suite Configuration (from config.yaml, no defaults here)
+    benchmark_enabled: bool = Field(description="Enable benchmark suite execution")
+    benchmark_particle_counts: list[int] = Field(
+        description="Particle counts for scaling analysis (e.g., [10, 50, 100, 200])"
+    )
+    benchmark_timesteps: int = Field(
+        ge=10, le=1000, description="Number of integration timesteps per benchmark run"
+    )
+    benchmark_test_problems: list[str] = Field(
+        description="Test problems to evaluate (two_body, figure_eight, plummer)"
+    )
+    benchmark_baselines: list[str] = Field(
+        description="Baseline models to benchmark (kdtree, direct_nbody)"
+    )
+    benchmark_kdtree_k: int = Field(
+        ge=1, le=100, description="K-nearest neighbors for KDTree baseline"
+    )
+
     @property
     def total_requests_needed(self) -> int:
         """Calculate total LLM calls needed for one complete evolution run.
@@ -205,6 +223,7 @@ class Settings(BaseSettings):
             "mutation",
             "code_penalty",
             "crossover",
+            "benchmark",
         ]
         missing_sections = [s for s in required_sections if s not in yaml_config]
         if missing_sections:
@@ -276,6 +295,20 @@ class Settings(BaseSettings):
                 ),
                 "crossover_temperature": float(
                     os.getenv("CROSSOVER_TEMPERATURE", yaml_config["crossover"]["temperature"])
+                ),
+                # Benchmark
+                "benchmark_enabled": os.getenv(
+                    "BENCHMARK_ENABLED", str(yaml_config["benchmark"]["enabled"])
+                ).lower()
+                == "true",
+                "benchmark_particle_counts": yaml_config["benchmark"]["particle_counts"],
+                "benchmark_timesteps": int(
+                    os.getenv("BENCHMARK_TIMESTEPS", yaml_config["benchmark"]["num_timesteps"])
+                ),
+                "benchmark_test_problems": yaml_config["benchmark"]["test_problems"],
+                "benchmark_baselines": yaml_config["benchmark"]["baselines"],
+                "benchmark_kdtree_k": int(
+                    os.getenv("BENCHMARK_KDTREE_K", yaml_config["benchmark"]["kdtree_k_neighbors"])
                 ),
             }
         except (KeyError, TypeError) as e:

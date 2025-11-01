@@ -37,3 +37,17 @@ crossover:
   enabled: true  # Enable crossover operator (LLM-based code recombination)
   crossover_rate: 0.5  # Fraction using crossover (0.5 = 50% crossover, 50% mutation)
   temperature: 0.75  # Crossover creativity level (0.0-2.0, between explore/exploit)
+
+# Benchmark Suite Configuration
+benchmark:
+  enabled: true  # Enable benchmark suite execution
+  particle_counts: [10, 50, 100, 200]  # Particle counts for scaling analysis
+  num_timesteps: 100  # Number of integration timesteps per benchmark run
+  test_problems:  # Test problems to evaluate (from initial_conditions.py)
+    - two_body  # Two-body circular orbit (energy conservation)
+    - figure_eight  # Three-body figure-8 (stability test)
+    - plummer  # Plummer sphere (realistic N-body cluster)
+  baselines:  # Baseline models to benchmark (from baselines.py)
+    - kdtree  # KDTree-based O(N log N) approximation
+    - direct_nbody  # Direct O(N²) exact calculation (ground truth)
+  kdtree_k_neighbors: 10  # K-nearest neighbors for KDTree baseline (5-50)
