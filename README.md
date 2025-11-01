@@ -435,26 +435,29 @@ If you encounter issues not covered here:
 
 ## Session Handover
 
-### Last Updated: October 31, 2025 03:44 AM JST
+### Last Updated: November 01, 2025 12:15 PM JST
 
 #### Recently Completed (Current Session)
-- ✅ **Session Planning & Prioritization**: Used `/plan_next` to analyze project state
-  - Reviewed recent PRs, README roadmap, open issues
-  - Created comprehensive 3-task implementation plan
-  - Prioritized immediate cleanup, empirical validation, and documentation
-
-- ✅ **[PR #28 - Immediate Priorities Cleanup](https://github.com/TheIllusionOfLife/Galaxy/pull/28)**: Systematic completion of 3 priority tasks (October 31, 2025)
-  - **Task 1 - Workflow Cleanup**: Removed temporary PR #26 skip condition
-    - File: `.github/workflows/claude-code-review.yml:22`
-    - Impact: Eliminates technical debt, future PRs run workflow normally
-  - **Task 2 - Crossover Effectiveness Analysis**: Empirical validation with real API
-    - Experiments: 3 comparative runs (control, 30%, 50%), 150 API calls, $0.0766 cost
-    - Key Results: Crossover at 50% showed +5.3% fitness and +11.6pp improvement rate vs control
-    - Action: Updated default `crossover_rate` in `config.yaml` from 0.3 to 0.5 based on data
-    - Documentation: Full analysis in `experiments/crossover_analysis_20251031/`
-  - **Task 3 - Session Documentation**: Updated README with all findings
-  - **Reviewer Feedback**: Addressed CodeRabbit (markdown) & Gemini (UTF-8, documentation)
-  - **Status**: ✅ Merged (commit [392bb8f](https://github.com/TheIllusionOfLife/Galaxy/commit/392bb8f)), 20 files changed (+2,022, -29)
+- ✅ **[PR #30 - Phase 1 Complete: 3D N-body Migration](https://github.com/TheIllusionOfLife/Galaxy/pull/30)**: Production-ready 3D particle-particle N-body physics (November 1, 2025)
+  - **Achievement**: Transformed from toy 2D single-attractor to true 3D N-body gravitational simulator
+  - **Core Migration**:
+    - Particles: `[x,y,vx,vy]` (4) → `[x,y,z,vx,vy,vz,mass]` (7)
+    - Signature: `predict(particle, attractor)` → `predict(particle, all_particles)`
+    - Integration: Euler → Leapfrog (Velocity Verlet) for energy conservation
+    - Complexity: O(N) → O(N²) true all-pairs gravitational interactions
+  - **Testing**: 28 comprehensive new tests (physics + interface validation)
+    - Energy conservation: <10% drift over 50 timesteps
+    - Angular momentum conservation: <5% drift
+    - Inverse square law verification, O(N²) scaling validation
+  - **Real API Verification**: Smoke test passed (5 genomes, 4/5 perfect accuracy, $0.006 cost)
+  - **Documentation**: 184-line MIGRATION_STATUS.md tracking all decisions and deferred items
+  - **Review Fixes**: Addressed all feedback from claude[bot] reviews
+    - Added `CosmologyCrucible.with_particles()` factory method for test flexibility
+    - Enhanced validation (2-particle minimum, empty particle check, mass conservation)
+    - Clarified parallel evaluation semantics with definitive documentation
+  - **Quality**: Rating 4.8/5 stars, 109/109 tests passing, all CI checks passing
+  - **Files**: 15 changed (+1,636, -203), 2 new test suites (783 lines)
+  - **Status**: ✅ Merged (commit [04d504e](https://github.com/TheIllusionOfLife/Galaxy/commit/04d504e))
 
 #### Recently Completed (Previous Sessions)
 - ✅ **[PR #26 - Genetic Crossover Implementation](https://github.com/TheIllusionOfLife/Galaxy/pull/26)**: LLM-based code recombination (October 30, 2025)
@@ -487,39 +490,34 @@ If you encounter issues not covered here:
 
 #### Next Priority Tasks
 
-1. **Code Modularization** (HIGH PRIORITY)
-   - **Source**: 4/5 reviewers consensus from previous planning
-   - **Context**: prototype.py at 814 lines mixes evolution, evaluation, and coordination
-   - **Goal**: Extract to galaxy/ package structure for SOLID principles
-   - **Structure**:
-     ```text
-     galaxy/
-     ├── core/ (genome.py, evolution.py, selection.py)
-     ├── crucible/ (base.py, nbody.py)
-     ├── llm/ (client.py, gemini.py)
-     └── prototype.py (main orchestration, ~100 lines)
-     ```
-   - **Benefits**: Easier domain extension, testable in isolation, reduced cognitive load
-   - **Estimated time**: 3 hours
-
-2. **Pareto Front Visualization**
-   - **Source**: CH review, plan_20251029.md
-   - **Context**: Already have accuracy_vs_speed.png scatter plot
-   - **Enhancement**: Highlight non-dominated solutions (Pareto frontier)
-   - **Benefits**: Validates multi-objective optimization readiness
-   - **Estimated time**: 2 hours
-
-3. **Crossover Quality Improvements** (Optional, Low Priority)
-   - **Source**: PR #26 reviewer feedback (CodeRabbit, Gemini)
-   - **Context**: Feature validated effective, these are minor quality-of-life improvements
+1. **Phase 2: Baseline Surrogates & Benchmarks** (HIGH PRIORITY)
+   - **Source**: MIGRATION_STATUS.md Phase 2 planning
+   - **Context**: Phase 1 complete (3D N-body physics), need reference implementations
    - **Tasks**:
-     - Add debug logging for skipped malformed elites
-     - Enhance validation failure logging with parent context
-     - Pass pre-filtered `llm_elites` to avoid redundant filtering
-     - Rename config key from `crossover_rate` to `rate` for consistency
-     - Make test mocks more explicit with `spec=SurrogateGenome`
-   - **Priority**: Low (code quality improvements, not bugs)
-   - **Approach**: Create follow-up PR if crossover becomes frequently used feature
+     - Implement scipy.spatial KDTree baseline (O(N log N) approximation)
+     - Create standard test problems (Plummer sphere, two-body Kepler orbit, three-body figure-8)
+     - Add validation metrics (energy drift, trajectory RMSE, momentum conservation)
+     - Build comprehensive benchmark suite with scaling analysis
+   - **Benefits**: Scientific validation, performance baselines, publishable results
+   - **Estimated time**: 2-3 days
+   - **Approach**: Start with KDTree baseline, then standard problems, then metrics
+
+2. **Code Modularization** (MEDIUM PRIORITY - Deferred)
+   - **Source**: 4/5 reviewers consensus from previous planning
+   - **Context**: prototype.py now at 914 lines after Phase 1 migration
+   - **Goal**: Extract to galaxy/ package structure for SOLID principles
+   - **Structure**: `galaxy/` (core/, crucible/, llm/) + main orchestration
+   - **Benefits**: Easier domain extension, testable in isolation, reduced cognitive load
+   - **Priority**: Deferred until Phase 2 complete (avoid disrupting working physics)
+   - **Estimated time**: 3-4 hours
+
+3. **Adaptive Timestep Integration** (OPTIONAL)
+   - **Source**: MIGRATION_STATUS.md open question, claude[bot] review
+   - **Context**: Current dt=0.1 may be too large for tight orbits
+   - **Enhancement**: Variable timestep based on particle proximity
+   - **Benefits**: Better accuracy for close encounters, maintains performance
+   - **Priority**: Low (current leapfrog <10% drift acceptable for prototype)
+   - **Estimated time**: 2 hours
 
 #### Known Issues / Blockers
 - **Non-monotonic Fitness**: Fitness fluctuates between generations (not guaranteed to improve)
