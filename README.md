@@ -452,7 +452,7 @@ If you encounter issues not covered here:
     - Fixed leapfrog integration bug (replaced with symplectic Euler)
     - Fixed random zero risk in Plummer CDF (clamped to 1e-12)
     - Fixed angular momentum vector comparison (detects spin reversals)
-    - Documented KDTree performance limitation (O(N*N log N) tree rebuilding)
+    - Documented KDTree performance limitation (O(N² log N) tree rebuilding)
     - Documented Plummer velocity sampling approximation vs Eddington formula
     - Added modules to pyproject.toml packaging
     - Cleaned up test assertions (removed unnecessary NaN checks)
@@ -520,7 +520,7 @@ If you encounter issues not covered here:
    - **Context**: Infrastructure complete (baselines, test problems, metrics), now need systematic benchmarking
    - **Tasks**:
      - Build benchmark harness with multiple particle counts (N=10, 50, 100, 200)
-     - Measure KDTree vs direct N-body scaling (expected O(N log N) vs O(N²))
+     - Measure KDTree vs direct N-body scaling (expected O(N² log N) vs O(N²))
      - Run validation metrics on multiple test problems
      - Generate scaling plots and performance tables
      - Add integration smoke test with CosmologyCrucible (verify >0.99 accuracy)
