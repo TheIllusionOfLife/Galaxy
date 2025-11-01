@@ -435,9 +435,34 @@ If you encounter issues not covered here:
 
 ## Session Handover
 
-### Last Updated: November 01, 2025 12:15 PM JST
+### Last Updated: November 01, 2025 04:14 PM JST
 
 #### Recently Completed (Current Session)
+- ✅ **[PR #32 - Phase 2 Scientific Validation Infrastructure](https://github.com/TheIllusionOfLife/Galaxy/pull/32)**: Baselines, test problems, and physics validation metrics (November 1, 2025)
+  - **Achievement**: Complete scientific validation infrastructure with comprehensive physics-based testing
+  - **Core Additions**:
+    - baselines.py (201 lines): KDTree (O(N log N)) and direct N-body baselines
+    - initial_conditions.py (275 lines): Two-body orbit, figure-8, Plummer sphere test problems
+    - validation_metrics.py (221 lines): Energy drift, trajectory RMSE, angular momentum, virial ratio
+  - **Testing**: 57 comprehensive new tests (166/166 total passing)
+    - Physics validation: Energy conservation, momentum conservation, virial equilibrium
+    - Edge cases: Empty systems, single particles, inf/nan handling
+    - Integration: Baseline vs direct N-body comparison
+  - **Review Fixes**: Addressed 9 CRITICAL issues from 4 AI reviewers
+    - Fixed leapfrog integration bug (replaced with symplectic Euler)
+    - Fixed random zero risk in Plummer CDF (clamped to 1e-12)
+    - Fixed angular momentum vector comparison (detects spin reversals)
+    - Documented KDTree performance limitation (O(N² log N) tree rebuilding)
+    - Documented Plummer velocity sampling approximation vs Eddington formula
+    - Added modules to pyproject.toml packaging
+    - Cleaned up test assertions (removed unnecessary NaN checks)
+    - Verified mass factors correct (false positive from reviewer)
+  - **Quality**: Rating 5/5 stars from chatgpt-codex-connector ("ready to merge immediately")
+  - **Files**: 8 changed (+1,392 lines), 3 new modules, 3 new test suites
+  - **Dependencies**: Added scipy>=1.9.0, numpy>=1.21.0
+  - **Status**: ✅ Merged (commit [fd80a6c](https://github.com/TheIllusionOfLife/Galaxy/commit/fd80a6c))
+
+#### Recently Completed (Previous Sessions)
 - ✅ **[PR #30 - Phase 1 Complete: 3D N-body Migration](https://github.com/TheIllusionOfLife/Galaxy/pull/30)**: Production-ready 3D particle-particle N-body physics (November 1, 2025)
   - **Achievement**: Transformed from toy 2D single-attractor to true 3D N-body gravitational simulator
   - **Core Migration**:
@@ -490,17 +515,18 @@ If you encounter issues not covered here:
 
 #### Next Priority Tasks
 
-1. **Phase 2: Baseline Surrogates & Benchmarks** (HIGH PRIORITY)
-   - **Source**: MIGRATION_STATUS.md Phase 2 planning
-   - **Context**: Phase 1 complete (3D N-body physics), need reference implementations
+1. **Phase 2: Comprehensive Benchmark Suite** (HIGH PRIORITY)
+   - **Source**: MIGRATION_STATUS.md Phase 2 remaining tasks, PR #32 recommendations
+   - **Context**: Infrastructure complete (baselines, test problems, metrics), now need systematic benchmarking
    - **Tasks**:
-     - Implement scipy.spatial KDTree baseline (O(N log N) approximation)
-     - Create standard test problems (Plummer sphere, two-body Kepler orbit, three-body figure-8)
-     - Add validation metrics (energy drift, trajectory RMSE, momentum conservation)
-     - Build comprehensive benchmark suite with scaling analysis
-   - **Benefits**: Scientific validation, performance baselines, publishable results
-   - **Estimated time**: 2-3 days
-   - **Approach**: Start with KDTree baseline, then standard problems, then metrics
+     - Build benchmark harness with multiple particle counts (N=10, 50, 100, 200)
+     - Measure KDTree vs direct N-body scaling (expected O(N² log N) vs O(N²))
+     - Run validation metrics on multiple test problems
+     - Generate scaling plots and performance tables
+     - Add integration smoke test with CosmologyCrucible (verify >0.99 accuracy)
+   - **Benefits**: Performance baselines for evolution, publishable results, optimization targets
+   - **Estimated time**: 4-6 hours
+   - **Approach**: Start with simple benchmark script, then scaling analysis, then integration test
 
 2. **Code Modularization** (MEDIUM PRIORITY - Deferred)
    - **Source**: 4/5 reviewers consensus from previous planning
@@ -532,7 +558,14 @@ If you encounter issues not covered here:
 
 #### Session Learnings
 
-**Last Updated**: October 31, 2025 12:49 AM JST
+**Last Updated**: November 01, 2025 04:14 PM JST
+
+- **AI Reviewer Claim Verification** (2025-11-01): Always verify reviewer claims by reading actual code, not assumptions
+  - **Trigger**: PR #32 reviewer claimed missing mass factors in physics calculations
+  - **Verification**: Checked validation_metrics.py and found `0.5 * p[6] * v_squared` already correct
+  - **Pattern**: Use `grep` or `Read` tool to verify claims about missing code before implementing "fixes"
+  - **Why**: AI reviewers can make factually incorrect claims - verify before accepting
+  - **Cost**: 30 seconds to verify vs wasting time implementing unnecessary changes
 
 - **Empirical Feature Validation Pattern** (2025-10-31): Always validate new features with controlled experiments before declaring success
   - **Trigger**: PR #26 merged crossover feature, needed to validate effectiveness
