@@ -85,6 +85,12 @@ class Settings(BaseSettings):
     elite_ratio: float = Field(
         ge=0.0, le=1.0, description="Fraction of top performers to keep for breeding"
     )
+    evolution_num_particles: int = Field(
+        ge=2, le=1000, description="Number of particles for plummer test problem"
+    )
+    evolution_test_problem: str = Field(
+        description="Test problem to use (two_body, figure_eight, plummer)"
+    )
 
     # Mutation Strategy (from config.yaml, no defaults here)
     early_mutation_temp: float = Field(
@@ -156,6 +162,15 @@ class Settings(BaseSettings):
         invalid = set(v) - valid_baselines
         if invalid:
             raise ValueError(f"Invalid baselines: {invalid}. Valid options: {valid_baselines}")
+        return v
+
+    @field_validator("evolution_test_problem")
+    @classmethod
+    def validate_evolution_test_problem(cls, v: str) -> str:
+        """Validate evolution test_problem against known problems."""
+        valid_problems = {"two_body", "figure_eight", "plummer"}
+        if v not in valid_problems:
+            raise ValueError(f"Invalid test_problem: {v}. Valid options: {valid_problems}")
         return v
 
     @property
@@ -286,6 +301,12 @@ class Settings(BaseSettings):
                 ),
                 "elite_ratio": float(
                     os.getenv("ELITE_RATIO", yaml_config["evolution"]["elite_ratio"])
+                ),
+                "evolution_num_particles": int(
+                    os.getenv("NUM_PARTICLES", yaml_config["evolution"].get("num_particles", 50))
+                ),
+                "evolution_test_problem": os.getenv(
+                    "TEST_PROBLEM", yaml_config["evolution"].get("test_problem", "plummer")
                 ),
                 # Mutation
                 "early_mutation_temp": float(

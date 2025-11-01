@@ -439,16 +439,19 @@ def _sanitize_for_json(obj: Any) -> Any:
         return obj
 
 
-def export_history_json(history: list[dict[str, Any]], output_path: str) -> None:
+def export_history_json(
+    history: list[dict[str, Any]], output_path: str, metadata: dict[str, Any] | None = None
+) -> None:
     """
     Export evolution history to JSON file.
 
-    Saves the complete evolution history along with summary statistics.
+    Saves the complete evolution history along with summary statistics and optional metadata.
     Non-finite float values (NaN, Inf) are replaced with null for JSON compatibility.
 
     Args:
         history: Evolution history data
         output_path: Path where JSON file will be saved
+        metadata: Optional metadata dict (e.g., test_problem, num_particles)
     """
     # Calculate summary statistics
     if history:
@@ -475,6 +478,10 @@ def export_history_json(history: list[dict[str, Any]], output_path: str) -> None
     # Sanitize history to remove non-finite values
     sanitized_history = _sanitize_for_json(history)
     data = {"history": sanitized_history, "summary": summary}
+
+    # Add metadata if provided
+    if metadata:
+        data["metadata"] = metadata
 
     # Ensure output directory exists
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)

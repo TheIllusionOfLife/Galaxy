@@ -178,13 +178,35 @@ code_penalty:
 ### Basic Execution
 
 ```bash
-# Run evolutionary optimization
+# Run evolutionary optimization (default: plummer sphere)
 uv run python prototype.py
 
-# Alternative: with pip/venv (activate virtual environment first)
-source .venv/bin/activate  # if using venv
-python prototype.py
+# Run on different test problems
+TEST_PROBLEM=two_body uv run python prototype.py
+TEST_PROBLEM=figure_eight uv run python prototype.py
+
+# Alternative: edit config.yaml evolution.test_problem field
+# Options: two_body (N=2), figure_eight (N=3), plummer (configurable N)
 ```
+
+### Multi-Problem Validation
+
+Compare evolution results across different test problems:
+
+```bash
+# Run evolution on each test problem
+uv run python prototype.py  # (configure test_problem in config.yaml)
+
+# Compare results
+python scripts/compare_problems.py results/run_* --output results/comparison
+```
+
+Example comparison output:
+| Test Problem | N | Best Fitness | Accuracy | Speed (s) |
+|--------------|---|--------------|----------|-----------|
+| two_body     |  2|    523,752   |   99.95% |  0.000002 |
+| figure_eight |  3|    259,637   |   99.07% |  0.000004 |
+| plummer      | 20|      9,392   |   55.53% |  0.000059 |
 
 ### Execution Results
 

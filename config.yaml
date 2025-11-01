@@ -19,7 +19,8 @@ evolution:
   population_size: 10  # Number of surrogate models per generation (1-100)
   num_generations: 5  # Number of evolutionary generations to run (1-100)
   elite_ratio: 0.2  # Fraction of top performers to keep for breeding (0.0-1.0)
-  num_particles: 50  # Number of particles in 3D N-body simulation (10-200)
+  num_particles: 50  # Number of particles in 3D N-body simulation (10-200, only used for plummer)
+  test_problem: plummer  # Test problem to use (two_body, figure_eight, plummer)
 
 # Mutation Strategy
 mutation:
