@@ -33,7 +33,7 @@ from benchmarks.benchmark_runner import BenchmarkRunner  # noqa: E402
 from benchmarks.scaling_analysis import export_markdown_table, measure_scaling  # noqa: E402
 from benchmarks.visualization import (  # noqa: E402
     export_results_json,
-    plot_accuracy_heatmap,
+    plot_accuracy_bars,
     plot_pareto_front,
     plot_scaling_comparison,
 )
@@ -124,10 +124,10 @@ def main() -> None:
     plot_scaling_comparison(results, str(scaling_plot_path))
     print(f"  ✓ Scaling comparison: {scaling_plot_path}")
 
-    # 2. Accuracy heatmap
-    accuracy_plot_path = output_dir / "accuracy_heatmap.png"
-    plot_accuracy_heatmap(results, str(accuracy_plot_path))
-    print(f"  ✓ Accuracy heatmap: {accuracy_plot_path}")
+    # 2. Accuracy bars
+    accuracy_plot_path = output_dir / "accuracy_bars.png"
+    plot_accuracy_bars(results, str(accuracy_plot_path))
+    print(f"  ✓ Accuracy bars: {accuracy_plot_path}")
 
     # 3. Pareto front
     pareto_plot_path = output_dir / "pareto_front.png"

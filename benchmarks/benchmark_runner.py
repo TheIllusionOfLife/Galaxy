@@ -13,7 +13,10 @@ Example usage:
     results = runner.run_all_benchmarks()
 """
 
+import logging
+import math
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from baselines import create_direct_nbody_baseline, create_kdtree_baseline
@@ -23,6 +26,8 @@ from validation_metrics import (
     compute_energy_drift,
     compute_trajectory_rmse,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -66,6 +71,19 @@ class BenchmarkRunner:
         >>> print(f"Ran {len(results)} benchmarks")
     """
 
+    # Class-level mapping of test problem names to generator functions
+    _TEST_PROBLEM_GENERATORS: dict[str, Callable] = {
+        "two_body": two_body_circular_orbit,
+        "figure_eight": three_body_figure_eight,
+        "plummer": plummer_sphere,
+    }
+
+    # Fixed particle counts for specific test problems
+    _FIXED_PARTICLE_COUNTS: dict[str, int] = {
+        "two_body": 2,
+        "figure_eight": 3,
+    }
+
     def __init__(self, config: Settings):
         """Initialize benchmark runner with configuration.
 
@@ -73,6 +91,12 @@ class BenchmarkRunner:
             config: Settings instance containing benchmark parameters
         """
         self.config = config
+
+        # Create baseline factory mapping
+        self._baseline_factories: dict[str, Callable] = {
+            "kdtree": lambda: create_kdtree_baseline(k_neighbors=self.config.benchmark_kdtree_k),
+            "direct_nbody": create_direct_nbody_baseline,
+        }
 
     def _get_test_problem_particles(self, problem_name: str, n_particles: int) -> list[list[float]]:
         """Get initial particles for specified test problem.
@@ -87,20 +111,19 @@ class BenchmarkRunner:
         Raises:
             ValueError: If problem_name is not recognized
         """
-        if problem_name == "two_body":
-            # Two-body circular orbit (always 2 particles)
-            return two_body_circular_orbit()
-        elif problem_name == "figure_eight":
-            # Three-body figure-8 (always 3 particles)
-            return three_body_figure_eight()
-        elif problem_name == "plummer":
-            # Plummer sphere (use requested n_particles)
-            return plummer_sphere(n_particles=n_particles, random_seed=42)
-        else:
+        generator = self._TEST_PROBLEM_GENERATORS.get(problem_name)
+        if generator is None:
+            valid_options = ", ".join(self._TEST_PROBLEM_GENERATORS.keys())
             raise ValueError(
-                f"Unknown test problem: {problem_name}. "
-                f"Valid options: two_body, figure_eight, plummer"
+                f"Unknown test problem: {problem_name}. Valid options: {valid_options}"
             )
+
+        # Use dictionary mapping for cleaner extensibility
+        if problem_name == "plummer":
+            return generator(n_particles=n_particles, random_seed=42)
+        else:
+            # Fixed particle count problems (two_body, figure_eight)
+            return generator()
 
     def _get_baseline_model(self, baseline_name: str):
         """Get baseline surrogate model by name.
@@ -114,14 +137,36 @@ class BenchmarkRunner:
         Raises:
             ValueError: If baseline_name is not recognized
         """
-        if baseline_name == "kdtree":
-            return create_kdtree_baseline(k_neighbors=self.config.benchmark_kdtree_k)
-        elif baseline_name == "direct_nbody":
-            return create_direct_nbody_baseline()
-        else:
-            raise ValueError(
-                f"Unknown baseline: {baseline_name}. Valid options: kdtree, direct_nbody"
-            )
+        factory = self._baseline_factories.get(baseline_name)
+        if factory is None:
+            valid_options = ", ".join(self._baseline_factories.keys())
+            raise ValueError(f"Unknown baseline: {baseline_name}. Valid options: {valid_options}")
+        return factory()
+
+    def _run_simulation(
+        self,
+        initial_particles: list[list[float]],
+        model_func: Callable,
+        num_timesteps: int,
+    ) -> list[list[float]]:
+        """Run N-body simulation for given timesteps.
+
+        Args:
+            initial_particles: Initial particle state
+            model_func: Compiled predict function from surrogate model
+            num_timesteps: Number of integration steps to perform
+
+        Returns:
+            Final particle state after simulation
+        """
+        current_particles = [p[:] for p in initial_particles]  # Deep copy
+        for _ in range(num_timesteps):
+            new_particles = []
+            for particle in current_particles:
+                new_particle = model_func(particle, current_particles)
+                new_particles.append(new_particle)
+            current_particles = new_particles
+        return current_particles
 
     def run_single_benchmark(
         self, baseline_name: str, test_problem: str, n_particles: int
@@ -160,25 +205,14 @@ class BenchmarkRunner:
 
         # Run baseline model
         start_time = time.time()
-        current_particles = [p[:] for p in initial_particles]  # Deep copy
-        for _ in range(num_timesteps):
-            # Update each particle
-            new_particles = []
-            for particle in current_particles:
-                new_particle = model_func(particle, current_particles)
-                new_particles.append(new_particle)
-            current_particles = new_particles
+        current_particles = self._run_simulation(initial_particles, model_func, num_timesteps)
         speed = time.time() - start_time
 
         # Run ground truth (if different from baseline)
         if baseline_name != "direct_nbody":
-            ground_truth_particles = [p[:] for p in initial_particles]
-            for _ in range(num_timesteps):
-                new_particles = []
-                for particle in ground_truth_particles:
-                    new_particle = ground_truth_func(particle, ground_truth_particles)
-                    new_particles.append(new_particle)
-                ground_truth_particles = new_particles
+            ground_truth_particles = self._run_simulation(
+                initial_particles, ground_truth_func, num_timesteps
+            )
         else:
             ground_truth_particles = current_particles
 
@@ -187,9 +221,9 @@ class BenchmarkRunner:
         trajectory_rmse = compute_trajectory_rmse(current_particles, ground_truth_particles)
 
         # 2. Accuracy metric (0-1 scale, higher is better)
-        # Use formula from prototype.py: accuracy = 1.0 / (1.0 + sqrt(error))
-        import math
-
+        # Formula: accuracy = 1.0 / (1.0 + sqrt(RMSE))
+        # This converts RMSE to 0-1 scale where 1.0 = perfect, 0.0 = infinite error
+        # Sqrt dampens large errors, making the metric more interpretable
         accuracy = 1.0 / (1.0 + math.sqrt(max(trajectory_rmse, 0.0)))
 
         # 3. Energy drift (conservation)
@@ -225,13 +259,23 @@ class BenchmarkRunner:
 
         for baseline_name in self.config.benchmark_baselines:
             for test_problem in self.config.benchmark_test_problems:
-                for n_particles in self.config.benchmark_particle_counts:
-                    # Skip if test problem has fixed particle count
-                    if test_problem == "two_body" and n_particles != 2:
-                        continue
-                    if test_problem == "figure_eight" and n_particles != 3:
-                        continue
+                # Determine which particle counts to use
+                if test_problem in self._FIXED_PARTICLE_COUNTS:
+                    # Fixed particle count problem - use only the correct count
+                    particle_counts = [self._FIXED_PARTICLE_COUNTS[test_problem]]
+                    logger.debug(
+                        f"Using fixed particle count {particle_counts[0]} for {test_problem}"
+                    )
+                else:
+                    # Scalable problem - use all configured counts
+                    particle_counts = self.config.benchmark_particle_counts
+                    logger.debug(f"Using {len(particle_counts)} particle counts for {test_problem}")
 
+                for n_particles in particle_counts:
+                    logger.info(
+                        f"Running benchmark: {baseline_name} on {test_problem} "
+                        f"with {n_particles} particles"
+                    )
                     result = self.run_single_benchmark(baseline_name, test_problem, n_particles)
                     results.append(result)
 

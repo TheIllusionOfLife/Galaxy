@@ -138,6 +138,26 @@ class Settings(BaseSettings):
         ge=1, le=100, description="K-nearest neighbors for KDTree baseline"
     )
 
+    @field_validator("benchmark_test_problems")
+    @classmethod
+    def validate_test_problems(cls, v: list[str]) -> list[str]:
+        """Validate test problem names against known problems."""
+        valid_problems = {"two_body", "figure_eight", "plummer"}
+        invalid = set(v) - valid_problems
+        if invalid:
+            raise ValueError(f"Invalid test problems: {invalid}. Valid options: {valid_problems}")
+        return v
+
+    @field_validator("benchmark_baselines")
+    @classmethod
+    def validate_baselines(cls, v: list[str]) -> list[str]:
+        """Validate baseline names against known baselines."""
+        valid_baselines = {"kdtree", "direct_nbody"}
+        invalid = set(v) - valid_baselines
+        if invalid:
+            raise ValueError(f"Invalid baselines: {invalid}. Valid options: {valid_baselines}")
+        return v
+
     @property
     def total_requests_needed(self) -> int:
         """Calculate total LLM calls needed for one complete evolution run.

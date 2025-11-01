@@ -15,6 +15,7 @@ Example usage:
     plot_scaling_comparison(results, "output/scaling.png")
 """
 
+import json
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -90,8 +91,8 @@ def plot_scaling_comparison(results: list[BenchmarkResult], output_path: str) ->
     plt.close()
 
 
-def plot_accuracy_heatmap(results: list[BenchmarkResult], output_path: str) -> None:
-    """Plot accuracy heatmap across baselines and test problems.
+def plot_accuracy_bars(results: list[BenchmarkResult], output_path: str) -> None:
+    """Plot accuracy bars across baselines and test problems.
 
     Creates a bar plot showing accuracy for each baseline/problem combination.
 
@@ -100,7 +101,7 @@ def plot_accuracy_heatmap(results: list[BenchmarkResult], output_path: str) -> N
         output_path: Path where plot image will be saved
 
     Example:
-        >>> plot_accuracy_heatmap(results, "results/accuracy_heatmap.png")
+        >>> plot_accuracy_bars(results, "results/accuracy_bars.png")
     """
     fig, ax = plt.subplots(figsize=(12, 7))
 
@@ -214,8 +215,6 @@ def export_results_json(results: list[BenchmarkResult], output_path: str) -> Non
     Example:
         >>> export_results_json(results, "results/benchmark_results.json")
     """
-    import json
-
     # Convert results to dictionaries
     results_data = [
         {
