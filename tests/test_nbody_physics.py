@@ -249,10 +249,14 @@ class TestTwoBodyOrbits:
         final_angular_momentum = self._compute_angular_momentum(current_particles)
 
         # Angular momentum should be conserved (better than energy)
-        angular_momentum_drift = (
-            abs(final_angular_momentum - initial_angular_momentum) / abs(initial_angular_momentum)
-            if initial_angular_momentum != 0
-            else 0
+        # Ensure initial angular momentum is non-zero for meaningful relative error
+        assert abs(initial_angular_momentum) > 1e-6, (
+            f"Initial angular momentum {initial_angular_momentum} is too close to zero. "
+            "Test setup should create particles with non-zero angular momentum."
+        )
+
+        angular_momentum_drift = abs(final_angular_momentum - initial_angular_momentum) / abs(
+            initial_angular_momentum
         )
         assert angular_momentum_drift < 0.05, (
             f"Angular momentum drift {angular_momentum_drift:.2%} exceeds 5% threshold"

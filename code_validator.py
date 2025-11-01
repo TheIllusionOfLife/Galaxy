@@ -230,6 +230,16 @@ class CodeValidator:
                 logger.error("predict() returned NaN or Inf on test call")
                 return None
 
+            # Validate mass conservation (mass must be preserved)
+            input_mass = test_particle[6]
+            output_mass = result_floats[6]
+            if abs(output_mass - input_mass) > 1e-9:
+                logger.error(
+                    f"predict() must preserve particle mass. "
+                    f"Input mass: {input_mass}, Output mass: {output_mass}"
+                )
+                return None
+
         except Exception as e:
             logger.error(f"Test call failed: {e}")
             return None
