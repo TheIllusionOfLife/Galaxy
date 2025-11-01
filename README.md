@@ -201,6 +201,33 @@ uv run python prototype.py  # (configure test_problem in config.yaml)
 python scripts/compare_problems.py results/run_* --output results/comparison
 ```
 
+### Cross-Problem Generalization Analysis
+
+Test whether models trained on one problem can generalize to others:
+
+```bash
+# Run cross-validation analysis (requires evolution runs for all 3 test problems)
+python scripts/cross_validate_problems.py
+```
+
+This creates a 3×3 matrix testing each model on all problems:
+- **Trained on** (rows): which problem the model was evolved on
+- **Tested on** (columns): which problem the model is evaluated against
+- **Generalization penalty**: % fitness drop when tested on different problem
+
+Example output:
+```markdown
+| Trained On → Tested On | two_body | figure_eight | plummer |
+|------------------------|----------|--------------|---------|
+| **two_body**           | 320,373 (0%) | 188,876 (+41%) | 12,193 (+96%) |
+| **figure_eight**       | 347,071 (-50%) | 244,427 (-6%) | 16,579 (+93%) |
+| **plummer**            | 197,256 (-720%) | 145,040 (-503%) | 19,764 (+18%) |
+```
+
+**Key Finding**: Models show varying generalization - two_body models specialize to simple problems, while plummer models improve on other tasks (negative penalty = better performance).
+
+Results saved to: `results/analysis/cross_validation_YYYYMMDD_HHMMSS/`
+
 Example comparison output:
 | Test Problem | N | Best Fitness | Accuracy | Speed (s) |
 |--------------|---|--------------|----------|-----------|
