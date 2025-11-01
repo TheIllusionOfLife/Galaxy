@@ -21,9 +21,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-# Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
 from prototype import (
     CosmologyCrucible,
     compile_external_surrogate,
@@ -31,6 +28,12 @@ from prototype import (
     make_parametric_surrogate,
 )
 from scripts.extract_best_model import find_best_model, load_evolution_history
+
+# Validation particles for model compilation (2-particle system)
+_VALIDATION_PARTICLES = [
+    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+    [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+]
 
 
 @dataclass
@@ -91,23 +94,11 @@ def _build_model_callable(model: dict) -> Callable[[list[float], list[list[float
     """
     # LLM-generated models have raw_code
     if "raw_code" in model and model["raw_code"]:
-        # Need validation particles for compile_external_surrogate
-        # Use simple 2-particle system as validation
-        validation_particles = [
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
-            [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
-        ]
-        return compile_external_surrogate(model["raw_code"], validation_particles)
+        return compile_external_surrogate(model["raw_code"], _VALIDATION_PARTICLES)
 
     # Parametric models have theta parameters
     if "theta" in model:
-        theta = model["theta"]
-        # make_parametric_surrogate needs all_particles argument (unused but required)
-        validation_particles = [
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
-            [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
-        ]
-        return make_parametric_surrogate(theta, validation_particles)
+        return make_parametric_surrogate(model["theta"], _VALIDATION_PARTICLES)
 
     raise ValueError(
         "Model must have either 'raw_code' or 'theta' field. "
@@ -145,11 +136,9 @@ def evaluate_model_on_problem(
     # Evaluate model
     accuracy, speed = crucible.evaluate_surrogate_model(model_callable)
 
-    # Calculate fitness (same formula as evolution)
-    if speed > 0:
-        fitness = accuracy / speed
-    else:
-        fitness = float("inf")
+    # Calculate fitness using evolution's formula: accuracy / (speed + epsilon)
+    # This matches prototype.py line 801 to ensure consistent comparisons
+    fitness = accuracy / (speed + 1e-9)
 
     return {"fitness": fitness, "accuracy": accuracy, "speed": speed}
 
@@ -185,19 +174,18 @@ def create_cross_validation_matrix(run_dirs: dict[str, Path]) -> list[CrossValid
     Returns:
         List of CrossValidationResult for all (trained, tested) pairs
     """
+    # Load all models once before loops (optimization from reviewer feedback)
+    models = {problem: load_best_model(run_dir) for problem, run_dir in run_dirs.items()}
+
     results = []
 
-    for trained_problem, trained_run_dir in run_dirs.items():
-        # Load best model from this problem
-        model = load_best_model(trained_run_dir)
+    for trained_problem, model in models.items():
         trained_particles = model["num_particles"]
         original_fitness = model["fitness"]
 
         # Test on all problems (including itself)
-        for tested_problem in run_dirs.keys():
-            # Get particle count for tested problem
-            tested_model = load_best_model(run_dirs[tested_problem])
-            tested_particles = tested_model["num_particles"]
+        for tested_problem in models.keys():
+            tested_particles = models[tested_problem]["num_particles"]
 
             # Evaluate model on test problem
             eval_result = evaluate_model_on_problem(model, tested_problem, tested_particles)

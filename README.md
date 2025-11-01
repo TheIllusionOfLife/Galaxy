@@ -228,13 +228,6 @@ Example output:
 
 Results saved to: `results/analysis/cross_validation_YYYYMMDD_HHMMSS/`
 
-Example comparison output:
-| Test Problem | N | Best Fitness | Accuracy | Speed (s) |
-|--------------|---|--------------|----------|-----------|
-| two_body     |  2|    523,752   |   99.95% |  0.000002 |
-| figure_eight |  3|    259,637   |   99.07% |  0.000004 |
-| plummer      | 20|      9,392   |   55.53% |  0.000059 |
-
 ### Execution Results
 
 The program outputs:
