@@ -256,6 +256,57 @@ uv run pytest tests/
 uv run pytest tests/ --cov --cov-report=html
 ```
 
+## Benchmarks
+
+The project includes a comprehensive benchmark suite for systematic performance evaluation of baseline surrogate models.
+
+### Running Benchmarks
+
+```bash
+# Run full benchmark suite
+python scripts/run_benchmarks.py
+```
+
+This generates:
+- **Scaling analysis plots** (log-log complexity comparison)
+- **Accuracy heatmaps** (baseline performance)
+- **Pareto fronts** (accuracy vs speed trade-off)
+- **Performance tables** (markdown + JSON)
+
+### Example Results
+
+**Scaling Analysis:**
+```
+direct_nbody on plummer:
+  Empirical: O(N^1.96)
+  Theoretical: O(N²)
+
+kdtree on plummer:
+  Empirical: O(N^1.40)
+  Theoretical: O(N² log N)
+```
+
+**Performance Table:**
+| Baseline | Test Problem | N | Accuracy | Speed (s) |
+|----------|-------------|---|----------|-----------|
+| direct_nbody | plummer | 200 | 1.000 | 0.868 |
+| kdtree | plummer | 200 | 0.063 | 1.534 |
+
+### Output Location
+
+Results are saved to timestamped directories:
+```
+results/benchmarks/run_YYYYMMDD_HHMMSS/
+├── benchmark_results.json      # Complete raw data
+├── performance_table.md         # Formatted table
+├── scaling_analysis.txt         # Complexity analysis
+├── scaling_comparison.png       # Log-log plot
+├── accuracy_heatmap.png        # Performance heatmap
+└── pareto_front.png            # Trade-off visualization
+```
+
+**See [benchmarks/README.md](benchmarks/README.md) for detailed documentation.**
+
 ## Troubleshooting
 
 ### Common Setup Issues
