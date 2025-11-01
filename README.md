@@ -504,9 +504,16 @@ If you encounter issues not covered here:
 
 2. **Code Modularization** (MEDIUM PRIORITY - Deferred)
    - **Source**: 4/5 reviewers consensus from previous planning
-   - **Context**: prototype.py now at 914 lines after Phase 1 migration
+   - **Context**: prototype.py now at 1044 lines after Phase 1 migration
    - **Goal**: Extract to galaxy/ package structure for SOLID principles
-   - **Structure**: `galaxy/` (core/, crucible/, llm/) + main orchestration
+   - **Structure**:
+     ```text
+     galaxy/
+     ├── core/ (genome.py, evolution.py, selection.py)
+     ├── crucible/ (base.py, nbody.py)
+     ├── llm/ (client.py, gemini.py)
+     └── prototype.py (main orchestration, ~100 lines)
+     ```
    - **Benefits**: Easier domain extension, testable in isolation, reduced cognitive load
    - **Priority**: Deferred until Phase 2 complete (avoid disrupting working physics)
    - **Estimated time**: 3-4 hours
