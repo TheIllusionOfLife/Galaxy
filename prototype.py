@@ -21,7 +21,12 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 # ------------------------------------------------------------------------------
-DEFAULT_ATTRACTOR = [50.0, 50.0]
+# Sample particles for validation (3D N-body format: [x, y, z, vx, vy, vz, mass])
+_VALIDATION_PARTICLES = [
+    [10.0, 20.0, 30.0, 0.1, 0.2, 0.3, 1.0],
+    [40.0, 50.0, 60.0, -0.1, -0.2, -0.3, 1.5],
+    [70.0, 80.0, 90.0, 0.0, 0.0, 0.0, 2.0],
+]
 
 
 @dataclass
@@ -45,7 +50,17 @@ class SurrogateGenome:
         coeffs = ", ".join(f"{value:.4f}" for value in self.theta)
         return f"theta=[{coeffs}]"
 
-    def build_callable(self, attractor: list[float]) -> Callable[[list[float]], list[float]]:
+    def build_callable(
+        self, all_particles: list[list[float]]
+    ) -> Callable[[list[float], list[list[float]]], list[float]]:
+        """Build callable surrogate model.
+
+        Args:
+            all_particles: Sample particles for validation (3D N-body format)
+
+        Returns:
+            Callable with signature predict(particle, all_particles) -> [x,y,z,vx,vy,vz,mass]
+        """
         # Prefer the pre-validated callable to avoid TOCTOU security issues
         if self.compiled_predict is not None:
             return self.compiled_predict
@@ -55,15 +70,15 @@ class SurrogateGenome:
                 try:
                     from code_validator import validate_and_compile
 
-                    compiled, validation = validate_and_compile(self.raw_code, attractor)
+                    compiled, validation = validate_and_compile(self.raw_code, all_particles)
                     if not validation.valid or compiled is None:
                         raise ValueError(f"Invalid surrogate code: {validation.errors}")
                     self.compiled_predict = compiled
                     return compiled
                 except ImportError:
                     pass
-            return compile_external_surrogate(self.raw_code, attractor)
-        return make_parametric_surrogate(self.theta, attractor)
+            return compile_external_surrogate(self.raw_code, all_particles)
+        return make_parametric_surrogate(self.theta, all_particles)
 
 
 def make_parametric_surrogate(
@@ -326,8 +341,8 @@ def LLM_propose_surrogate_model(
             logger.error(f"LLM call failed: {response.error}")
             return _mock_surrogate_generation(base_genome, generation)
 
-        # Validate code
-        compiled_func, validation = validate_and_compile(response.code, DEFAULT_ATTRACTOR)
+        # Validate code with sample 3D N-body particles
+        compiled_func, validation = validate_and_compile(response.code, _VALIDATION_PARTICLES)
 
         if not validation.valid:
             logger.warning(f"Generated code invalid: {validation.errors}")
