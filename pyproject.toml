@@ -13,10 +13,12 @@ dependencies = [
     "pydantic>=2.0.0",
     "pydantic-settings>=2.0.0",
     "matplotlib>=3.5.0",
+    "scipy>=1.9.0",
+    "numpy>=1.21.0",
 ]
 
 [tool.setuptools]
-py-modules = ["config", "prototype", "gemini_client", "prompts", "code_validator", "visualization"]
+py-modules = ["config", "prototype", "gemini_client", "prompts", "code_validator", "visualization", "initial_conditions", "baselines", "validation_metrics"]
 
 [project.optional-dependencies]
 dev = [
