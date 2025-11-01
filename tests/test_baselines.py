@@ -2,9 +2,7 @@
 
 import pytest
 
-# Will import from baselines module (doesn't exist yet - TDD red phase)
 from baselines import create_direct_nbody_baseline, create_kdtree_baseline
-
 from prototype import SurrogateGenome
 
 
