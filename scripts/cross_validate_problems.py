@@ -109,7 +109,12 @@ def _build_model_callable(model: dict) -> Callable[[list[float], list[list[float
         ]
         return make_parametric_surrogate(theta, validation_particles)
 
-    raise ValueError("Model must have either 'raw_code' or 'theta' field")
+    raise ValueError(
+        "Model must have either 'raw_code' or 'theta' field. "
+        "Current evolution runs do not save model code. "
+        "You need to run evolution with code saving enabled first. "
+        "See PHASE3_RESULTS.md for details."
+    )
 
 
 def evaluate_model_on_problem(
