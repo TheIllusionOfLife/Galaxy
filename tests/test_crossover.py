@@ -30,7 +30,7 @@ class TestCrossoverOperator:
         """Verify crossover raises error with insufficient elites."""
         # Setup: Only 1 elite with raw_code
         genome = Mock()
-        genome.raw_code = "def predict(particle, attractor): return particle"
+        genome.raw_code = "def predict(particle, all_particles): return particle"
         elites = [("civ_0_0", {"genome": genome, "fitness": 10})]
 
         # Assert: Raises ValueError
@@ -141,7 +141,7 @@ class TestBreedingWithCrossover:
             genome = SurrogateGenome(
                 theta=[float(i)],
                 fitness=100.0 - i,
-                raw_code=f"def predict(particle, attractor): return particle  # elite {i}",
+                raw_code=f"def predict(particle, all_particles): return particle  # elite {i}",
             )
             genome.build_callable = Mock(return_value=lambda p, a: p)
             elites.append((f"civ_0_{i}", {"genome": genome, "fitness": 100.0 - i}))
