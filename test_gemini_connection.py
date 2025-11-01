@@ -127,11 +127,13 @@ def main():
         return 1
 
     print("Testing execution...")
-    test_particle = [45.0, 45.0, 1.0, 1.0]
+    # Use 3D N-body format: [x, y, z, vx, vy, vz, mass]
+    test_particle = validation_particles[0]
+    test_all_particles = validation_particles
     print(f"Input particle:  {test_particle}")
 
     try:
-        result = compiled_func(test_particle)
+        result = compiled_func(test_particle, test_all_particles)
         print(f"Output particle: {result}")
         print()
         print("✅ Execution successful!")
