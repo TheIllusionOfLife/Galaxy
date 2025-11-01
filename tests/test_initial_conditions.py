@@ -4,7 +4,6 @@ import math
 
 import pytest
 
-# Will import from initial_conditions module (doesn't exist yet - TDD red phase)
 from initial_conditions import (
     plummer_sphere,
     three_body_figure_eight,

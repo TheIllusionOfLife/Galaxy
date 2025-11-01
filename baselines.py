@@ -25,6 +25,11 @@ def create_kdtree_baseline(
     Uses scipy.spatial.KDTree for O(N log N) neighbor finding,
     then approximates gravitational force using only k nearest neighbors.
 
+    PERFORMANCE NOTE: This baseline rebuilds the KDTree on every prediction call,
+    resulting in O(N * N log N) complexity when predicting all particles in a system.
+    This is acceptable for baselines as it maintains simplicity and statelessness,
+    but evolved surrogates should achieve better performance.
+
     Args:
         k_neighbors: Number of nearest neighbors to consider
         grav_const: Gravitational constant (default 1.0)
@@ -90,21 +95,16 @@ def create_kdtree_baseline(
             ay += force_mag * dy
             az += force_mag * dz
 
-        # Leapfrog integration (velocity Verlet)
-        # Half-step velocity update
-        vx_half = vx + ax * dt / 2.0
-        vy_half = vy + ay * dt / 2.0
-        vz_half = vz + az * dt / 2.0
+        # Symplectic Euler integration (Euler-Cromer)
+        # Update velocity first using current acceleration
+        new_vx = vx + ax * dt
+        new_vy = vy + ay * dt
+        new_vz = vz + az * dt
 
-        # Full-step position update
-        new_x = x + vx_half * dt
-        new_y = y + vy_half * dt
-        new_z = z + vz_half * dt
-
-        # Half-step velocity update (using same acceleration - approximation)
-        new_vx = vx_half + ax * dt / 2.0
-        new_vy = vy_half + ay * dt / 2.0
-        new_vz = vz_half + az * dt / 2.0
+        # Update position using new velocity (symplectic property)
+        new_x = x + new_vx * dt
+        new_y = y + new_vy * dt
+        new_z = z + new_vz * dt
 
         return [new_x, new_y, new_z, new_vx, new_vy, new_vz, mass]
 
@@ -180,21 +180,16 @@ def create_direct_nbody_baseline(
             ay += force_mag * dy
             az += force_mag * dz
 
-        # Leapfrog integration (velocity Verlet) - matches CosmologyCrucible
-        # Half-step velocity update
-        vx_half = vx + ax * dt / 2.0
-        vy_half = vy + ay * dt / 2.0
-        vz_half = vz + az * dt / 2.0
+        # Symplectic Euler integration (Euler-Cromer)
+        # Update velocity first using current acceleration
+        new_vx = vx + ax * dt
+        new_vy = vy + ay * dt
+        new_vz = vz + az * dt
 
-        # Full-step position update
-        new_x = x + vx_half * dt
-        new_y = y + vy_half * dt
-        new_z = z + vz_half * dt
-
-        # Half-step velocity update
-        new_vx = vx_half + ax * dt / 2.0
-        new_vy = vy_half + ay * dt / 2.0
-        new_vz = vz_half + az * dt / 2.0
+        # Update position using new velocity (symplectic property)
+        new_x = x + new_vx * dt
+        new_y = y + new_vy * dt
+        new_z = z + new_vz * dt
 
         return [new_x, new_y, new_z, new_vx, new_vy, new_vz, mass]
 

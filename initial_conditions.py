@@ -189,8 +189,9 @@ def plummer_sphere(
         # Use inverse transform sampling for radial distance
 
         # Cumulative distribution function: M(r) / M_total = r³ / (a² + r²)^(3/2)
-        # Solve for r given uniform random u in [0,1]
-        u = random.random()
+        # Solve for r given uniform random u in (0,1]
+        # Clamp to avoid division by zero when u=0
+        u = max(random.random(), 1e-12)
         # r = a / sqrt(u^(-2/3) - 1)
         r = scale_radius / math.sqrt(u ** (-2.0 / 3.0) - 1.0)
 
@@ -212,14 +213,19 @@ def plummer_sphere(
         r_squared_plus_a_squared = r**2 + scale_radius**2
         v_esc_squared = 2.0 * grav_const * total_mass / math.sqrt(r_squared_plus_a_squared)
 
-        # Velocity magnitude: use rejection sampling for proper distribution
-        # f(v) ∝ v² * (1 - v²/v_esc²)^(7/2) (Eddington formula for Plummer)
-        # Simplified: sample from scaled Maxwell-Boltzmann
-        # For virial equilibrium: <v²> ≈ G * M / (2 * a)
+        # LIMITATION: Simplified velocity sampling
+        # Proper Plummer velocity distribution requires Eddington formula:
+        # f(v) ∝ v² * (1 - v²/v_esc²)^(7/2) with density-dependent distribution function
+        # This requires numerical inversion of the distribution function f(E), which is
+        # computationally expensive and beyond the scope of simple test problem generation.
+        #
+        # Current approximation: Gaussian sampling with escape velocity cutoff
+        # This achieves approximate virial equilibrium but not exact dynamical equilibrium.
+        # For rigorous initial conditions, use dedicated tools like NEMO or GADGET.
         v_scale = math.sqrt(grav_const * total_mass / scale_radius)
         v_mag = 0.0
 
-        # Use rejection sampling for proper velocity distribution
+        # Use rejection sampling to respect escape velocity
         max_attempts = 100
         for _ in range(max_attempts):
             # Sample from Gaussian with appropriate scale

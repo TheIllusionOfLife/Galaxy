@@ -151,18 +151,26 @@ def compute_angular_momentum_conservation(
             ly += mass * (z * vx - x * vz)
             lz += mass * (x * vy - y * vx)
 
-        # Magnitude of angular momentum vector
-        return math.sqrt(lx**2 + ly**2 + lz**2)
+        return (lx, ly, lz)
 
-    initial_l = total_angular_momentum(initial_particles)
-    final_l = total_angular_momentum(final_particles)
+    initial_lx, initial_ly, initial_lz = total_angular_momentum(initial_particles)
+    final_lx, final_ly, final_lz = total_angular_momentum(final_particles)
 
-    # Relative drift
-    if abs(initial_l) < 1e-10:
+    # Compute vector difference
+    dlx = final_lx - initial_lx
+    dly = final_ly - initial_ly
+    dlz = final_lz - initial_lz
+    delta_l_magnitude = math.sqrt(dlx**2 + dly**2 + dlz**2)
+
+    # Initial angular momentum magnitude
+    initial_l_magnitude = math.sqrt(initial_lx**2 + initial_ly**2 + initial_lz**2)
+
+    # Relative drift based on vector difference
+    if abs(initial_l_magnitude) < 1e-10:
         # If initial L is zero, return absolute difference
-        return abs(final_l - initial_l)
+        return delta_l_magnitude
 
-    return abs(final_l - initial_l) / abs(initial_l)
+    return delta_l_magnitude / abs(initial_l_magnitude)
 
 
 def compute_virial_ratio(particles: list[list[float]], grav_const: float = 1.0) -> float:

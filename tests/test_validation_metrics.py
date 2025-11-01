@@ -4,7 +4,6 @@ import math
 
 import pytest
 
-# Will import from validation_metrics module (doesn't exist yet - TDD red phase)
 from validation_metrics import (
     compute_angular_momentum_conservation,
     compute_energy_drift,
@@ -48,7 +47,7 @@ class TestEnergyDrift:
     def test_empty_system_handled(self):
         """Empty particle list should not crash."""
         drift = compute_energy_drift([], [])
-        assert drift == 0.0 or math.isnan(drift)
+        assert drift == 0.0
 
 
 class TestTrajectoryRMSE:
@@ -154,8 +153,8 @@ class TestVirialRatio:
         particles = [[0, 0, 0, 1, 1, 1, 1]]
 
         ratio = compute_virial_ratio(particles)
-        # No potential energy, ratio undefined or inf
-        assert math.isinf(ratio) or math.isnan(ratio) or ratio == 0.0
+        # No potential energy, ratio is inf (kinetic energy with no potential)
+        assert math.isinf(ratio)
 
     @pytest.mark.parametrize("grav_const", [0.5, 1.0, 2.0])
     def test_different_gravitational_constants(self, grav_const):
