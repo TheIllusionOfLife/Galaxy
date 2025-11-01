@@ -25,28 +25,34 @@ class TestCrossoverIntegration:
         if not settings.google_api_key or settings.google_api_key.startswith("test-"):
             pytest.skip("API key required for integration test")
 
-        # Setup: Two known-good parent codes (Euler + Verlet integration)
+        # Setup: Two known-good parent codes (Euler + Verlet integration, 3D N-body)
         parent1 = SurrogateGenome(
             theta=[],
             raw_code="""
-def predict(particle, attractor):
-    x, y, vx, vy = particle
-    ax, ay = attractor
+def predict(particle, all_particles):
+    x, y, z, vx, vy, vz, mass = particle
+
+    # Center of mass approximation
+    cx = sum(p[0] for p in all_particles) / len(all_particles)
+    cy = sum(p[1] for p in all_particles) / len(all_particles)
+    cz = sum(p[2] for p in all_particles) / len(all_particles)
 
     # Euler integration
-    dx = x - ax
-    dy = y - ay
-    r = max(0.1, (dx**2 + dy**2)**0.5)
+    dx, dy, dz = x - cx, y - cy, z - cz
+    r = max(0.1, (dx**2 + dy**2 + dz**2)**0.5)
 
     fx = -dx / (r**3)
     fy = -dy / (r**3)
+    fz = -dz / (r**3)
 
     new_vx = vx + fx * 0.1
     new_vy = vy + fy * 0.1
+    new_vz = vz + fz * 0.1
     new_x = x + new_vx * 0.1
     new_y = y + new_vy * 0.1
+    new_z = z + new_vz * 0.1
 
-    return [new_x, new_y, new_vx, new_vy]
+    return [new_x, new_y, new_z, new_vx, new_vy, new_vz, mass]
 """,
             fitness=15000.0,
             accuracy=0.85,
@@ -56,31 +62,38 @@ def predict(particle, attractor):
         parent2 = SurrogateGenome(
             theta=[],
             raw_code="""
-def predict(particle, attractor):
-    x, y, vx, vy = particle
-    ax, ay = attractor
+def predict(particle, all_particles):
+    x, y, z, vx, vy, vz, mass = particle
+
+    # Center of mass approximation
+    cx = sum(p[0] for p in all_particles) / len(all_particles)
+    cy = sum(p[1] for p in all_particles) / len(all_particles)
+    cz = sum(p[2] for p in all_particles) / len(all_particles)
 
     # Velocity Verlet integration
-    dx = x - ax
-    dy = y - ay
-    r = max(0.1, (dx**2 + dy**2)**0.5)
+    dx, dy, dz = x - cx, y - cy, z - cz
+    r = max(0.1, (dx**2 + dy**2 + dz**2)**0.5)
 
     fx = -dx / (r**3)
     fy = -dy / (r**3)
+    fz = -dz / (r**3)
 
     # Update velocity (half step)
     vx_half = vx + fx * 0.05
     vy_half = vy + fy * 0.05
+    vz_half = vz + fz * 0.05
 
     # Update position
     new_x = x + vx_half * 0.1
     new_y = y + vy_half * 0.1
+    new_z = z + vz_half * 0.1
 
     # Update velocity (full step)
     new_vx = vx_half + fx * 0.05
     new_vy = vy_half + fy * 0.05
+    new_vz = vz_half + fz * 0.05
 
-    return [new_x, new_y, new_vx, new_vy]
+    return [new_x, new_y, new_z, new_vx, new_vy, new_vz, mass]
 """,
             fitness=18000.0,
             accuracy=0.90,
@@ -114,13 +127,16 @@ def predict(particle, attractor):
             assert "def predict" in offspring.raw_code, "Should define predict function"
             assert offspring.compiled_predict is not None, "Code should be compiled"
 
-            # Test execution
-            test_particle = [10.0, 0.0, 0.0, 1.0]
-            test_attractor = [0.0, 0.0]
-            result = offspring.compiled_predict(test_particle, test_attractor)
+            # Test execution with 3D N-body format
+            test_particle = [10.0, 10.0, 10.0, 0.0, 0.0, 0.0, 1.0]
+            test_all_particles = [
+                [10.0, 10.0, 10.0, 0.0, 0.0, 0.0, 1.0],
+                [20.0, 20.0, 20.0, 0.0, 0.0, 0.0, 1.0],
+            ]
+            result = offspring.compiled_predict(test_particle, test_all_particles)
 
             assert isinstance(result, list), "Output should be a list"
-            assert len(result) == 4, "Output should have 4 elements"
+            assert len(result) == 7, "Output should have 7 elements"
             assert all(isinstance(v, (int, float)) for v in result), "All outputs should be numeric"
         else:
             # Fell back to parametric (acceptable)
@@ -149,9 +165,8 @@ def predict(particle, attractor):
         # Expected: ~10 API calls (5 initial + 5 generation 1)
         # Cost: ~$0.004
 
-        # Initialize components
-        attractor = [0.0, 0.0]
-        crucible = CosmologyCrucible(attractor=attractor)
+        # Initialize components (3D N-body with 20 particles for speed)
+        crucible = CosmologyCrucible(num_particles=20)
 
         client = GeminiClient(
             api_key=settings.google_api_key,
