@@ -43,6 +43,14 @@ code_penalty:
   weight: 0.1
   max_tokens: 400
 
+physics_penalty:
+  enabled: false
+  energy_weight: 0.3
+  momentum_weight: 0.1
+  energy_drift_threshold: 0.01
+  angular_momentum_threshold: 0.01
+  validation_timesteps: 10
+
 crossover:
   enabled: true
   crossover_rate: 0.5
@@ -106,6 +114,14 @@ code_penalty:
   enabled: true
   weight: 0.1
   max_tokens: 400
+
+physics_penalty:
+  enabled: false
+  energy_weight: 0.3
+  momentum_weight: 0.1
+  energy_drift_threshold: 0.01
+  angular_momentum_threshold: 0.01
+  validation_timesteps: 10
 
 crossover:
   enabled: true
