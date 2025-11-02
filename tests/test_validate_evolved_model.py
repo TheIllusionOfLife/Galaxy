@@ -9,6 +9,7 @@ import json
 from pathlib import Path
 
 import pytest
+
 from scripts.validate_evolved_model import (
     compute_physics_metrics,
     export_validation_json,
@@ -279,8 +280,9 @@ class TestValidationReportGeneration:
         assert "# Physics Validation" in content
         assert "## Summary" in content
         assert "## Results by Test Problem" in content
-        assert "two_body" in content
-        assert "plummer" in content
+        # Check for title-cased problem names
+        assert "Two Body" in content or "two_body" in content.lower()
+        assert "Plummer" in content or "plummer" in content.lower()
         # Check for markdown table syntax
         assert "|" in content
         assert "---" in content
