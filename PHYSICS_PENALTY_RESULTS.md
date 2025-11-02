@@ -180,25 +180,140 @@ def validate_physics(
 
 ---
 
+---
+
+## Full-Scale Run Results (November 2, 2025, 21:56 JST)
+
+### Test Configuration
+- **Population**: 10 models per generation
+- **Generations**: 5
+- **Test Problem**: plummer (N=50 particles)
+- **Physics Penalty**: ENABLED (energy_weight=0.3, momentum_weight=0.1)
+- **Run Directory**: `results/run_20251102_215639`
+- **Total API calls**: 60 (cost: $0.0316)
+- **Runtime**: ~8.8 minutes
+
+### Key Results
+
+| Metric | Value | Assessment |
+|--------|-------|------------|
+| **Best Fitness** | 1,518.11 | Moderate (vs 24,042 without penalty) |
+| **Best Energy Drift** | 4.21% | ❌ **4.2x threshold** (goal: <1%) |
+| **Best Accuracy** | 37.54% | Low (vs 55% without penalty) |
+| **Best Speed** | 0.000235s | Excellent |
+| **Mean Energy Drift** | 391.67% | ❌ **Severe violations** |
+| **Models with <1% drift** | 0/50 (0%) | ❌ **NONE achieved goal** |
+| **Models with >100% drift** | 44/50 (88%) | ❌ **Vast majority severe** |
+
+### Comparison to PR #41 Baseline (WITHOUT Physics Penalty)
+
+| Metric | PR #41 (No Penalty) | This Run (With Penalty) | Result |
+|--------|---------------------|-------------------------|--------|
+| **Best Energy Drift** | 293% | **4.21%** | ✅ **98.6% better** |
+| **Mean Energy Drift** | Unknown | **391.67%** | N/A |
+| **Best Fitness** | 24,042 | **1,518** | ❌ **94% drop** |
+| **Accuracy** | 55.5% | **37.5%** | ❌ **Lower** |
+
+### Critical Finding: **Physics Penalty Partially Effective**
+
+✅ **Best model improved dramatically**:
+- Best energy drift: 293% → 4.21% (98.6% improvement)
+- Physics penalty IS effective for top performers
+
+❌ **Population mean still poor**:
+- Mean energy drift: 391.67% (most models violate conservation)
+- NO models achieved <1% conservation goal (0/50)
+- 88% of models had >100% energy drift (severe violations)
+
+**Root Cause** (from Task 2 analysis): LLM prompts don't emphasize conservation. Weight tuning experiments (3-33x increase) showed NO improvement - same 16.25% best drift across all configs. Problem is prompt design and fitness formula imbalance, not penalty strength.
+
+### Physics Penalty Impact
+
+**Penalty Distribution**:
+- 1-10% drift (good): 1 model → 5% penalty
+- 10-100% drift (poor): 5 models → 61% penalty (avg)
+- >100% drift (severe): 44 models → >100% penalty (capped at 90%)
+
+**Problem**: 90% penalty cap leaves 10% floor, sufficient for fast models to survive despite catastrophic physics violations.
+
+---
+
+## Recommendations from Full-Scale Run
+
+### 1. Update LLM Prompts to Emphasize Conservation (HIGH PRIORITY)
+
+**Current**: Prompts focus on accuracy/speed, no conservation mention
+**Recommended**: Explicitly request energy/momentum conservation, symplectic integrators
+
+**Rationale** (from Task 2): Weight tuning (3-33x increase) showed NO improvement. LLM generates same fast models regardless of penalty strength. Root cause is prompt design, not penalty weights.
+
+### 2. Remove or Lower Penalty Cap (HIGH PRIORITY)
+
+**Current**: 90% cap (10% floor)
+**Options**:
+- A. Remove cap entirely (allow unlimited penalty)
+- B. Mark >100% drift as invalid (fitness=-inf)
+
+**Rationale**: Scientifically invalid models should not survive selection.
+
+### 3. Per-Problem Adaptive Thresholds (MEDIUM PRIORITY)
+
+**Current**: 1% threshold for all problems
+**Recommended**:
+- two_body: 0.1% (simple system)
+- figure_eight: 1-2% (chaotic)
+- plummer: **5-10%** (complex N-body, higher drift acceptable)
+
+**Rationale**: 1% threshold may be unrealistic for N=50 plummer sphere.
+
+### 4. Fitness Formula Rebalancing (CONSIDERATION)
+
+**Issue**: Speed dominates fitness (0.0002s → 5000x multiplier), overwhelming physics penalty.
+
+**Consider**: Log-scale speed benefit or explicit multi-objective optimization.
+
+---
+
 ## Next Steps
 
-1. **Run Full Evolution**: 10 population × 5 generations with physics penalty enabled
-2. **Compare to PR #41 Baseline**: Measure actual energy drift reduction
-3. **Tune Weights**: Experiment with different energy_weight / momentum_weight ratios
-4. **Per-Problem Thresholds**: Set different thresholds for two_body vs plummer
-5. **Scientific Publication**: Document LLM-discovered physics-preserving approximations
+1. ~~**Run Full Evolution**~~: ✅ **COMPLETE** (this run)
+2. ~~**Compare to PR #41 Baseline**~~: ✅ **COMPLETE** (documented above)
+3. ~~**Tune Weights**~~: ✅ **COMPLETE** (Task 2 - found weight tuning ineffective)
+4. **Update LLM Prompts**: Emphasize conservation explicitly **(HIGH PRIORITY)**
+5. **Per-Problem Thresholds**: Adaptive thresholds per problem type (see Task 3)
+6. **Rebalance Fitness Formula**: Multi-objective or log-scale speed **(MEDIUM)**
 
 ---
 
 ## Conclusion
 
-Physics-aware fitness penalties successfully implemented and validated. The system now:
-- ✅ Detects energy and angular momentum violations
-- ✅ Penalizes models proportional to violation severity
-- ✅ Marks invalid models (crashes) as fitness=-inf
-- ✅ Saves physics metrics for analysis
+### Implementation Status: ✅ **SUCCESS**
+
+Physics-aware fitness penalties successfully implemented and validated at full scale. The system:
+- ✅ Detects energy and angular momentum violations correctly
+- ✅ Applies penalties proportional to violation severity
+- ✅ Tracks physics metrics across all generations
+- ✅ Maintains stability (no crashes, 0 invalid models)
 - ✅ Fully configurable via config.yaml
 
-**Impact**: This feature enables evolution of **scientifically valid** surrogate models that preserve fundamental physics laws, not just trajectory accuracy. Critical for long-term simulations and scientific applications.
+### Conservation Goals: ⚠️ **PARTIALLY ACHIEVED**
 
-**Status**: Ready for full-scale evolution runs and PR creation.
+**Mixed Results**:
+- ✅ **Best model**: 293% → 4.21% drift (98.6% improvement)
+- ❌ **Population mean**: 391.67% drift (most models still violate)
+- ❌ **NO models achieved <1% goal** (0/50)
+- ❌ **88% had severe violations** (>100% drift)
+
+**Task 2 Finding**: Weight tuning (3-33x) showed NO improvement. Root cause is LLM prompt design, not penalty strength.
+
+### Scientific Impact
+
+This full-scale run demonstrates that:
+1. **Physics penalties ARE effective** - best model improved 98.6% (293% → 4.21% drift)
+2. **Weight tuning is NOT the solution** - Task 2 showed 3-33x increase had NO effect
+3. **LLM prompt design is critical** - prompts must explicitly emphasize conservation
+4. **Fitness formula rebalancing needed** - speed multiplier (5000x) overwhelms physics penalty
+
+**Next Priority**: Update LLM prompts to emphasize conservation + rebalance fitness formula (see PENALTY_WEIGHT_TUNING_RESULTS.md recommendations).
+
+**Status**: Full-scale validation complete. Root cause identified (prompt design). Ready for prompt engineering phase.

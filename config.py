@@ -121,13 +121,13 @@ class Settings(BaseSettings):
     )
     physics_energy_weight: float = Field(
         ge=0.0,
-        le=1.0,
-        description="Energy drift penalty weight (0.0 = no penalty, 1.0 = maximum)",
+        le=100.0,  # Upper bound allows 30x+ weight tuning experiments (see PENALTY_WEIGHT_TUNING_RESULTS.md)
+        description="Energy drift penalty weight (0.0 = no penalty, higher = stronger penalty)",
     )
     physics_momentum_weight: float = Field(
         ge=0.0,
-        le=1.0,
-        description="Angular momentum drift penalty weight (0.0 = no penalty, 1.0 = maximum)",
+        le=100.0,  # Upper bound allows 30x+ weight tuning experiments (see PENALTY_WEIGHT_TUNING_RESULTS.md)
+        description="Angular momentum drift penalty weight (0.0 = no penalty, higher = stronger penalty)",
     )
     energy_drift_threshold: float = Field(
         ge=0.0,
