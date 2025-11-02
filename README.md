@@ -228,6 +228,34 @@ Example output:
 
 Results saved to: `results/analysis/cross_validation_YYYYMMDD_HHMMSS/`
 
+### Physics Validation
+
+Validate evolved models for physical plausibility (energy conservation, trajectory accuracy):
+
+```bash
+# Validate single run
+python -m scripts.validate_evolved_model --run-dir results/run_YYYYMMDD_HHMMSS
+
+# Validate all runs
+python -m scripts.validate_evolved_model --all
+```
+
+Physics metrics computed:
+- **Energy drift**: Relative energy conservation violation (should be <1% for good models)
+- **Trajectory RMSE**: Position error vs ground truth (lower is better)
+- **Angular momentum conservation**: Rotational conservation violation
+
+Example validation results:
+| Test Problem | Fitness | Energy Drift | Trajectory RMSE | Interpretation |
+|--------------|---------|--------------|-----------------|----------------|
+| two_body     | 320,270 | 0.0044%      | 1.98            | ✓ Excellent energy conservation |
+| figure_eight | 230,794 | 0.75%        | 0.64            | ✓ Good conservation & accuracy |
+| plummer      | 24,042  | 350%         | 101.30          | ✗ Poor conservation (complex system) |
+
+**Key Finding**: Simple systems (two_body, figure_eight) show excellent energy conservation (<1%), while complex many-body systems (plummer) struggle with physics preservation.
+
+Results saved to: `results/analysis/physics_validation_YYYYMMDD_HHMMSS/`
+
 ### Execution Results
 
 The program outputs:

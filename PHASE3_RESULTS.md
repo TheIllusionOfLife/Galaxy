@@ -218,6 +218,33 @@ From README.md recent runs:
 
 ---
 
+## Physics Validation (Added Nov 2025)
+
+### Validation Results
+
+Validated 3 evolved models across all test problems using physics metrics:
+
+| Test Problem | Fitness | Energy Drift | Trajectory RMSE | Angular Mom. Drift | Status |
+|--------------|---------|--------------|-----------------|-------------------|--------|
+| two_body     | 320,270 | 0.0044%      | 1.975           | ~0                | ✓ Excellent |
+| figure_eight | 230,794 | 0.75%        | 0.644           | ~0                | ✓ Good |
+| plummer      | 24,042  | 350%         | 101.3           | ~0                | ✗ Poor |
+
+### Key Findings
+
+1. **Simple Systems Preserve Physics**: Two-body and figure-eight show excellent energy conservation (<1%)
+2. **Complex Systems Struggle**: Plummer (10-body) has 350% energy drift - model fails to preserve physics
+3. **Angular Momentum Perfect**: All models preserve rotational conservation (drift ≈ 10⁻¹⁴)
+4. **Trajectory vs Energy Trade-off**: Figure-eight has best trajectory accuracy (0.64 RMSE) despite slightly higher energy drift
+
+### Scientific Implications
+
+- **LLM-discovered models prioritize fitness over physics**: Models optimize for accuracy/speed ratio, not energy conservation
+- **Physics constraints needed**: Future work should add energy drift as explicit optimization objective
+- **Chaotic systems amplify errors**: Plummer's high energy drift likely due to chaotic N-body dynamics amplifying integration errors
+
+See: `results/analysis/physics_validation_20251102_101155/validation_report.md`
+
 ## Limitations & Future Work
 
 ### Current Limitations
@@ -226,27 +253,28 @@ From README.md recent runs:
    - Suggests LLM struggled with 3D complexity
    - Or: parametric baseline is already very good
 
-2. **No Energy/Trajectory Metrics**: Evolved model missing physics validation
-   - Need to run evolved model through validation_metrics.py
-   - Compare energy drift, trajectory RMSE vs baselines
+2. ~~**No Energy/Trajectory Metrics**~~: ✅ **COMPLETED** (Nov 2025)
+   - Physics validation implemented
+   - Energy drift, trajectory RMSE, angular momentum measured
+   - Simple systems show good conservation, complex systems struggle
 
-3. **Single Problem Domain**: Only tested on Plummer sphere
-   - Need validation on two-body, figure-eight test problems
-   - Generalization across problems not yet proven
+3. ~~**Single Problem Domain**~~: ✅ **COMPLETED** (Nov 2025)
+   - Multi-problem evolution complete (two_body, figure_eight, plummer)
+   - Cross-problem generalization analysis implemented
+   - Physics validation across all problems
 
-4. **Code Not Saved**: evolution_history.json doesn't store raw_code
-   - Can't analyze LLM-generated code strategies
-   - Limits scientific insight into what models discovered
+4. ~~**Code Not Saved**~~: ✅ **FIXED** (Nov 2025)
+   - evolution_history.json now stores raw_code and theta
+   - Enables physics validation and code analysis
 
 ### Recommended Next Steps
 
-1. **Multi-Problem Validation** (HIGH PRIORITY)
-   - Run evolution on two-body, figure-eight problems
-   - Compare cross-problem generalization
-   - Identify problem-specific vs general strategies
+1. ~~**Multi-Problem Validation** (HIGH PRIORITY)~~: ✅ **COMPLETED**
+   - Cross-problem generalization analysis implemented
+   - Physics validation across problems completed
+   - Findings: Simple systems generalize well, complex systems specialized
 
-2. **Physics Validation** (MEDIUM PRIORITY)
-   - Evaluate evolved model with validation_metrics.py
+2. ~~**Physics Validation** (MEDIUM PRIORITY)~~: ✅ **COMPLETED**
    - Measure energy drift, trajectory RMSE
    - Verify physical plausibility beyond accuracy metric
 
