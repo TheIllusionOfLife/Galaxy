@@ -861,6 +861,17 @@ class EvolutionaryEngine:
                     "description": civ_data["genome"].description,
                     "token_count": civ_data["genome"].token_count,
                     "parent_ids": civ_data["genome"].parent_ids,
+                    # Add raw_code and theta for cross-validation (Task 1 requirement)
+                    **(
+                        {
+                            k: v
+                            for k, v in [
+                                ("raw_code", getattr(civ_data["genome"], "raw_code", None)),
+                                ("theta", getattr(civ_data["genome"], "theta", None)),
+                            ]
+                            if v is not None
+                        }
+                    ),
                 }
                 for civ_id, civ_data in self.civilizations.items()
             ],
