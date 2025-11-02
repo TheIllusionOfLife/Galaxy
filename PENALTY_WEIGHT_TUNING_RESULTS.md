@@ -189,8 +189,10 @@ Despite 3-33x weight increases, **NO improvement in best energy drift** (stuck a
 **Current fitness formula**:
 ```
 base_fitness = accuracy / (speed + 1e-9)
+code_penalty = code_weight * max(0, (tokens - max_tokens) / max_tokens)
 physics_penalty = energy_weight * max(0, drift - 0.01) + momentum_weight * max(0, momentum_drift - 0.01)
-final_fitness = base_fitness - (base_fitness * min(0.9, physics_penalty))
+total_penalty = code_penalty + physics_penalty
+final_fitness = base_fitness - (base_fitness * min(0.9, total_penalty))
 ```
 
 **Issues**:

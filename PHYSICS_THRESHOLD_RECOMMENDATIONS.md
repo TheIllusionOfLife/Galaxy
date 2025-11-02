@@ -292,15 +292,14 @@ Recommended thresholds by problem:
 - plummer: 10% - Complex N-body (higher drift expected)
 
 To use problem-specific thresholds, manually edit `config.yaml` before running:
-\```yaml
+```yaml
 physics_penalty:
   energy_drift_threshold: 0.002  # For two_body
   # OR
   energy_drift_threshold: 0.100  # For plummer
-\```
+```
 
 See PHYSICS_THRESHOLD_RECOMMENDATIONS.md for detailed rationale and options.
-```
 
 **Estimated Effort**: 30 minutes (documentation only)
 
