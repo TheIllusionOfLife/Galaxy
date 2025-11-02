@@ -30,9 +30,9 @@ physics_penalty:
 ```
 
 **Penalty Formula** (Additive):
-```
-physics_penalty = energy_weight * max(0, energy_drift - threshold) +
-                  momentum_weight * max(0, momentum_drift - threshold)
+```text
+physics_penalty = energy_weight * max(0, energy_drift - energy_threshold) +
+                  momentum_weight * max(0, momentum_drift - momentum_threshold)
 
 total_penalty = code_penalty + physics_penalty  # Additive combination
 total_penalty = min(0.9, total_penalty)         # Cap at 90%

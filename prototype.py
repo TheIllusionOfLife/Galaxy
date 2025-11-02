@@ -878,10 +878,11 @@ class EvolutionaryEngine:
                         )
 
                 # Apply physics penalty if enabled
-                energy_drift = 0.0
-                angular_momentum_drift = 0.0
+                # Initialize to None - only set to numeric values if validation runs
+                energy_drift = None
+                angular_momentum_drift = None
 
-                if LLM_AVAILABLE and settings.enable_physics_penalty:
+                if settings.enable_physics_penalty:
                     try:
                         # Run physics validation
                         energy_drift, angular_momentum_drift = validate_physics(
@@ -950,12 +951,13 @@ class EvolutionaryEngine:
                 genome.speed = speed
             except Exception as e:
                 logger.error(f"Evaluation failed for {civ_id}: {e}")
-                self.civilizations[civ_id]["fitness"] = 0
+                # Mark as invalid with -inf for consistency (same as physics validation failures)
+                self.civilizations[civ_id]["fitness"] = float("-inf")
                 self.civilizations[civ_id]["accuracy"] = 0.0
                 self.civilizations[civ_id]["speed"] = 999.9
                 self.civilizations[civ_id]["energy_drift"] = None
                 self.civilizations[civ_id]["angular_momentum_drift"] = None
-                genome.fitness = 0.0
+                genome.fitness = float("-inf")
                 genome.accuracy = 0.0
                 genome.speed = 999.9
 
