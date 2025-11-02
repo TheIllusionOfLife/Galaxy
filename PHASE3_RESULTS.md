@@ -226,9 +226,9 @@ Validated 3 evolved models across all test problems using corrected physics metr
 
 | Test Problem | Fitness | Energy Drift | Trajectory RMSE | Angular Mom. Drift | Status |
 |--------------|---------|--------------|-----------------|-------------------|--------|
-| two_body     | 320,270 | 57.6%        | 1.975           | 0.459             | ✗ Poor |
-| figure_eight | 230,794 | 12.5%        | 0.644           | ~0                | ✗ Moderate |
-| plummer      | 24,042  | 490%         | 101.3           | 0.951             | ✗ Severe |
+| two_body     | 320,270 | 57.6%        | 1.988           | 0.460             | ✗ Poor |
+| figure_eight | 230,794 | 11.6%        | 0.598           | ~0                | ✗ Moderate |
+| plummer      | 24,042  | 293%         | 102.4           | 1.054             | ✗ Severe |
 
 ### Key Findings
 

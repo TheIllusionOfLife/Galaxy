@@ -249,9 +249,9 @@ Example validation results:
 
 | Test Problem | Fitness | Energy Drift | Trajectory RMSE | Interpretation |
 |--------------|---------|--------------|-----------------|----------------|
-| two_body     | 320,270 | 57.6%        | 1.98            | ✗ Model violates energy conservation |
-| figure_eight | 230,794 | 12.5%        | 0.64            | ✗ Moderate physics violation |
-| plummer      | 24,042  | 490%         | 101.30          | ✗ Severe physics violation |
+| two_body     | 320,270 | 57.6%        | 1.99            | ✗ Model violates energy conservation |
+| figure_eight | 230,794 | 11.6%        | 0.60            | ✗ Moderate physics violation |
+| plummer      | 24,042  | 293%         | 102.4           | ✗ Severe physics violation |
 
 **Key Finding**: ALL evolved models violate physics conservation laws. Models optimize for trajectory accuracy at the expense of energy/momentum preservation, making them unsuitable for long-term simulations.
 
