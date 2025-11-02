@@ -283,6 +283,28 @@ def count_tokens(code: str | None) -> int:
     return len(code.split())
 
 
+def calculate_physics_penalty(
+    energy_drift: float,
+    angular_momentum_drift: float,
+) -> float:
+    """Calculate physics penalty from drift values.
+
+    Args:
+        energy_drift: Energy conservation drift (relative)
+        angular_momentum_drift: Angular momentum conservation drift (relative)
+
+    Returns:
+        Physics penalty value (additive contribution to total penalty)
+    """
+    energy_violation = max(0, energy_drift - settings.energy_drift_threshold)
+    momentum_violation = max(0, angular_momentum_drift - settings.angular_momentum_threshold)
+
+    return (
+        settings.physics_energy_weight * energy_violation
+        + settings.physics_momentum_weight * momentum_violation
+    )
+
+
 def validate_physics(
     model_func: Callable,
     initial_particles: list[list[float]],
@@ -891,16 +913,9 @@ class EvolutionaryEngine:
                             timesteps=settings.physics_validation_timesteps,
                         )
 
-                        # Calculate violations above threshold
-                        energy_violation = max(0, energy_drift - settings.energy_drift_threshold)
-                        momentum_violation = max(
-                            0, angular_momentum_drift - settings.angular_momentum_threshold
-                        )
-
                         # Calculate physics penalty (additive)
-                        physics_penalty = (
-                            settings.physics_energy_weight * energy_violation
-                            + settings.physics_momentum_weight * momentum_violation
+                        physics_penalty = calculate_physics_penalty(
+                            energy_drift, angular_momentum_drift
                         )
 
                         total_penalty += physics_penalty
