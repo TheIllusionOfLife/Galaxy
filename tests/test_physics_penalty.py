@@ -7,7 +7,7 @@ Tests are written BEFORE implementation to ensure correct behavior.
 import pytest
 
 from config import settings
-from prototype import validate_physics
+from prototype import calculate_physics_penalty, validate_physics
 from validation_metrics import compute_angular_momentum_conservation, compute_energy_drift
 
 # Test configuration values (from actual config.yaml defaults)
@@ -16,23 +16,6 @@ MOMENTUM_WEIGHT = settings.physics_momentum_weight  # 0.1
 ENERGY_THRESHOLD = settings.energy_drift_threshold  # 0.01
 MOMENTUM_THRESHOLD = settings.angular_momentum_threshold  # 0.01
 MAX_PENALTY = 0.9  # 90% cap (10% floor)
-
-
-def calculate_physics_penalty(
-    energy_drift: float,
-    momentum_drift: float,
-    energy_threshold: float = ENERGY_THRESHOLD,
-    momentum_threshold: float = MOMENTUM_THRESHOLD,
-    energy_weight: float = ENERGY_WEIGHT,
-    momentum_weight: float = MOMENTUM_WEIGHT,
-) -> float:
-    """Calculate physics penalty from drift values.
-
-    This is the actual penalty formula used in prototype.py.
-    """
-    energy_violation = max(0, energy_drift - energy_threshold)
-    momentum_violation = max(0, momentum_drift - momentum_threshold)
-    return energy_weight * energy_violation + momentum_weight * momentum_violation
 
 
 class TestPhysicsPenaltyCalculation:
