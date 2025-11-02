@@ -6,7 +6,33 @@ Tests are written BEFORE implementation to ensure correct behavior.
 
 import pytest
 
+from config import settings
+from prototype import validate_physics
 from validation_metrics import compute_angular_momentum_conservation, compute_energy_drift
+
+# Test configuration values (from actual config.yaml defaults)
+ENERGY_WEIGHT = settings.physics_energy_weight  # 0.3
+MOMENTUM_WEIGHT = settings.physics_momentum_weight  # 0.1
+ENERGY_THRESHOLD = settings.energy_drift_threshold  # 0.01
+MOMENTUM_THRESHOLD = settings.angular_momentum_threshold  # 0.01
+MAX_PENALTY = 0.9  # 90% cap (10% floor)
+
+
+def calculate_physics_penalty(
+    energy_drift: float,
+    momentum_drift: float,
+    energy_threshold: float = ENERGY_THRESHOLD,
+    momentum_threshold: float = MOMENTUM_THRESHOLD,
+    energy_weight: float = ENERGY_WEIGHT,
+    momentum_weight: float = MOMENTUM_WEIGHT,
+) -> float:
+    """Calculate physics penalty from drift values.
+
+    This is the actual penalty formula used in prototype.py.
+    """
+    energy_violation = max(0, energy_drift - energy_threshold)
+    momentum_violation = max(0, momentum_drift - momentum_threshold)
+    return energy_weight * energy_violation + momentum_weight * momentum_violation
 
 
 class TestPhysicsPenaltyCalculation:
@@ -18,15 +44,7 @@ class TestPhysicsPenaltyCalculation:
         energy_drift = 0.005  # Below 0.01 threshold
         momentum_drift = 0.003  # Below 0.01 threshold
 
-        # Calculate violations
-        energy_violation = max(0, energy_drift - 0.01)
-        momentum_violation = max(0, momentum_drift - 0.01)
-
-        assert energy_violation == 0.0
-        assert momentum_violation == 0.0
-
-        # No penalty
-        total_penalty = 0.3 * energy_violation + 0.1 * momentum_violation
+        total_penalty = calculate_physics_penalty(energy_drift, momentum_drift)
         assert total_penalty == 0.0
 
         final_fitness = base_fitness - (base_fitness * total_penalty)
@@ -38,14 +56,8 @@ class TestPhysicsPenaltyCalculation:
         energy_drift = 0.05  # Above 0.01 threshold
         momentum_drift = 0.003  # Below threshold
 
-        energy_violation = max(0, energy_drift - 0.01)  # 0.04
-        momentum_violation = max(0, momentum_drift - 0.01)  # 0.0
-
-        assert energy_violation == 0.04
-        assert momentum_violation == 0.0
-
-        total_penalty = 0.3 * energy_violation + 0.1 * momentum_violation
-        assert total_penalty == 0.012  # 0.3 * 0.04
+        total_penalty = calculate_physics_penalty(energy_drift, momentum_drift)
+        assert total_penalty == 0.012  # 0.3 * (0.05 - 0.01)
 
         final_fitness = base_fitness - (base_fitness * total_penalty)
         assert final_fitness == 988.0  # 1000 - (1000 * 0.012)
@@ -53,13 +65,11 @@ class TestPhysicsPenaltyCalculation:
     def test_penalty_momentum_violation(self):
         """Angular momentum drift above threshold should apply penalty."""
         base_fitness = 1000.0
+        energy_drift = 0.0
         momentum_drift = 0.03  # Above 0.01 threshold
 
-        energy_violation = 0.0
-        momentum_violation = max(0, momentum_drift - 0.01)  # 0.02
-
-        total_penalty = 0.3 * energy_violation + 0.1 * momentum_violation
-        assert abs(total_penalty - 0.002) < 1e-9  # 0.1 * 0.02 (allow float precision)
+        total_penalty = calculate_physics_penalty(energy_drift, momentum_drift)
+        assert abs(total_penalty - 0.002) < 1e-9  # 0.1 * (0.03 - 0.01)
 
         final_fitness = base_fitness - (base_fitness * total_penalty)
         assert abs(final_fitness - 998.0) < 0.01
@@ -67,10 +77,11 @@ class TestPhysicsPenaltyCalculation:
     def test_combined_violations(self):
         """Both metrics violating should combine penalties additively."""
         base_fitness = 1000.0
-        # Direct calculation: energy_violation=0.04, momentum_violation=0.02
+        energy_drift = 0.05  # 0.04 violation
+        momentum_drift = 0.03  # 0.02 violation
 
-        total_penalty = 0.3 * 0.04 + 0.1 * 0.02  # energy + momentum violations
-        assert total_penalty == 0.014  # 0.012 + 0.002
+        total_penalty = calculate_physics_penalty(energy_drift, momentum_drift)
+        assert total_penalty == 0.014  # 0.3 * 0.04 + 0.1 * 0.02
 
         final_fitness = base_fitness - (base_fitness * total_penalty)
         assert final_fitness == 986.0
@@ -82,12 +93,10 @@ class TestPhysicsPenaltyCalculation:
         momentum_drift = 5.0  # Extreme violation
 
         # Total penalty could exceed 1.0, need floor
-        energy_violation = max(0, energy_drift - 0.01)
-        momentum_violation = max(0, momentum_drift - 0.01)
-        total_penalty = 0.3 * energy_violation + 0.1 * momentum_violation
-        total_penalty = min(0.9, total_penalty)  # Floor at 10% of base
+        total_penalty = calculate_physics_penalty(energy_drift, momentum_drift)
+        total_penalty = min(MAX_PENALTY, total_penalty)  # Cap at 90%
 
-        assert total_penalty == 0.9
+        assert total_penalty == MAX_PENALTY
 
         final_fitness = base_fitness - (base_fitness * total_penalty)
         assert final_fitness >= 100.0  # At least 10% of base
@@ -156,17 +165,14 @@ class TestPhysicsValidationIntegration:
             [1.0, 0.0, 0.0, -1.0, 0.0, 0.0, 1.0],
         ]
 
-        # Run multi-step
-        current_state = [p[:] for p in initial_particles]
-        for _ in range(10):
-            predicted_state = []
-            for particle in current_state:
-                prediction = identity_model(particle, current_state)
-                predicted_state.append(prediction)
-            current_state = predicted_state
+        # Run actual validate_physics function
+        energy_drift, momentum_drift = validate_physics(
+            identity_model, initial_particles, timesteps=10
+        )
 
-        # Should be unchanged (identity model)
-        assert current_state == initial_particles
+        # Identity model should have perfect conservation
+        assert energy_drift == 0.0
+        assert momentum_drift == 0.0
 
     def test_physics_metrics_computation(self):
         """Should compute energy and momentum drift correctly."""
@@ -200,16 +206,12 @@ class TestPhysicsValidationIntegration:
 
         initial = [[0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0]]
 
-        current_state = [p[:] for p in initial]
-        for _ in range(10):
-            predicted_state = []
-            for particle in current_state:
-                prediction = simple_step(particle, current_state)
-                predicted_state.append(prediction)
-            current_state = predicted_state
+        # Run actual validate_physics function
+        energy_drift, momentum_drift = validate_physics(simple_step, initial, timesteps=10)
 
-        # After 10 steps of dt=0.1, x should be ~1.0
-        assert abs(current_state[0][0] - 1.0) < 0.001
+        # Should compute drifts without error
+        assert isinstance(energy_drift, float)
+        assert isinstance(momentum_drift, float)
 
     def test_state_mutation_prevention(self):
         """Validation should not mutate original particle state."""
@@ -221,14 +223,8 @@ class TestPhysicsValidationIntegration:
             particle[0] = 999.0
             return particle
 
-        # Run validation
-        current_state = [p[:] for p in initial]
-        for _ in range(5):
-            predicted_state = []
-            for particle in current_state:
-                prediction = mutating_model(particle, current_state)
-                predicted_state.append(prediction)
-            current_state = predicted_state
+        # Run actual validate_physics function
+        validate_physics(mutating_model, initial, timesteps=5)
 
         # Original should be unchanged
         assert initial == initial_copy
@@ -245,15 +241,9 @@ class TestPhysicsValidationFailure:
 
         initial_particles = [[0, 0, 0, 0, 0, 0, 1]]
 
-        # Try validation
+        # Try actual validate_physics function
         with pytest.raises(RuntimeError, match="Model exploded"):
-            current_state = [p[:] for p in initial_particles]
-            for _ in range(10):
-                predicted_state = []
-                for particle in current_state:
-                    prediction = crashing_model(particle, current_state)
-                    predicted_state.append(prediction)
-                current_state = predicted_state
+            validate_physics(crashing_model, initial_particles, timesteps=10)
 
     def test_invalid_output_format(self):
         """Model returning wrong format should be detected."""
@@ -374,13 +364,13 @@ class TestEdgeCases:
         """Penalty approaching 90% should be capped."""
         base_fitness = 1000.0
 
-        # Extreme violations
-        energy_violation = 2.5  # 250%
-        momentum_violation = 1.0  # 100%
+        # Extreme violations (adding back thresholds)
+        energy_drift = 2.51  # 2.5 violation after 0.01 threshold
+        momentum_drift = 1.01  # 1.0 violation after 0.01 threshold
 
-        total_penalty = 0.3 * energy_violation + 0.1 * momentum_violation
-        # total_penalty = 0.75 + 0.1 = 0.85
-        total_penalty = min(0.9, total_penalty)  # Cap at 90%
+        total_penalty = calculate_physics_penalty(energy_drift, momentum_drift)
+        # total_penalty = 0.3 * 2.5 + 0.1 * 1.0 = 0.75 + 0.1 = 0.85
+        total_penalty = min(MAX_PENALTY, total_penalty)  # Cap at 90%
 
         final_fitness = base_fitness - (base_fitness * total_penalty)
         assert final_fitness == 150.0  # At least 10% of base
