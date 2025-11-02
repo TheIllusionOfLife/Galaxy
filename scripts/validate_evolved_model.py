@@ -144,6 +144,9 @@ def compute_physics_metrics(
         truth_trajectory.append([p[:] for p in crucible_truth.particles])
         crucible_truth.particles = crucible_truth.brute_force_step(crucible_truth.particles)
 
+    # Capture final state after all timesteps complete
+    truth_final = [p[:] for p in crucible_truth.particles]
+
     # Run surrogate model simulation
     # Start from same initial conditions
     model_particles = [p[:] for p in particles]
@@ -156,18 +159,20 @@ def compute_physics_metrics(
             model_callable(particle, model_particles) for particle in model_particles
         ]
 
+    # Capture final state after all timesteps complete
+    model_final = [p[:] for p in model_particles]
+
     # Compute energy drift on model trajectory to validate physics preservation
-    energy_drift = compute_energy_drift(model_trajectory[0], model_trajectory[-1])
+    # Use initial state (trajectory[0]) and actual final state (model_final)
+    energy_drift = compute_energy_drift(model_trajectory[0], model_final)
 
     # Compute trajectory RMSE (model accuracy vs ground truth)
-    # RMSE expects lists of particles (trajectory at specific timestep)
-    # We compare final positions
-    trajectory_rmse = compute_trajectory_rmse(model_trajectory[-1], truth_trajectory[-1])
+    # Compare actual final states
+    trajectory_rmse = compute_trajectory_rmse(model_final, truth_final)
 
     # Compute angular momentum conservation on model trajectory
-    angular_momentum_drift = compute_angular_momentum_conservation(
-        model_trajectory[0], model_trajectory[-1]
-    )
+    # Use initial state and actual final state
+    angular_momentum_drift = compute_angular_momentum_conservation(model_trajectory[0], model_final)
 
     return {
         "energy_drift": energy_drift,
