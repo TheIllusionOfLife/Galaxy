@@ -156,11 +156,11 @@ class TestHistoryTracking:
         # History should still be populated
         assert len(self.engine.history) == 1
 
-        # Failed model should have zero fitness
+        # Failed model should have -inf fitness (marked as invalid)
         failed_model = next(
             m for m in self.engine.history[0]["population"] if m["civ_id"] == "civ_0_0"
         )
-        assert failed_model["fitness"] == 0.0, "Failed model should have zero fitness"
+        assert failed_model["fitness"] == float("-inf"), "Failed model should be marked as invalid"
 
     def test_history_fitness_ordering(self):
         """Test that history correctly identifies best/worst models."""

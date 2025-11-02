@@ -21,6 +21,9 @@ except ImportError:
 # Import initial conditions for multi-problem validation
 from initial_conditions import plummer_sphere, three_body_figure_eight, two_body_circular_orbit
 
+# Import physics validation metrics
+from validation_metrics import compute_angular_momentum_conservation, compute_energy_drift
+
 logger = logging.getLogger(__name__)
 
 # ------------------------------------------------------------------------------
@@ -278,6 +281,79 @@ def count_tokens(code: str | None) -> int:
         return 0
     # code.split() with no arguments already handles whitespace and empty strings
     return len(code.split())
+
+
+def calculate_physics_penalty(
+    energy_drift: float,
+    angular_momentum_drift: float,
+) -> float:
+    """Calculate physics penalty from drift values.
+
+    Args:
+        energy_drift: Energy conservation drift (relative)
+        angular_momentum_drift: Angular momentum conservation drift (relative)
+
+    Returns:
+        Physics penalty value (additive contribution to total penalty)
+    """
+    energy_violation = max(0, energy_drift - settings.energy_drift_threshold)
+    momentum_violation = max(0, angular_momentum_drift - settings.angular_momentum_threshold)
+
+    return (
+        settings.physics_energy_weight * energy_violation
+        + settings.physics_momentum_weight * momentum_violation
+    )
+
+
+def validate_physics(
+    model_func: Callable,
+    initial_particles: list[list[float]],
+    timesteps: int = 10,
+) -> tuple[float, float]:
+    """Run multi-step simulation to validate physics conservation.
+
+    This function tests a surrogate model's ability to preserve fundamental
+    physics laws (energy and angular momentum conservation) over multiple
+    timesteps. Used for applying physics-aware fitness penalties.
+
+    Args:
+        model_func: Surrogate model function(particle, all_particles) -> particle
+        initial_particles: Initial particle state (7-element format)
+        timesteps: Number of timesteps to simulate (default 10)
+
+    Returns:
+        (energy_drift, angular_momentum_drift) as relative drift values
+        - Both values are non-negative floats (0.0 = perfect conservation)
+        - Energy drift: |E_final - E_initial| / |E_initial|
+        - Momentum drift: |L_final - L_initial| / |L_initial|
+
+    Raises:
+        Exception: If model crashes during validation or returns invalid format
+    """
+    current_state = [p[:] for p in initial_particles]
+
+    for step in range(timesteps):
+        predicted_state = []
+        for particle in current_state:
+            prediction = model_func(particle, current_state)
+
+            # Validate output format
+            if not isinstance(prediction, list) or len(prediction) != 7:
+                raise ValueError(
+                    f"Invalid prediction format at timestep {step}: {prediction}. "
+                    f"Expected list of 7 floats [x,y,z,vx,vy,vz,mass]"
+                )
+
+            predicted_state.append(prediction)
+        current_state = predicted_state
+
+    final_state = current_state
+
+    # Compute physics metrics
+    energy_drift = compute_energy_drift(initial_particles, final_state)
+    momentum_drift = compute_angular_momentum_conservation(initial_particles, final_state)
+
+    return energy_drift, momentum_drift
 
 
 # ------------------------------------------------------------------------------
@@ -800,34 +876,89 @@ class EvolutionaryEngine:
                 # Calculate base fitness (accuracy / speed)
                 base_fitness = accuracy / (speed + 1e-9)
 
+                # Initialize penalty tracking (additive combination)
+                total_penalty = 0.0
+
                 # Apply code length penalty if enabled
-                fitness = base_fitness
                 if LLM_AVAILABLE and settings.enable_code_length_penalty:
                     # Only penalize tokens beyond threshold
                     # Note: If token_count is 0, excess_tokens will be 0 and no penalty applies
                     excess_tokens = max(0, token_count - settings.max_acceptable_tokens)
                     if excess_tokens > 0:
-                        # Linear penalty: more excess = lower penalty factor
+                        # Linear penalty: more excess = higher penalty
                         penalty_ratio = excess_tokens / settings.max_acceptable_tokens
-                        penalty_factor = 1.0 - (settings.code_length_penalty_weight * penalty_ratio)
-                        # Floor at 10% to avoid complete elimination
-                        penalty_factor = max(0.1, penalty_factor)
-
-                        fitness = base_fitness * penalty_factor
+                        code_penalty = settings.code_length_penalty_weight * penalty_ratio
+                        total_penalty += code_penalty
 
                         logger.debug(
-                            f"{civ_id}: Token penalty applied - {token_count} tokens "
-                            f"(excess: {excess_tokens}, factor: {penalty_factor:.3f}, "
-                            f"base_fitness: {base_fitness:.2f} -> penalized: {fitness:.2f})"
+                            f"{civ_id}: Code penalty applied - {token_count} tokens "
+                            f"(excess: {excess_tokens}, penalty: {code_penalty:.4f})"
                         )
                     else:
                         logger.debug(
-                            f"{civ_id}: No penalty - {token_count} tokens (below threshold)"
+                            f"{civ_id}: No code penalty - {token_count} tokens (below threshold)"
                         )
+
+                # Apply physics penalty if enabled
+                # Initialize to None - only set to numeric values if validation runs
+                energy_drift = None
+                angular_momentum_drift = None
+
+                if settings.enable_physics_penalty:
+                    try:
+                        # Run physics validation
+                        energy_drift, angular_momentum_drift = validate_physics(
+                            model_func=model_func,
+                            initial_particles=self.crucible.particles,
+                            timesteps=settings.physics_validation_timesteps,
+                        )
+
+                        # Calculate physics penalty (additive)
+                        physics_penalty = calculate_physics_penalty(
+                            energy_drift, angular_momentum_drift
+                        )
+
+                        total_penalty += physics_penalty
+
+                        logger.info(
+                            f"{civ_id}: Physics metrics - "
+                            f"Energy drift={energy_drift:.4f}, "
+                            f"Momentum drift={angular_momentum_drift:.4f}, "
+                            f"Penalty={physics_penalty:.4f}"
+                        )
+
+                    except Exception as e:
+                        # Mark as invalid fitness (user preference)
+                        logger.warning(
+                            f"{civ_id}: Physics validation failed: {e}. "
+                            f"Marking model as invalid (fitness=-inf)."
+                        )
+                        fitness = float("-inf")
+
+                        # Store metrics in civilization data for history
+                        self.civilizations[civ_id]["fitness"] = fitness
+                        self.civilizations[civ_id]["accuracy"] = accuracy
+                        self.civilizations[civ_id]["speed"] = speed
+                        self.civilizations[civ_id]["energy_drift"] = None
+                        self.civilizations[civ_id]["angular_momentum_drift"] = None
+
+                        # Store in genome
+                        genome.fitness = fitness
+                        genome.accuracy = accuracy
+                        genome.speed = speed
+
+                        # Skip to next civilization
+                        continue
+
+                # Apply total penalty (capped at 90% to maintain 10% floor)
+                total_penalty = min(0.9, total_penalty)
+                fitness = base_fitness - (base_fitness * total_penalty)
 
                 self.civilizations[civ_id]["fitness"] = fitness
                 self.civilizations[civ_id]["accuracy"] = accuracy
                 self.civilizations[civ_id]["speed"] = speed
+                self.civilizations[civ_id]["energy_drift"] = energy_drift
+                self.civilizations[civ_id]["angular_momentum_drift"] = angular_momentum_drift
 
                 # Store in genome for LLM prompts (use penalized fitness)
                 genome.fitness = fitness
@@ -835,10 +966,13 @@ class EvolutionaryEngine:
                 genome.speed = speed
             except Exception as e:
                 logger.error(f"Evaluation failed for {civ_id}: {e}")
-                self.civilizations[civ_id]["fitness"] = 0
+                # Mark as invalid with -inf for consistency (same as physics validation failures)
+                self.civilizations[civ_id]["fitness"] = float("-inf")
                 self.civilizations[civ_id]["accuracy"] = 0.0
                 self.civilizations[civ_id]["speed"] = 999.9
-                genome.fitness = 0.0
+                self.civilizations[civ_id]["energy_drift"] = None
+                self.civilizations[civ_id]["angular_momentum_drift"] = None
+                genome.fitness = float("-inf")
                 genome.accuracy = 0.0
                 genome.speed = 999.9
 
@@ -858,6 +992,8 @@ class EvolutionaryEngine:
                     "fitness": civ_data["fitness"],
                     "accuracy": civ_data["accuracy"],
                     "speed": civ_data["speed"],
+                    "energy_drift": civ_data.get("energy_drift"),
+                    "angular_momentum_drift": civ_data.get("angular_momentum_drift"),
                     "description": civ_data["genome"].description,
                     "token_count": civ_data["genome"].token_count,
                     "parent_ids": civ_data["genome"].parent_ids,

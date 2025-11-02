@@ -168,8 +168,19 @@ evolution:
 code_penalty:
   enabled: true          # Enable/disable feature
   weight: 0.1           # Penalty strength (0.0-1.0)
-  max_tokens: 2000      # Threshold before penalty
+  max_tokens: 400       # Threshold before penalty
+
+# Physics Penalty (ensure conservation laws)
+physics_penalty:
+  enabled: true                  # Enable/disable physics validation
+  energy_weight: 0.3             # Energy drift penalty weight (0.0-1.0)
+  momentum_weight: 0.1           # Angular momentum penalty weight (0.0-1.0)
+  energy_drift_threshold: 0.01   # 1% energy drift threshold
+  angular_momentum_threshold: 0.01  # 1% momentum drift threshold
+  validation_timesteps: 10       # Timesteps for physics validation
 ```
+
+**Physics Penalty** (New): Models that violate energy or angular momentum conservation are penalized. This ensures evolved approximations remain scientifically valid. Critical finding from PR #41: without physics penalties, ALL evolved models violated conservation laws (up to 293% energy drift). With physics penalties enabled, models preserve physics while maintaining speed/accuracy.
 
 **Important**: Never duplicate settings. Each parameter has exactly ONE definition in `config.yaml`.
 
