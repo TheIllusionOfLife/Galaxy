@@ -70,19 +70,18 @@ class TestPhysicsPenaltyCalculation:
         assert final_fitness == 986.0
 
     def test_penalty_floor(self):
-        """Extreme violations should not eliminate models completely."""
-        base_fitness = 1000.0
+        """Extreme violations can exceed 100% when uncapped."""
         energy_drift = 10.0  # Extreme violation
         momentum_drift = 5.0  # Extreme violation
 
-        # Total penalty could exceed 1.0, need floor
-        total_penalty = calculate_physics_penalty(energy_drift, momentum_drift)
-        total_penalty = min(MAX_PENALTY, total_penalty)  # Cap at 90%
+        # Physics penalty alone (uncapped) - can exceed 1.0
+        physics_penalty = calculate_physics_penalty(energy_drift, momentum_drift)
 
-        assert total_penalty == MAX_PENALTY
+        # Verify penalty is correctly calculated (0.3 * 9.99 + 0.1 * 4.99)
+        assert physics_penalty > 1.0  # Extreme violations produce >100% penalty
 
-        final_fitness = base_fitness - (base_fitness * total_penalty)
-        assert final_fitness >= 100.0  # At least 10% of base
+        # Note: In production, cap is applied to (code_penalty + physics_penalty)
+        # not to physics_penalty alone. This test verifies uncapped calculation.
 
     def test_additive_with_code_penalty(self):
         """Physics penalty should combine additively with code penalty."""
@@ -229,32 +228,40 @@ class TestPhysicsValidationFailure:
             validate_physics(crashing_model, initial_particles, timesteps=10)
 
     def test_invalid_output_format(self):
-        """Model returning wrong format should be detected."""
+        """Model returning wrong format should be detected by validate_physics."""
 
         def bad_model(particle, all_particles):
             return [1, 2, 3]  # Wrong length (should be 7)
 
-        # Validation should detect this
-        result = bad_model([0, 0, 0, 0, 0, 0, 1], [])
-        assert len(result) != 7, "Invalid output length"
+        initial = [[0, 0, 0, 0, 0, 0, 1]]
+
+        # validate_physics should detect invalid output format
+        with pytest.raises(ValueError, match="Invalid prediction format"):
+            validate_physics(bad_model, initial, timesteps=1)
 
     def test_none_return_value(self):
-        """Model returning None should be detected."""
+        """Model returning None should be detected by validate_physics."""
 
         def none_model(particle, all_particles):
             return None  # Invalid return
 
-        result = none_model([0, 0, 0, 0, 0, 0, 1], [])
-        assert result is None, "Model returned None"
+        initial = [[0, 0, 0, 0, 0, 0, 1]]
+
+        # validate_physics should detect None return
+        with pytest.raises(ValueError, match="Invalid prediction format"):
+            validate_physics(none_model, initial, timesteps=1)
 
     def test_non_list_return(self):
-        """Model returning non-list should be detected."""
+        """Model returning non-list should be detected by validate_physics."""
 
         def bad_type_model(particle, all_particles):
             return "not a list"
 
-        result = bad_type_model([0, 0, 0, 0, 0, 0, 1], [])
-        assert not isinstance(result, list), "Model returned non-list"
+        initial = [[0, 0, 0, 0, 0, 0, 1]]
+
+        # validate_physics should detect non-list return
+        with pytest.raises(ValueError, match="Invalid prediction format"):
+            validate_physics(bad_type_model, initial, timesteps=1)
 
     def test_invalid_fitness_handling(self):
         """Invalid fitness should be representable."""
@@ -286,16 +293,12 @@ class TestEdgeCases:
 
         initial = [[0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0]]
 
-        current_state = [p[:] for p in initial]
-        for _ in range(1):  # Just 1 timestep
-            predicted_state = []
-            for particle in current_state:
-                prediction = model(particle, current_state)
-                predicted_state.append(prediction)
-            current_state = predicted_state
+        # Call actual validate_physics with 1 timestep
+        energy_drift, momentum_drift = validate_physics(model, initial, timesteps=1)
 
-        # Should complete without error
-        assert len(current_state) == 1
+        # Identity model should preserve conservation even with 1 timestep
+        assert energy_drift == 0.0
+        assert momentum_drift == 0.0
 
     def test_both_penalties_disabled(self):
         """With both penalties disabled, fitness should be base_fitness."""
@@ -344,17 +347,16 @@ class TestEdgeCases:
         assert final_fitness == base_fitness
 
     def test_penalty_approaches_maximum(self):
-        """Penalty approaching 90% should be capped."""
-        base_fitness = 1000.0
-
+        """Large violations produce penalties near (but not exceeding) 90%."""
         # Extreme violations (adding back thresholds)
         energy_drift = 2.51  # 2.5 violation after 0.01 threshold
         momentum_drift = 1.01  # 1.0 violation after 0.01 threshold
 
-        total_penalty = calculate_physics_penalty(energy_drift, momentum_drift)
-        # total_penalty = 0.3 * 2.5 + 0.1 * 1.0 = 0.75 + 0.1 = 0.85
-        total_penalty = min(MAX_PENALTY, total_penalty)  # Cap at 90%
+        physics_penalty = calculate_physics_penalty(energy_drift, momentum_drift)
+        # physics_penalty = 0.3 * 2.5 + 0.1 * 1.0 = 0.75 + 0.1 = 0.85
 
-        final_fitness = base_fitness - (base_fitness * total_penalty)
-        assert final_fitness == 150.0  # At least 10% of base
-        assert final_fitness >= 0.1 * base_fitness
+        # Verify uncapped physics penalty
+        assert abs(physics_penalty - 0.85) < 0.01
+
+        # Note: In production, cap is applied to (code_penalty + physics_penalty)
+        # This test verifies the uncapped physics contribution is calculated correctly
