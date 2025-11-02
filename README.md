@@ -580,13 +580,13 @@ If you encounter issues not covered here:
     - Configuration: 6 new parameters in config.yaml (enabled, weights, thresholds, timesteps)
     - Error Handling: Models crashing during validation → fitness=-inf (invalid marker)
     - Metrics Tracking: energy_drift and angular_momentum_drift saved in evolution history
-  - **Penalty Formula**: `physics_penalty = 0.3 * max(0, energy_drift - 0.01) + 0.1 * max(0, momentum_drift - 0.01)`
+  - **Penalty Formula**: `physics_penalty = 0.3 * max(0, energy_drift - 0.01) + 0.1 * max(0, angular_momentum_drift - 0.01)`
   - **Testing**: 23 comprehensive TDD tests (tests written BEFORE implementation)
     - Core penalty calculation, multi-step validation, error handling, edge cases
     - All tests call actual production code (no test-only duplicates)
   - **Validation Results**:
     - Baseline (penalty disabled): Best fitness = 320,270, energy drift unknown
-    - With penalty: Best fitness = 112,222 (65% lower), energy drift = 0.272
+    - With penalty: Best fitness = 112,222 (65% lower), best model's energy drift = 0.272
     - Extreme violators (120x drift) correctly penalized with massive fitness reduction
     - Good conservers (<1% threshold) minimally penalized
   - **Review Process**: Addressed ALL feedback from 4 reviewers (14 issues total)
@@ -772,7 +772,7 @@ If you encounter issues not covered here:
    - **Context**: Validation shows physics penalty works correctly, ready for real evolution
    - **Goal**: Run 10 pop × 5 gen evolution with physics penalty enabled, compare to PR #41 baseline
    - **Tasks**:
-     - Enable physics penalty in config.yaml (`enable_physics_penalty: true`)
+     - Enable physics penalty in config.yaml (set `physics_penalty.enabled: true`)
      - Run full evolution: `uv run python prototype.py`
      - Compare results vs PR #41 baseline (pre-penalty)
      - Measure: Energy drift reduction, fitness impact, model physics compliance
@@ -808,7 +808,7 @@ If you encounter issues not covered here:
    - **Estimated time**: 1 hour (analysis + documentation)
    - **Approach**: Literature review + empirical measurement from baseline integrators
 
-3. **Code Modularization** (MEDIUM PRIORITY - Deferred)
+4. **Code Modularization** (MEDIUM PRIORITY - Deferred)
    - **Source**: 4/5 reviewers consensus from previous planning
    - **Context**: prototype.py now at 1044 lines after Phase 1 migration
    - **Goal**: Extract to galaxy/ package structure for SOLID principles
