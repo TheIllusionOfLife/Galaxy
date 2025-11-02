@@ -246,13 +246,14 @@ Physics metrics computed:
 - **Angular momentum conservation**: Rotational conservation violation
 
 Example validation results:
+
 | Test Problem | Fitness | Energy Drift | Trajectory RMSE | Interpretation |
 |--------------|---------|--------------|-----------------|----------------|
-| two_body     | 320,270 | 0.0044%      | 1.98            | ✓ Excellent energy conservation |
-| figure_eight | 230,794 | 0.75%        | 0.64            | ✓ Good conservation & accuracy |
-| plummer      | 24,042  | 350%         | 101.30          | ✗ Poor conservation (complex system) |
+| two_body     | 320,270 | 57.6%        | 1.98            | ✗ Model violates energy conservation |
+| figure_eight | 230,794 | 12.5%        | 0.64            | ✗ Moderate physics violation |
+| plummer      | 24,042  | 490%         | 101.30          | ✗ Severe physics violation |
 
-**Key Finding**: Simple systems (two_body, figure_eight) show excellent energy conservation (<1%), while complex many-body systems (plummer) struggle with physics preservation.
+**Key Finding**: ALL evolved models violate physics conservation laws. Models optimize for trajectory accuracy at the expense of energy/momentum preservation, making them unsuitable for long-term simulations.
 
 Results saved to: `results/analysis/physics_validation_YYYYMMDD_HHMMSS/`
 

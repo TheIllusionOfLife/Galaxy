@@ -42,7 +42,6 @@ from validation_metrics import (
 # Constants
 VALIDATION_TIMESTEPS = 100  # Simulation length for validation
 ENERGY_DRIFT_THRESHOLD = 0.01  # 1% threshold for "good" conservation
-ANGULAR_MOMENTUM_THRESHOLD = 0.05  # 5% threshold
 
 # Validation particles for model compilation (2-particle system)
 _VALIDATION_PARTICLES = [
@@ -153,23 +152,21 @@ def compute_physics_metrics(
     for _ in range(timesteps):
         model_trajectory.append([p[:] for p in model_particles])
         # Use surrogate model for next step prediction
-        new_particles = []
-        for particle in model_particles:
-            predicted = model_callable(particle, model_particles)
-            new_particles.append(predicted)
-        model_particles = new_particles
+        model_particles = [
+            model_callable(particle, model_particles) for particle in model_particles
+        ]
 
-    # Compute energy drift (ground truth only - measures integrator stability)
-    energy_drift = compute_energy_drift(truth_trajectory[0], truth_trajectory[-1])
+    # Compute energy drift on model trajectory to validate physics preservation
+    energy_drift = compute_energy_drift(model_trajectory[0], model_trajectory[-1])
 
     # Compute trajectory RMSE (model accuracy vs ground truth)
     # RMSE expects lists of particles (trajectory at specific timestep)
     # We compare final positions
     trajectory_rmse = compute_trajectory_rmse(model_trajectory[-1], truth_trajectory[-1])
 
-    # Compute angular momentum conservation (ground truth only)
+    # Compute angular momentum conservation on model trajectory
     angular_momentum_drift = compute_angular_momentum_conservation(
-        truth_trajectory[0], truth_trajectory[-1]
+        model_trajectory[0], model_trajectory[-1]
     )
 
     return {

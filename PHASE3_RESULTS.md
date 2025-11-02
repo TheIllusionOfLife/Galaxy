@@ -222,26 +222,27 @@ From README.md recent runs:
 
 ### Validation Results
 
-Validated 3 evolved models across all test problems using physics metrics:
+Validated 3 evolved models across all test problems using corrected physics metrics (measuring model trajectory, not ground truth):
 
 | Test Problem | Fitness | Energy Drift | Trajectory RMSE | Angular Mom. Drift | Status |
 |--------------|---------|--------------|-----------------|-------------------|--------|
-| two_body     | 320,270 | 0.0044%      | 1.975           | ~0                | ✓ Excellent |
-| figure_eight | 230,794 | 0.75%        | 0.644           | ~0                | ✓ Good |
-| plummer      | 24,042  | 350%         | 101.3           | ~0                | ✗ Poor |
+| two_body     | 320,270 | 57.6%        | 1.975           | 0.459             | ✗ Poor |
+| figure_eight | 230,794 | 12.5%        | 0.644           | ~0                | ✗ Moderate |
+| plummer      | 24,042  | 490%         | 101.3           | 0.951             | ✗ Severe |
 
 ### Key Findings
 
-1. **Simple Systems Preserve Physics**: Two-body and figure-eight show excellent energy conservation (<1%)
-2. **Complex Systems Struggle**: Plummer (10-body) has 350% energy drift - model fails to preserve physics
-3. **Angular Momentum Perfect**: All models preserve rotational conservation (drift ≈ 10⁻¹⁴)
-4. **Trajectory vs Energy Trade-off**: Figure-eight has best trajectory accuracy (0.64 RMSE) despite slightly higher energy drift
+1. **ALL models violate energy conservation**: Even "simple" two-body problem shows 57.6% energy drift
+2. **Surrogate models do NOT preserve physics**: All evolved models fail energy conservation (all >1% threshold)
+3. **Angular momentum violations**: Two-body (46%) and plummer (95%) show significant angular momentum drift
+4. **Trade-off revealed**: Models sacrifice physics preservation for trajectory accuracy
 
 ### Scientific Implications
 
-- **LLM-discovered models prioritize fitness over physics**: Models optimize for accuracy/speed ratio, not energy conservation
-- **Physics constraints needed**: Future work should add energy drift as explicit optimization objective
-- **Chaotic systems amplify errors**: Plummer's high energy drift likely due to chaotic N-body dynamics amplifying integration errors
+- **LLM-discovered models explicitly violate physics**: Models optimize for accuracy/speed ratio, completely ignoring energy/momentum conservation
+- **Physics constraints are CRITICAL**: Current fitness function allows non-physical approximations that look accurate over short timescales
+- **Surrogate models unsuitable for long simulations**: Energy/momentum violations will compound over time, causing catastrophic drift
+- **Future work MUST add physics penalties**: Add energy drift and angular momentum conservation to fitness function with significant weight
 
 See: `results/analysis/physics_validation_20251102_101155/validation_report.md`
 
