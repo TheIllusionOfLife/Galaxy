@@ -557,9 +557,53 @@ If you encounter issues not covered here:
 
 ## Session Handover
 
-### Last Updated: November 01, 2025 11:28 PM JST
+### Last Updated: November 02, 2025 11:04 AM JST
 
 #### Recently Completed (Current Session)
+
+- ✅ **[PR #41 - Physics Validation of Evolved Models (Task 2)](https://github.com/TheIllusionOfLife/Galaxy/pull/41)**: Comprehensive physics validation revealing critical model deficiencies (November 2, 2025)
+  - **Achievement**: Discovered ALL evolved models violate energy conservation laws - critical scientific finding
+  - **Implementation**:
+    - scripts/validate_evolved_model.py (454 lines): Validates models for energy drift, trajectory RMSE, angular momentum
+    - tests/test_validate_evolved_model.py (441 lines, 14 tests): Full TDD workflow including strong violation detection tests
+    - CLI interface: Single-run and batch validation with JSON + markdown export
+  - **Critical Bug Fixes** (3 reviewers independently caught):
+    - **CRITICAL #1**: Physics metrics computed on ground truth trajectory instead of model trajectory
+    - **CRITICAL #2**: Using pre-final states (trajectory[-1]) instead of actual final states after simulation
+    - Impact: Original results measured integrator stability, NOT model physics preservation
+  - **Corrected Validation Results**:
+    - two_body: 57.6% energy drift (not 0.0044%) - violates conservation
+    - figure_eight: 11.6% energy drift (not 0.75%) - moderate violation
+    - plummer: 293% energy drift (not 350%) - severe violation
+  - **Scientific Implications**:
+    - Current fitness function (accuracy/speed) allows non-physical approximations
+    - Models sacrifice physics preservation for short-term trajectory accuracy
+    - Future work MUST add energy/momentum penalties to fitness function
+  - **Review Process**: Addressed feedback from 4 reviewers (coderabbitai, gemini-code-assist, chatgpt-codex-connector, claude)
+  - **Quality**: All 14 tests passing, all CI checks passing
+  - **Files**: 4 changed (+968 lines), 2 new modules, comprehensive documentation
+  - **Status**: ✅ Merged (commit [207e0d9](https://github.com/TheIllusionOfLife/Galaxy/commit/207e0d9))
+
+- ✅ **[PR #40 - Cross-Problem Generalization Analysis](https://github.com/TheIllusionOfLife/Galaxy/pull/40)**: Testing model transfer learning across N-body problems (November 2, 2025)
+  - **Achievement**: Systematic 3×3 cross-validation matrix revealing generalization patterns
+  - **Implementation**:
+    - scripts/cross_validate_problems.py (443 lines): Tests models trained on one problem against all others
+    - tests/test_cross_validate_problems.py (424 lines, 18 tests): Full TDD coverage
+    - Enhanced prototype.py to save model code (raw_code/theta) in evolution history
+  - **Validation Results** (3×3 matrix):
+    - Best generalizer: plummer model (avg penalty: -402%) - improves on other tasks
+    - Most specialized: two_body model (avg penalty: +46%) - specializes to simple problems
+    - Figure-eight: Moderate generalization (avg penalty: +12%)
+  - **Key Finding**: Models show varying generalization strategies - some specialize, others discover universal patterns
+  - **Review Fixes**: Addressed 6 issues (2 HIGH, 4 MEDIUM)
+    - Aligned fitness calculation with evolution formula (accuracy/(speed+1e-9))
+    - Optimized model loading (load once vs repeated loading)
+    - Removed sys.path manipulation, DRY improvements
+  - **Quality**: All 18 tests passing, all CI checks passing
+  - **Files**: 6 changed (+907 lines), comprehensive 3×3 analysis with markdown reports
+  - **Status**: ✅ Merged (commit [7da7a95](https://github.com/TheIllusionOfLife/Galaxy/commit/7da7a95))
+
+#### Recently Completed (Previous Sessions)
 - ✅ **[PR #36 - Phase 3: Evolution with Validated Baselines](https://github.com/TheIllusionOfLife/Galaxy/pull/36)**: LLM-based evolution dramatically outperforms hand-crafted baselines (November 1, 2025)
   - **Achievement**: **7890x better fitness** than KDTree baseline and **219x faster** than direct N-body, while maintaining 98.56% accuracy
   - **Key Finding**: Evolutionary optimization successfully discovers high-performance surrogate models, with the parametric fallback strategy proving critical for robustness (10% LLM failure rate)
