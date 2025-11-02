@@ -36,8 +36,8 @@ code_penalty:
 # Physics Penalty (ensure physical plausibility through conservation laws)
 physics_penalty:
   enabled: true  # Enable fitness penalty for physics violations (energy/momentum)
-  energy_weight: 0.3  # Energy drift penalty weight (0.0 = no penalty, 1.0 = maximum)
-  momentum_weight: 0.1  # Angular momentum drift penalty weight (0.0 = no penalty, 1.0 = maximum)
+  energy_weight: 0.3  # Energy drift penalty weight (0.0 = no penalty, higher = stronger penalty)
+  momentum_weight: 0.1  # Angular momentum drift penalty weight (0.0 = no penalty, higher = stronger penalty)
   energy_drift_threshold: 0.01  # Energy drift threshold before penalty applies (1% = good conservation)
   angular_momentum_threshold: 0.01  # Angular momentum drift threshold (1% = good conservation)
   validation_timesteps: 10  # Number of timesteps for physics validation (1-100)
