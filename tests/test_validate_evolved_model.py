@@ -151,6 +151,32 @@ class TestPhysicsMetricsComputation:
         # Energy drift should be reasonably small for identity model
         assert metrics["energy_drift"] >= 0.0  # Non-negative
 
+    def test_energy_drift_detects_violations(self):
+        """Test that energy drift detects models violating conservation."""
+
+        # Create model that adds energy (violates conservation)
+        def bad_energy_model(particle, all_particles):
+            # Add velocity to violate energy conservation
+            return [
+                particle[0],  # x
+                particle[1],  # y
+                particle[2],  # z
+                particle[3] * 1.1,  # vx - amplify velocity
+                particle[4] * 1.1,  # vy
+                particle[5] * 1.1,  # vz
+                particle[6],  # mass
+            ]
+
+        metrics = compute_physics_metrics(
+            model_callable=bad_energy_model,
+            test_problem="two_body",
+            num_particles=2,
+            timesteps=50,
+        )
+
+        # Should detect significant energy drift (>10%)
+        assert metrics["energy_drift"] > 0.1, "Failed to detect energy conservation violation"
+
     def test_compute_trajectory_rmse_for_model(self):
         """Test trajectory RMSE computation for a model."""
 
