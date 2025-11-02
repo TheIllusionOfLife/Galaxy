@@ -33,6 +33,15 @@ code_penalty:
   weight: 0.1  # Penalty weight (0.0 = no penalty, 1.0 = maximum penalty)
   max_tokens: 400  # Token count threshold before penalty applies (100-10000)
 
+# Physics Penalty (ensure physical plausibility through conservation laws)
+physics_penalty:
+  enabled: true  # Enable fitness penalty for physics violations (energy/momentum)
+  energy_weight: 0.3  # Energy drift penalty weight (0.0 = no penalty, 1.0 = maximum)
+  momentum_weight: 0.1  # Angular momentum drift penalty weight (0.0 = no penalty, 1.0 = maximum)
+  energy_drift_threshold: 0.01  # Energy drift threshold before penalty applies (1% = good conservation)
+  angular_momentum_threshold: 0.01  # Angular momentum drift threshold (1% = good conservation)
+  validation_timesteps: 10  # Number of timesteps for physics validation (1-100)
+
 # Crossover Configuration (genetic recombination of elite parents)
 crossover:
   enabled: true  # Enable crossover operator (LLM-based code recombination)

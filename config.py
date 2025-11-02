@@ -115,6 +115,34 @@ class Settings(BaseSettings):
         description="Token count threshold before penalty applies",
     )
 
+    # Physics Penalty (from config.yaml, no defaults here)
+    enable_physics_penalty: bool = Field(
+        description="Enable fitness penalty for physics violations (energy/momentum)"
+    )
+    physics_energy_weight: float = Field(
+        ge=0.0,
+        le=1.0,
+        description="Energy drift penalty weight (0.0 = no penalty, 1.0 = maximum)",
+    )
+    physics_momentum_weight: float = Field(
+        ge=0.0,
+        le=1.0,
+        description="Angular momentum drift penalty weight (0.0 = no penalty, 1.0 = maximum)",
+    )
+    energy_drift_threshold: float = Field(
+        ge=0.0,
+        description="Energy drift threshold before penalty applies (relative drift, e.g., 0.01 = 1%)",
+    )
+    angular_momentum_threshold: float = Field(
+        ge=0.0,
+        description="Angular momentum drift threshold before penalty applies (relative drift)",
+    )
+    physics_validation_timesteps: int = Field(
+        ge=1,
+        le=100,
+        description="Number of timesteps for physics validation",
+    )
+
     # Crossover Configuration (from config.yaml, no defaults here)
     enable_crossover: bool = Field(
         description="Enable crossover operator (LLM-based code recombination)"
@@ -257,6 +285,7 @@ class Settings(BaseSettings):
             "evolution",
             "mutation",
             "code_penalty",
+            "physics_penalty",
             "crossover",
             "benchmark",
         ]
@@ -325,6 +354,39 @@ class Settings(BaseSettings):
                 ),
                 "max_acceptable_tokens": int(
                     os.getenv("MAX_ACCEPTABLE_TOKENS", yaml_config["code_penalty"]["max_tokens"])
+                ),
+                # Physics penalty
+                "enable_physics_penalty": os.getenv(
+                    "ENABLE_PHYSICS_PENALTY", str(yaml_config["physics_penalty"]["enabled"])
+                ).lower()
+                == "true",
+                "physics_energy_weight": float(
+                    os.getenv(
+                        "PHYSICS_ENERGY_WEIGHT", yaml_config["physics_penalty"]["energy_weight"]
+                    )
+                ),
+                "physics_momentum_weight": float(
+                    os.getenv(
+                        "PHYSICS_MOMENTUM_WEIGHT", yaml_config["physics_penalty"]["momentum_weight"]
+                    )
+                ),
+                "energy_drift_threshold": float(
+                    os.getenv(
+                        "ENERGY_DRIFT_THRESHOLD",
+                        yaml_config["physics_penalty"]["energy_drift_threshold"],
+                    )
+                ),
+                "angular_momentum_threshold": float(
+                    os.getenv(
+                        "ANGULAR_MOMENTUM_THRESHOLD",
+                        yaml_config["physics_penalty"]["angular_momentum_threshold"],
+                    )
+                ),
+                "physics_validation_timesteps": int(
+                    os.getenv(
+                        "PHYSICS_VALIDATION_TIMESTEPS",
+                        yaml_config["physics_penalty"]["validation_timesteps"],
+                    )
                 ),
                 # Crossover
                 "enable_crossover": os.getenv(
