@@ -568,277 +568,111 @@ If you encounter issues not covered here:
 
 ## Session Handover
 
-### Last Updated: November 02, 2025 09:16 PM JST
+### Last Updated: November 03, 2025 08:13 AM JST
 
-#### Recently Completed (Current Session)
+#### Recently Completed
 
-- ✅ **[PR #43 - Physics-Aware Fitness Function](https://github.com/TheIllusionOfLife/Galaxy/pull/43)**: Implemented physics penalty system to ensure evolved models preserve conservation laws (November 2, 2025)
-  - **Achievement**: Addresses PR #41's critical finding that ALL evolved models violated physics - now enforces conservation
-  - **Implementation**:
-    - `validate_physics()` in prototype.py: Multi-step simulation (10 timesteps) measuring energy/momentum drift
-    - `calculate_physics_penalty()`: Additive penalty formula with configurable weights
-    - Configuration: 6 new parameters in config.yaml (enabled, weights, thresholds, timesteps)
-    - Error Handling: Models crashing during validation → fitness=-inf (invalid marker)
-    - Metrics Tracking: energy_drift and angular_momentum_drift saved in evolution history
-  - **Penalty Formula**: `physics_penalty = 0.3 * max(0, energy_drift - 0.01) + 0.1 * max(0, angular_momentum_drift - 0.01)`
-  - **Testing**: 23 comprehensive TDD tests (tests written BEFORE implementation)
-    - Core penalty calculation, multi-step validation, error handling, edge cases
-    - All tests call actual production code (no test-only duplicates)
-  - **Validation Results**:
-    - Baseline (penalty disabled): Best fitness = 320,270, energy drift unknown
-    - With penalty: Best fitness = 112,222 (65% lower), best model's energy drift = 0.272
-    - Extreme violators (120x drift) correctly penalized with massive fitness reduction
-    - Good conservers (<1% threshold) minimally penalized
-  - **Review Process**: Addressed ALL feedback from 4 reviewers (14 issues total)
-    - CRITICAL (4): Removed LLM gate, initialized drift to None, consistent fitness=-inf, fixed docs
-    - HIGH (4): Tests refactored to call validate_physics(), imported config settings, extracted helpers
-    - MEDIUM (3): Extracted penalty function, fixed test assertions, addressed CodeRabbit feedback
-  - **Performance Impact**: 10x slower evaluation (10 timesteps) - acceptable for scientific validity
-  - **Quality**: 281/281 tests passing, all CI checks passing (Python 3.10/3.11/3.12)
-  - **Files**: 9 changed (+865 lines), 2 new modules (PHYSICS_PENALTY_RESULTS.md, test_physics_penalty.py)
+- ✅ **[PR #45](https://github.com/TheIllusionOfLife/Galaxy/pull/45)**: Physics Penalty Validation and Analysis (Tasks 1-3)
+  - **Task 1**: Full-scale evolution run (10 pop × 5 gen) with physics penalty enabled
+  - **Task 2**: Penalty weight tuning experiments (4 configs: 3-33x weight increase)
+  - **Task 3**: Per-problem threshold recommendations (strict/moderate/lenient options)
+  - **Key Finding**: Physics penalty IS effective (best model 98.6% improvement: 293% → 4.21% drift)
+  - **Critical Discovery**: Weight tuning ineffective (all configs: 16.25% best drift) - root cause is LLM prompt design, not penalty strength
+  - **Documentation**: 3 comprehensive analysis documents (+1,149 lines)
+  - **Cost**: $0.0498 (5 runs, 96 API calls)
+  - **Status**: ✅ Merged (commit [b11b8d6](https://github.com/TheIllusionOfLife/Galaxy/commit/b11b8d6))
+
+- ✅ **[PR #44](https://github.com/TheIllusionOfLife/Galaxy/pull/44)**: Session handover and learnings documentation
+  - Documented PR #43 work and next steps
+  - **Status**: ✅ Merged
+
+- ✅ **[PR #43](https://github.com/TheIllusionOfLife/Galaxy/pull/43)**: Physics-Aware Fitness Function implementation
+  - Physics penalty infrastructure with energy and momentum drift penalties
+  - 23 comprehensive tests, fully configurable via config.yaml
   - **Status**: ✅ Merged (commit [8b8ce01](https://github.com/TheIllusionOfLife/Galaxy/commit/8b8ce01))
-  - **Scientific Impact**: Galaxy now evolves scientifically valid models that preserve physics, enabling long-term simulations
 
-- ✅ **[PR #41 - Physics Validation of Evolved Models (Task 2)](https://github.com/TheIllusionOfLife/Galaxy/pull/41)**: Comprehensive physics validation revealing critical model deficiencies (November 2, 2025)
-  - **Achievement**: Discovered ALL evolved models violate energy conservation laws - critical scientific finding
-  - **Implementation**:
-    - scripts/validate_evolved_model.py (454 lines): Validates models for energy drift, trajectory RMSE, angular momentum
-    - tests/test_validate_evolved_model.py (441 lines, 14 tests): Full TDD workflow including strong violation detection tests
-    - CLI interface: Single-run and batch validation with JSON + markdown export
-  - **Critical Bug Fixes** (3 reviewers independently caught):
-    - **CRITICAL #1**: Physics metrics computed on ground truth trajectory instead of model trajectory
-    - **CRITICAL #2**: Using pre-final states (trajectory[-1]) instead of actual final states after simulation
-    - Impact: Original results measured integrator stability, NOT model physics preservation
-  - **Corrected Validation Results**:
-    - two_body: 57.6% energy drift (not 0.0044%) - violates conservation
-    - figure_eight: 11.6% energy drift (not 0.75%) - moderate violation
-    - plummer: 293% energy drift (not 350%) - severe violation
-  - **Scientific Implications**:
-    - Current fitness function (accuracy/speed) allows non-physical approximations
-    - Models sacrifice physics preservation for short-term trajectory accuracy
-    - Future work MUST add energy/momentum penalties to fitness function
-  - **Review Process**: Addressed feedback from 4 reviewers (coderabbitai, gemini-code-assist, chatgpt-codex-connector, claude)
-  - **Quality**: All 14 tests passing, all CI checks passing
-  - **Files**: 4 changed (+968 lines), 2 new modules, comprehensive documentation
-  - **Status**: ✅ Merged (commit [207e0d9](https://github.com/TheIllusionOfLife/Galaxy/commit/207e0d9))
-
-- ✅ **[PR #40 - Cross-Problem Generalization Analysis](https://github.com/TheIllusionOfLife/Galaxy/pull/40)**: Testing model transfer learning across N-body problems (November 2, 2025)
-  - **Achievement**: Systematic 3×3 cross-validation matrix revealing generalization patterns
-  - **Implementation**:
-    - scripts/cross_validate_problems.py (443 lines): Tests models trained on one problem against all others
-    - tests/test_cross_validate_problems.py (424 lines, 18 tests): Full TDD coverage
-    - Enhanced prototype.py to save model code (raw_code/theta) in evolution history
-  - **Validation Results** (3×3 matrix):
-    - Best generalizer: plummer model (avg penalty: -402%) - improves on other tasks
-    - Most specialized: two_body model (avg penalty: +46%) - specializes to simple problems
-    - Figure-eight: Moderate generalization (avg penalty: +12%)
-  - **Key Finding**: Models show varying generalization strategies - some specialize, others discover universal patterns
-  - **Review Fixes**: Addressed 6 issues (2 HIGH, 4 MEDIUM)
-    - Aligned fitness calculation with evolution formula (accuracy/(speed+1e-9))
-    - Optimized model loading (load once vs repeated loading)
-    - Removed sys.path manipulation, DRY improvements
-  - **Quality**: All 18 tests passing, all CI checks passing
-  - **Files**: 6 changed (+907 lines), comprehensive 3×3 analysis with markdown reports
-  - **Status**: ✅ Merged (commit [7da7a95](https://github.com/TheIllusionOfLife/Galaxy/commit/7da7a95))
-
-#### Recently Completed (Previous Sessions)
-
-- ✅ **[PR #38 - Multi-Problem Validation (Phase 4)](https://github.com/TheIllusionOfLife/Galaxy/pull/38)**: Cross-problem generalization infrastructure (November 2, 2025)
-  - **Achievement**: Enabled Galaxy to evolve surrogate models on different N-body test problems
-  - **Implementation**:
-    - Configuration: Added `test_problem` (two_body/figure_eight/plummer) and `num_particles` fields
-    - Helper Function: `get_initial_particles()` maps test problems to initial conditions
-    - Pipeline Integration: Modified prototype.py to use configurable test problems
-    - Metadata Tracking: Evolution history now includes test_problem and num_particles
-    - Comparison Tooling: `scripts/compare_problems.py` for systematic cross-problem analysis
-  - **Testing**: 18 new tests (7 config + 11 helper), 226/226 tests passing, TDD discipline throughout
-  - **Real Validation**: 3 complete evolution runs with real API ($0.029 total cost)
-    - two_body (N=2): fitness=523,752, accuracy=99.95%
-    - figure_eight (N=3): fitness=259,637, accuracy=99.07%
-    - plummer (N=20): fitness=9,392, accuracy=55.53%
-  - **Review Fixes**: Addressed all 5 reviewer feedback items (2 HIGH, 3 MEDIUM)
-    - Robust config loading with `.get()` defaults (gemini-code-assist)
-    - Null fitness handling with type/finiteness checks (chatgpt-codex-connector)
-    - Consistent output formatting matching documentation (gemini-code-assist)
-  - **Quality**: "APPROVED - Production Ready" from claude reviewer, all CI checks passing
-  - **Files**: 8 changed (+796 lines), 3 new test suites, 1 new comparison script
-  - **Status**: ✅ Merged (commit [2345cd2](https://github.com/TheIllusionOfLife/Galaxy/commit/2345cd2))
-
-- ✅ **[PR #36 - Phase 3: Evolution with Validated Baselines](https://github.com/TheIllusionOfLife/Galaxy/pull/36)**: LLM-based evolution dramatically outperforms hand-crafted baselines (November 1, 2025)
-  - **Achievement**: **7890x better fitness** than KDTree baseline and **219x faster** than direct N-body, while maintaining 98.56% accuracy
-  - **Key Finding**: Evolutionary optimization successfully discovers high-performance surrogate models, with the parametric fallback strategy proving critical for robustness (10% LLM failure rate)
-  - **Details**: See the full analysis in [PHASE3_RESULTS.md](PHASE3_RESULTS.md) (278 lines with methodology, results, comparison analysis, limitations, future work)
-  - **Status**: ✅ Merged (commit [0fa9e5d](https://github.com/TheIllusionOfLife/Galaxy/commit/0fa9e5d))
-
-- ✅ **[PR #34 - Comprehensive Benchmark Suite](https://github.com/TheIllusionOfLife/Galaxy/pull/34)**: Systematic performance evaluation infrastructure (November 1, 2025)
-  - **Achievement**: Production-ready benchmark suite for baseline performance analysis and scaling validation
-  - **Core Implementation**:
-    - benchmarks/benchmark_runner.py (282 lines): Orchestrates systematic benchmarks across baselines/problems/scales
-    - benchmarks/scaling_analysis.py (210 lines): Log-log regression for empirical O(N^b) complexity measurement
-    - benchmarks/visualization.py (237 lines): Publication-quality 300 DPI plots (scaling, accuracy, Pareto)
-    - scripts/run_benchmarks.py (145 lines): User-friendly CLI with timestamped output directories
-  - **Testing**: 29 new tests (190/190 total passing)
-    - Unit tests: Config validation, baseline creation, metrics calculation, scaling analysis
-    - Integration tests: Real baseline execution, multiple particle counts, end-to-end suite
-  - **Real Execution Validated**: Ran full benchmark suite with actual baselines
-    - Results: `results/benchmarks/run_YYYYMMDD_HHMMSS/` with JSON, markdown, plots, scaling analysis
-    - Verified: No timeouts, no truncation, no errors, complete formatted output
-  - **Review Fixes**: Addressed all feedback from 3 AI reviewers (gemini-code-assist, claude, CodeRabbit)
-    - HIGH: Refactored if/elif chains → dictionary mappings for extensibility
-    - MEDIUM: Moved imports to top (PEP 8), extracted duplicated simulation loop to helper
-    - MEDIUM: Renamed plot_accuracy_heatmap → plot_accuracy_bars (accurate naming)
-    - MEDIUM: Optimized particle count iteration (avoid skipping, determine upfront)
-    - ENHANCEMENTS: Added Pydantic validators, accuracy formula comments, debug logging
-  - **Features**:
-    - 3 Test Problems: two_body (2), figure_eight (3), plummer (scalable N)
-    - 2 Baselines: KDTree O(N² log N) vs Direct N-body O(N²)
-    - 4 Metrics: Accuracy, speed, energy drift, trajectory RMSE
-    - Configurable via config.yaml (particle counts, timesteps, baselines, problems)
-  - **Documentation**: benchmarks/README.md (280 lines) + main README updated
-  - **Quality**: All CI passing (Python 3.10/3.11/3.12), ruff/mypy passing
-  - **Files**: 12 changed (+1,776 lines), 3 new modules, 3 new test suites
-  - **Status**: ✅ Merged (commit [ca514d7](https://github.com/TheIllusionOfLife/Galaxy/commit/ca514d7))
-
-- ✅ **[PR #32 - Phase 2 Scientific Validation Infrastructure](https://github.com/TheIllusionOfLife/Galaxy/pull/32)**: Baselines, test problems, and physics validation metrics (November 1, 2025)
-  - **Achievement**: Complete scientific validation infrastructure with comprehensive physics-based testing
-  - **Core Additions**:
-    - baselines.py (201 lines): KDTree (O(N log N)) and direct N-body baselines
-    - initial_conditions.py (275 lines): Two-body orbit, figure-8, Plummer sphere test problems
-    - validation_metrics.py (221 lines): Energy drift, trajectory RMSE, angular momentum, virial ratio
-  - **Testing**: 57 comprehensive new tests (166/166 total passing)
-    - Physics validation: Energy conservation, momentum conservation, virial equilibrium
-    - Edge cases: Empty systems, single particles, inf/nan handling
-    - Integration: Baseline vs direct N-body comparison
-  - **Review Fixes**: Addressed 9 CRITICAL issues from 4 AI reviewers
-    - Fixed leapfrog integration bug (replaced with symplectic Euler)
-    - Fixed random zero risk in Plummer CDF (clamped to 1e-12)
-    - Fixed angular momentum vector comparison (detects spin reversals)
-    - Documented KDTree performance limitation (O(N² log N) tree rebuilding)
-    - Documented Plummer velocity sampling approximation vs Eddington formula
-    - Added modules to pyproject.toml packaging
-    - Cleaned up test assertions (removed unnecessary NaN checks)
-    - Verified mass factors correct (false positive from reviewer)
-  - **Quality**: Rating 5/5 stars from chatgpt-codex-connector ("ready to merge immediately")
-  - **Files**: 8 changed (+1,392 lines), 3 new modules, 3 new test suites
-  - **Dependencies**: Added scipy>=1.9.0, numpy>=1.21.0
-  - **Status**: ✅ Merged (commit [fd80a6c](https://github.com/TheIllusionOfLife/Galaxy/commit/fd80a6c))
-
-- ✅ **[PR #30 - Phase 1 Complete: 3D N-body Migration](https://github.com/TheIllusionOfLife/Galaxy/pull/30)**: Production-ready 3D particle-particle N-body physics (November 1, 2025)
-  - **Achievement**: Transformed from toy 2D single-attractor to true 3D N-body gravitational simulator
-  - **Core Migration**:
-    - Particles: `[x,y,vx,vy]` (4) → `[x,y,z,vx,vy,vz,mass]` (7)
-    - Signature: `predict(particle, attractor)` → `predict(particle, all_particles)`
-    - Integration: Euler → Leapfrog (Velocity Verlet) for energy conservation
-    - Complexity: O(N) → O(N²) true all-pairs gravitational interactions
-  - **Testing**: 28 comprehensive new tests (physics + interface validation)
-    - Energy conservation: <10% drift over 50 timesteps
-    - Angular momentum conservation: <5% drift
-    - Inverse square law verification, O(N²) scaling validation
-  - **Real API Verification**: Smoke test passed (5 genomes, 4/5 perfect accuracy, $0.006 cost)
-  - **Documentation**: 184-line MIGRATION_STATUS.md tracking all decisions and deferred items
-  - **Review Fixes**: Addressed all feedback from claude[bot] reviews
-    - Added `CosmologyCrucible.with_particles()` factory method for test flexibility
-    - Enhanced validation (2-particle minimum, empty particle check, mass conservation)
-    - Clarified parallel evaluation semantics with definitive documentation
-  - **Quality**: Rating 4.8/5 stars, 109/109 tests passing, all CI checks passing
-  - **Files**: 15 changed (+1,636, -203), 2 new test suites (783 lines)
-  - **Status**: ✅ Merged (commit [04d504e](https://github.com/TheIllusionOfLife/Galaxy/commit/04d504e))
-
-- ✅ **[PR #26 - Genetic Crossover Implementation](https://github.com/TheIllusionOfLife/Galaxy/pull/26)**: LLM-based code recombination (October 30, 2025)
-  - **Feature**: Third reproduction operator enabling genetic crossover between elite parents
-  - **Implementation**:
-    - Configuration: `crossover_rate=0.3`, `temperature=0.75` with Pydantic validation
-    - Core Logic: `select_crossover_parents()` + enhanced `LLM_propose_surrogate_model()`
-    - Prompt Engineering: Enhanced crossover prompts with parent metrics and synthesis guidance
-    - Lineage Tracking: New `parent_ids` field for analyzing parent-offspring relationships
-  - **Testing**: 10 comprehensive unit tests + 2 integration tests (81/81 tests passing, 0 regressions)
-  - **Real-world Validation**: Full evolution run completed (10 pop, 5 gen, cost ~$0.02)
-  - **Review Fixes**: Addressed HIGH priority issues from claude's review
-    - Fixed crossover fallback validation (prototype.py:255-260)
-    - Added robust parent selection with defensive validation (prototype.py:194-210)
-  - **CI Resolution**: Fixed claude-review workflow OIDC token validation issues
-    - Root Cause: Workflow file modifications require exact match with main branch
-    - Solution: Temporarily skip PR #26 using `if: github.event.pull_request.number != 26`
-    - Permission Fix: Identified `gh pr comment` requires `pull-requests: write` not just `read`
-  - **Approvals**: Claude (4.9/5 - "Exceptional"), Codex (approved), CodeRabbit (4 nitpicks), Gemini (5 suggestions)
-  - **Status**: ✅ Merged (commit [924199d](https://github.com/TheIllusionOfLife/Galaxy/commit/924199d)), 7 files changed (+828, -30)
-
-- ✅ **Earlier PRs**: Code length penalty ([#23](https://github.com/TheIllusionOfLife/Galaxy/pull/23), [#21](https://github.com/TheIllusionOfLife/Galaxy/pull/21), [#14](https://github.com/TheIllusionOfLife/Galaxy/pull/14)), config fixes ([#19](https://github.com/TheIllusionOfLife/Galaxy/pull/19)), token visualization ([#16](https://github.com/TheIllusionOfLife/Galaxy/pull/16)), prompt engineering ([#12](https://github.com/TheIllusionOfLife/Galaxy/pull/12)), uv migration ([#10](https://github.com/TheIllusionOfLife/Galaxy/pull/10)) - See git history for details
+- ✅ **Earlier PRs** (#41, #40, #38, #36, #34, #32, #30, #26, #23, #21, #19, #16, #14, #12, #10): See git history for full details
 
 #### Next Priority Tasks
 
-1. **Full Evolution Run with Physics Penalty** (HIGH PRIORITY - Ready)
-   - **Source**: PR #43 completion - physics penalty now implemented
-   - **Context**: Validation shows physics penalty works correctly, ready for real evolution
-   - **Goal**: Run 10 pop × 5 gen evolution with physics penalty enabled, compare to PR #41 baseline
+1. **Update LLM Prompts to Emphasize Conservation** (HIGH PRIORITY - New from PR #45)
+   - **Source**: PR #45 Task 2 findings - weight tuning showed NO improvement
+   - **Context**: LLM prompts focus on accuracy/speed but don't mention conservation
+   - **Root Cause**: Generating same fast non-conserving models regardless of penalty strength
+   - **Goal**: Add explicit conservation requirements to prompts
    - **Tasks**:
-     - Enable physics penalty in config.yaml (set `physics_penalty.enabled: true`)
-     - Run full evolution: `uv run python prototype.py`
-     - Compare results vs PR #41 baseline (pre-penalty)
-     - Measure: Energy drift reduction, fitness impact, model physics compliance
-     - Document findings in results markdown
-   - **Benefits**: Quantifies real-world impact of physics penalties, validates scientific approach
-   - **Estimated time**: 1-2 hours (evolution run ~3-5 min + analysis)
-   - **Expected**: Lower best fitness than baseline, but much better physics conservation (<1% drift target)
+     - Update `prompts.py` to explicitly request energy/momentum conservation
+     - Add guidance for symplectic integrators or conservation-preserving schemes
+     - Request physics validation in generated code comments
+   - **Benefits**: Address root cause of poor conservation (prompt design vs penalty weights)
+   - **Estimated time**: 1-2 hours (prompt engineering + validation run)
+   - **Expected**: Better population mean drift (currently 391.67%)
 
-2. **Penalty Weight Tuning** (MEDIUM PRIORITY)
-   - **Source**: PR #43 PHYSICS_PENALTY_RESULTS.md, Claude review suggestion
-   - **Context**: Current weights (energy=0.3, momentum=0.1) are preliminary defaults
-   - **Goal**: Find optimal penalty weights that balance fitness vs physics preservation
-   - **Tasks**:
-     - Run experiments with different weight configurations
-     - Test: [0.1, 0.05], [0.3, 0.1], [0.5, 0.2], [0.7, 0.3]
-     - Measure: Best fitness, average energy drift, best model physics compliance
-     - Document optimal weight selection in tuning report
-   - **Benefits**: Optimizes penalty strength for problem type, publishable methodology
-   - **Estimated time**: 2-3 hours (4 runs × 3-5 min + comparative analysis)
-   - **Approach**: Systematic grid search with 2×2 configurations per problem
+2. **Rebalance Fitness Formula** (HIGH PRIORITY - New from PR #45)
+   - **Source**: PR #45 analysis - speed multiplier (5000x) overwhelms physics penalty
+   - **Context**: Current formula `accuracy / (speed + 1e-9)` creates huge fitness from fast models
+   - **Problem**: Physics penalty becomes insignificant compared to speed-based fitness
+   - **Goal**: Rebalance to make conservation competitive with speed
+   - **Options**:
+     - Multi-objective: `w1*accuracy + w2*(1/speed) - w3*energy_drift - w4*momentum_drift`
+     - Log-scale speed: `accuracy / log(speed + 1.0)` (reduces 5000x to ~8x)
+     - Hard constraint: Mark >10% drift as invalid (fitness=-inf)
+   - **Benefits**: Allows physics penalty to influence model selection effectively
+   - **Estimated time**: 2-3 hours (implementation + validation runs)
 
-3. **Per-Problem Threshold Recommendations** (MEDIUM PRIORITY)
-   - **Source**: PHYSICS_PENALTY_RESULTS.md limitations, Claude review
-   - **Context**: Two-body should have near-perfect conservation, Plummer may need looser thresholds
-   - **Goal**: Establish problem-specific physics thresholds based on problem characteristics
+3. **Implement Per-Problem Thresholds (Code-Based)** (MEDIUM PRIORITY)
+   - **Source**: PR #45 Task 3 - documented recommendations, needs implementation
+   - **Context**: Uniform 1% threshold unrealistic (too strict for plummer, too lenient for two_body)
+   - **Recommended thresholds**:
+     - two_body: 0.2% (simple 2-body orbit)
+     - figure_eight: 1.5% (chaotic 3-body)
+     - plummer: 10% (complex N-body)
    - **Tasks**:
-     - Analyze theoretical expected drift for each problem type
-     - Two-body: Should have <0.1% drift (simple 2-body orbit)
-     - Figure-eight: Chaotic, accept 1-2% drift
-     - Plummer: Complex N-body, accept 2-5% drift
-     - Update config.yaml with per-problem threshold recommendations
-   - **Benefits**: More realistic physics expectations, better model selection
-   - **Estimated time**: 1 hour (analysis + documentation)
-   - **Approach**: Literature review + empirical measurement from baseline integrators
+     - Update config.yaml schema to support per-problem thresholds
+     - Modify config.py Settings class with `get_physics_threshold(problem, metric)` method
+     - Update prototype.py to use problem-specific thresholds
+   - **Benefits**: More realistic physics expectations per problem complexity
+   - **Estimated time**: 1-2 hours (config + code changes)
 
 4. **Code Modularization** (MEDIUM PRIORITY - Deferred)
-   - **Source**: 4/5 reviewers consensus from previous planning
-   - **Context**: prototype.py now at 1044 lines after Phase 1 migration
-   - **Goal**: Extract to galaxy/ package structure for SOLID principles
-   - **Structure**:
-     ```text
-     galaxy/
-     ├── core/ (genome.py, evolution.py, selection.py)
-     ├── crucible/ (base.py, nbody.py)
-     ├── llm/ (client.py, gemini.py)
-     └── prototype.py (main orchestration, ~100 lines)
-     ```
-   - **Benefits**: Easier domain extension, testable in isolation, reduced cognitive load
-   - **Priority**: Deferred until Phase 2 complete (avoid disrupting working physics)
+   - **Source**: Previous planning consensus
+   - **Context**: prototype.py now at 1044 lines
+   - **Priority**: Deferred until prompts/fitness rebalancing complete
    - **Estimated time**: 3-4 hours
 
-3. **Adaptive Timestep Integration** (OPTIONAL)
-   - **Source**: MIGRATION_STATUS.md open question, claude[bot] review
-   - **Context**: Current dt=0.1 may be too large for tight orbits
-   - **Enhancement**: Variable timestep based on particle proximity
-   - **Benefits**: Better accuracy for close encounters, maintains performance
-   - **Priority**: Low (current leapfrog <10% drift acceptable for prototype)
-   - **Estimated time**: 2 hours
-
 #### Known Issues / Blockers
-- **Non-monotonic Fitness**: Fitness fluctuates between generations (not guaranteed to improve)
-  - Expected behavior during exploration phase, not a bug
+
+- **Population Mean Drift Still High**: Best model improved (4.21%) but mean (391.67%) indicates most models violate conservation
+  - **Root Cause**: LLM prompts don't emphasize conservation (see Task 1 HIGH PRIORITY)
+  - **Solution Path**: Update prompts + rebalance fitness formula
 
 #### Session Learnings
 
-**Last Updated**: November 02, 2025 09:16 PM JST
+**Last Updated**: November 03, 2025 08:13 AM JST
+
+- **AI Reviewer Hallucination Pattern** (2025-11-03 PR #45): ALL AI reviewers can provide completely incorrect feedback
+  - **Problem**: gemini-code-assist, chatgpt-codex-connector, coderabbitai reviewed Galaxy physics PR but provided feedback about non-existent ARC-AGI multi-agent code
+  - **Impact**: 7 PR comments, 4 reviews, 25 line comments ALL about wrong codebase (file paths like `src/arc_prometheus/...`)
+  - **Verification**: Used `gh pr diff 45` to confirm actual files were Galaxy physics analysis (FULL_RUN_ANALYSIS.md, etc.)
+  - **Pattern**: ALWAYS verify reviewer file paths and line numbers match actual PR diff before accepting feedback
+  - **Principle**: Correctness > Compliance - reject ALL feedback when reviewers hallucinate wrong codebase
+  - **Caught By**: Mandatory verification checklist (checked PR diff vs reviewer claims)
+
+- **Scientific Metric Reporting Clarity** (2025-11-03 PR #45): Distinguish best model vs population mean in comparative analysis
+  - **Problem**: Comparison table showed "430% energy drift" but analysis also mentioned "4.21% best drift" - confusing readers
+  - **Root Cause**: Conflated best model performance (4.21%) with incorrect population metric (actually 391.67%, not 430%)
+  - **Impact**: Scientific conclusion reversed - initially "penalty failed" but actually "penalty effective for best model"
+  - **Solution**: Updated all tables to show BOTH metrics: "Best: 4.21% (98.6% improvement)" AND "Mean: 391.67% (population still poor)"
+  - **Pattern**: Always report best AND mean for evolutionary algorithms - best shows capability, mean shows population quality
+  - **Fixed By**: gemini-code-assist review feedback (energy drift inconsistency)
+
+- **Configuration Validation Documentation** (2025-11-03 PR #45): Validation bounds need inline rationale comments
+  - **Problem**: Changed `le=1.0 → le=100.0` for weight validation without explaining why 100.0 is appropriate
+  - **Impact**: Future maintainers may question or revert constraint without understanding experimental basis
+  - **Solution**: Added inline comments: `le=100.0,  # Upper bound allows 30x+ weight tuning experiments (see PENALTY_WEIGHT_TUNING_RESULTS.md)`
+  - **Pattern**: When validation bounds are based on empirical experiments, link to documentation showing rationale
+  - **Benefits**: Traceability to experimental design, prevents uninformed constraint changes
+  - **Caught By**: Claude Code review (MEDIUM priority issue #2)
 
 - **Test Production Code, Not Duplicates** (2025-11-02 PR #43): Tests should import and call actual functions, not reimplement logic
   - **Problem**: test_physics_penalty.py created helper function `calculate_physics_penalty()` that duplicated production logic
