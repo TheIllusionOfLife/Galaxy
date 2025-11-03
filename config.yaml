@@ -56,14 +56,23 @@ fitness:
   max_momentum_drift: 0.50  # Angular momentum threshold (50%, more lenient than energy)
 
   # Per-problem threshold overrides (optional, falls back to global if not specified)
+  # Thresholds scale with problem complexity: conservation difficulty grows non-linearly with N
+  # Empirically derived from validation runs (see HARD_CONSTRAINT_VALIDATION.md for details)
   per_problem_thresholds:
     two_body:
+      # N=2 circular orbit: Stable, analytically solvable, minimal numerical error
+      # Baseline run: 56% survival at 0.2%, 0% at 0.1% (too strict)
       max_energy_drift: 0.002    # 0.2% (strict for simple N=2 problem)
       max_momentum_drift: 0.002  # 0.2%
     figure_eight:
+      # N=3 chaotic system: Inherently unstable, requires precise integration
+      # Allows moderate drift to account for chaos, while filtering non-viable models
       max_energy_drift: 0.015    # 1.5% (moderate for chaotic N=3)
       max_momentum_drift: 0.015  # 1.5%
     plummer:
+      # N=50 cluster: Complex N-body interactions, high numerical error accumulation
+      # Baseline run: 0% survival at 10%, 16.7% at 20% (enables evolution)
+      # Trade-off: Accept higher drift to allow population diversity vs strict conservation
       max_energy_drift: 0.200    # 20% (relaxed for complex N=50)
       max_momentum_drift: 0.200  # 20%
 

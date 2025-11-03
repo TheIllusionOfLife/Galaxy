@@ -46,6 +46,9 @@ logs/
 *.log
 generated_code/
 
+# Task planning files
+.task*.md
+
 # IDE
 .vscode/
 .idea/

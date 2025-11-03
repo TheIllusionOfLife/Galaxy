@@ -242,20 +242,35 @@ class Settings(BaseSettings):
 
         for problem in v.keys():
             if problem not in valid_problems:
-                raise ValueError(f"Invalid problem '{problem}', must be one of {valid_problems}")
+                # Provide helpful suggestion if typo detected
+                from difflib import get_close_matches
+
+                suggestions = get_close_matches(problem, valid_problems, n=1, cutoff=0.6)
+                suggestion_msg = f" (did you mean '{suggestions[0]}'?)" if suggestions else ""
+                raise ValueError(
+                    f"Invalid problem '{problem}'{suggestion_msg}. "
+                    f"Valid problems: {', '.join(sorted(valid_problems))}"
+                )
 
         # Validate threshold keys and ranges
         for problem, thresholds in v.items():
             for key, value in thresholds.items():
                 # Validate key name (prevent typos)
                 if key not in valid_keys:
+                    from difflib import get_close_matches
+
+                    suggestions = get_close_matches(key, valid_keys, n=1, cutoff=0.6)
+                    suggestion_msg = f" (did you mean '{suggestions[0]}'?)" if suggestions else ""
                     raise ValueError(
-                        f"Invalid threshold key '{key}' for problem '{problem}', "
-                        f"must be one of {valid_keys}"
+                        f"Invalid threshold key '{key}' for problem '{problem}'{suggestion_msg}. "
+                        f"Valid keys: {', '.join(sorted(valid_keys))}"
                     )
                 # Validate value range
                 if not 0.0 <= value <= 10.0:
-                    raise ValueError(f"{problem}.{key} must be 0.0-10.0, got {value}")
+                    raise ValueError(
+                        f"{problem}.{key} must be between 0.0 and 10.0, got {value}. "
+                        f"Typical values: two_body=0.002, figure_eight=0.015, plummer=0.200"
+                    )
 
         return v
 
