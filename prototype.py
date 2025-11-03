@@ -89,6 +89,8 @@ class SurrogateGenome:
         None  # Pre-validated callable (3D N-body signature)
     )
     parent_ids: list[str] = field(default_factory=list)  # Track crossover parentage
+    energy_drift: float | None = None  # Conservation metric for LLM prompt context
+    momentum_drift: float | None = None  # Conservation metric for LLM prompt context
 
     def as_readable(self) -> str:
         if self.raw_code:
@@ -478,6 +480,13 @@ def LLM_propose_surrogate_model(
                 speed=base_genome.speed or 0.01,
                 generation=generation,
                 mutation_type=mutation_type,
+                # Use 1.0 for None to signal poor/unknown conservation (not 0.0 which signals perfect)
+                energy_drift=base_genome.energy_drift
+                if base_genome.energy_drift is not None
+                else 1.0,
+                momentum_drift=base_genome.momentum_drift
+                if base_genome.momentum_drift is not None
+                else 1.0,
             )
             # Get adaptive temperature for this generation
             temp_override = settings.get_mutation_temperature(generation)
@@ -964,6 +973,8 @@ class EvolutionaryEngine:
                 genome.fitness = fitness
                 genome.accuracy = accuracy
                 genome.speed = speed
+                genome.energy_drift = energy_drift
+                genome.momentum_drift = angular_momentum_drift
             except Exception as e:
                 logger.error(f"Evaluation failed for {civ_id}: {e}")
                 # Mark as invalid with -inf for consistency (same as physics validation failures)

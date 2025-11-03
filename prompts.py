@@ -33,7 +33,16 @@ CRITICAL REQUIREMENTS:
    - Gravitational constant: G = 1.0
    - Softening (optional): epsilon = 0.01 to prevent singularities
 
-5. Constraints:
+5. Physics Conservation (CRITICAL FOR SCIENTIFIC VALIDITY):
+   - Your model MUST preserve energy conservation (drift <1% over 10 timesteps)
+   - Your model MUST preserve angular momentum conservation (drift <1%)
+   - These are MEASURED and heavily PENALIZED in fitness function (up to 90% penalty)
+   - Consider using symplectic integrators (e.g., Verlet, leapfrog, semi-implicit Euler)
+   - Energy: E = 0.5*m*v² - Σ(G*m_i*m_j/r_ij) should stay constant
+   - Angular momentum: L = Σ(m * r × v) should stay constant
+   - Bad conservation = severe fitness penalty even if trajectory looks accurate
+
+6. Constraints:
    - The 'math' module is ALREADY AVAILABLE (do NOT import it)
    - Use math.sqrt(), math.sin(), etc. directly
    - Use basic Python functions: abs, min, max, sum, len, range, enumerate, zip
@@ -41,7 +50,7 @@ CRITICAL REQUIREMENTS:
    - PERFORMANCE: Ground truth is O(N²). Your approximation MUST be faster (e.g., cutoff radius, K-NN, grid)
    - Fast and simple (will be called 50 times per evaluation with 50 particles)
 
-6. CODE COMPLETENESS (CRITICAL - READ CAREFULLY):
+7. CODE COMPLETENESS (CRITICAL - READ CAREFULLY):
    - ALWAYS generate COMPLETE, syntactically VALID Python code with NO syntax errors
    - BEFORE finishing, count ALL opening and closing brackets to ensure they match: ( ) [ ] { }
    - VERIFY the function has a proper return statement at the very end
@@ -50,7 +59,7 @@ CRITICAL REQUIREMENTS:
    - FORBIDDEN: Incomplete code, unmatched brackets, missing return statements
    - If you're unsure, generate SIMPLER code that you KNOW is syntactically complete
 
-7. Output format (CRITICAL):
+8. Output format (CRITICAL):
    - Output ONLY raw Python code - NO other text
    - NO import statements (math module is already available)
    - NO markdown formatting (no ```python, no ```, no backticks)
@@ -80,6 +89,8 @@ def get_initial_prompt(seed: int) -> str:
         "Use SOFTENED GRAVITY with large epsilon=1.0 to approximate long-range forces as weaker (reduces sensitivity to distant particles)",
         "Use HIERARCHICAL APPROXIMATION: compute center-of-mass for distant particle clusters, treat as single particle",
         "Use VELOCITY-WEIGHTED SELECTION: prioritize forces from fast-moving particles, ignore slow/static ones",
+        "Use SEMI-IMPLICIT EULER (symplectic): Update velocity using NEW position's forces to preserve energy better than standard Euler",
+        "Use LEAPFROG INTEGRATION (symplectic): Interleave position/velocity updates (kick-drift-kick) to conserve energy and angular momentum",
     ]
 
     approach = approaches[seed % len(approaches)]
@@ -105,6 +116,12 @@ PERFORMANCE EXAMPLES:
 - K-NN: Find K closest, compute only those forces
 - Grid: Only check particles in same/adjacent cells
 
+PHYSICS CONSERVATION REQUIREMENTS (CRITICAL):
+- Energy drift <1%: Your integration must preserve E = 0.5*m*v² - Σ(G*m_i*m_j/r_ij)
+- Angular momentum drift <1%: Verify L = Σ(m * r × v) stays constant
+- Symplectic integrators strongly recommended (Verlet, leapfrog, semi-implicit Euler)
+- Standard Euler integration will cause >10% energy drift (heavy fitness penalty)
+
 Generate the complete Python code now."""
 
 
@@ -115,6 +132,8 @@ def get_mutation_prompt(
     speed: float,
     generation: int,
     mutation_type: str = "explore",
+    energy_drift: float = 0.0,
+    momentum_drift: float = 0.0,
 ) -> str:
     """Generate mutation prompt based on parent performance.
 
@@ -125,6 +144,8 @@ def get_mutation_prompt(
         speed: Parent's execution time in seconds
         generation: Current generation number
         mutation_type: "explore" for large changes, "exploit" for refinement
+        energy_drift: Parent's energy conservation drift (0-1+, lower is better)
+        momentum_drift: Parent's angular momentum drift (0-1+, lower is better)
 
     Returns:
         Complete prompt for mutating parent model
@@ -136,6 +157,8 @@ def get_mutation_prompt(
 - Modify how you calculate forces (e.g., different softening, different power law)
 - Add or remove stabilization terms (damping, velocity correction)
 - Experiment with different timestep scaling or adaptive timesteps
+- Try symplectic integrators (leapfrog, semi-implicit Euler) if not already using
+- Add conservation-preserving terms (energy correction, momentum adjustment)
 - Try a completely novel numerical trick
 
 Be creative and don't be afraid to make significant changes!"""
@@ -145,7 +168,9 @@ Be creative and don't be afraid to make significant changes!"""
 - Fine-tune force calculations to match ground truth more closely
 - Optimize calculations for speed (simplify expressions, reduce operations)
 - Fix any numerical instabilities (NaN, overflow)
-- Improve energy conservation or accuracy
+- Improve energy conservation (reduce energy drift below 1%)
+- Preserve angular momentum (ensure L = m*r×v stays constant)
+- Fine-tune integration scheme for better physics preservation
 
 Make targeted improvements while keeping the core approach."""
 
@@ -165,6 +190,23 @@ Make targeted improvements while keeping the core approach."""
         perf_analysis.append("⚠ Low fitness - significant improvements needed")
     elif fitness > 100:
         perf_analysis.append("✓ High fitness - make incremental refinements")
+
+    # Add conservation analysis
+    if energy_drift > 0.01:
+        perf_analysis.append(
+            f"✗ Energy drift {energy_drift * 100:.2f}% - violates conservation (goal <1%)"
+        )
+    else:
+        perf_analysis.append(f"✓ Energy drift {energy_drift * 100:.2f}% - good conservation")
+
+    if momentum_drift > 0.01:
+        perf_analysis.append(
+            f"✗ Angular momentum drift {momentum_drift * 100:.2f}% - violates conservation"
+        )
+    else:
+        perf_analysis.append(
+            f"✓ Angular momentum drift {momentum_drift * 100:.2f}% - good conservation"
+        )
 
     performance_context = f"""
 Parent model performance (Generation {generation}):
@@ -244,25 +286,41 @@ CRITICAL - Verify code completeness:
         else ""
     )
 
+    # Format conservation metrics
+    # Handle None explicitly to avoid misclassifying 0.0 as poor conservation
+    p1_energy_status = (
+        "✓ Good"
+        if parent1.energy_drift is not None and parent1.energy_drift < 0.01
+        else f"✗ Poor ({(parent1.energy_drift or 1.0) * 100:.1f}%)"
+    )
+    p2_energy_status = (
+        "✓ Good"
+        if parent2.energy_drift is not None and parent2.energy_drift < 0.01
+        else f"✗ Poor ({(parent2.energy_drift or 1.0) * 100:.1f}%)"
+    )
+
     return f"""{SYSTEM_INSTRUCTION}
 
 OBJECTIVE: Create a HYBRID surrogate model by combining the strengths of TWO parent models.
 
 PARENT 1 (Fitness: {parent1.fitness or 0.0:.2f}, Accuracy: {parent1.accuracy or 0.0:.4f}, Speed: {parent1.speed or 0.01:.6f}s):
+Energy Drift: {p1_energy_status}
 ```python
 {parent1.raw_code}
 ```
 
 PARENT 2 (Fitness: {parent2.fitness or 0.0:.2f}, Accuracy: {parent2.accuracy or 0.0:.4f}, Speed: {parent2.speed or 0.01:.6f}s):
+Energy Drift: {p2_energy_status}
 ```python
 {parent2.raw_code}
 ```
 
 TASK:
-1. Analyze what makes each parent successful
-2. Identify complementary strengths (e.g., Parent 1 has better accuracy, Parent 2 is faster)
-3. Design a NEW approach that combines these strengths
-4. You may introduce novel elements beyond just merging (creative synthesis)
+1. Analyze what makes each parent successful (accuracy, speed, AND conservation)
+2. Identify complementary strengths (e.g., Parent 1 conserves energy, Parent 2 is faster)
+3. Design a NEW approach that combines these strengths WHILE preserving physics
+4. Prioritize conservation: Energy and momentum drift MUST be <1% (heavily penalized)
+5. You may introduce novel elements beyond just merging (creative synthesis)
 
 GENERATION: {generation} (Explore phase: try bold combinations)
 
