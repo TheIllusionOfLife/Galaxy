@@ -882,8 +882,20 @@ class EvolutionaryEngine:
                     token_count = count_tokens(genome.raw_code)
                     genome.token_count = token_count
 
-                # Calculate base fitness (accuracy / speed)
-                base_fitness = accuracy / (speed + 1e-9)
+                # Calculate base fitness with optional log-scale speed normalization
+                # Log-scale reduces speed multiplier dominance (~5000x → ~4x)
+                if settings.fitness_use_log_speed:
+                    # Normalize speed using logarithm: log_base(1 + speed * 1000)
+                    # Example: speed=0.001 → log10(1 + 1.0) = 0.30 → multiplier ~3.3x
+                    normalized_speed = math.log(1 + speed * 1000, settings.fitness_speed_log_base)
+                    base_fitness = accuracy / (normalized_speed + 1e-9)
+                    logger.debug(
+                        f"{civ_id}: Log-scale speed normalization - "
+                        f"raw speed={speed:.6f}, normalized={normalized_speed:.4f}"
+                    )
+                else:
+                    # Original formula: accuracy / speed (can create ~5000x multiplier)
+                    base_fitness = accuracy / (speed + 1e-9)
 
                 # Initialize penalty tracking (additive combination)
                 total_penalty = 0.0
@@ -922,7 +934,44 @@ class EvolutionaryEngine:
                             timesteps=settings.physics_validation_timesteps,
                         )
 
-                        # Calculate physics penalty (additive)
+                        # HARD CONSTRAINT: Eliminate catastrophic physics violators
+                        # Models exceeding thresholds get fitness=-inf (never selected)
+                        if settings.fitness_enable_hard_constraint:
+                            # Note: Use strict inequality (>) so models at exactly the threshold are acceptable
+                            # Example: 10.0% energy drift is OK, 10.01% is eliminated
+                            if (
+                                energy_drift > settings.fitness_max_energy_drift
+                                or angular_momentum_drift > settings.fitness_max_momentum_drift
+                            ):
+                                logger.warning(
+                                    f"{civ_id}: ELIMINATED by hard constraint - "
+                                    f"Energy drift={energy_drift:.4f} "
+                                    f"(max {settings.fitness_max_energy_drift}), "
+                                    f"Momentum drift={angular_momentum_drift:.4f} "
+                                    f"(max {settings.fitness_max_momentum_drift})"
+                                )
+                                fitness = float("-inf")
+
+                                # Store metrics for history tracking
+                                self.civilizations[civ_id]["fitness"] = fitness
+                                self.civilizations[civ_id]["accuracy"] = accuracy
+                                self.civilizations[civ_id]["speed"] = speed
+                                self.civilizations[civ_id]["energy_drift"] = energy_drift
+                                self.civilizations[civ_id]["angular_momentum_drift"] = (
+                                    angular_momentum_drift
+                                )
+
+                                # Store in genome for LLM prompts
+                                genome.fitness = fitness
+                                genome.accuracy = accuracy
+                                genome.speed = speed
+                                genome.energy_drift = energy_drift
+                                genome.momentum_drift = angular_momentum_drift
+
+                                # Skip to next civilization (model eliminated)
+                                continue
+
+                        # Calculate physics penalty (soft penalty for models below threshold)
                         physics_penalty = calculate_physics_penalty(
                             energy_drift, angular_momentum_drift
                         )
@@ -959,8 +1008,9 @@ class EvolutionaryEngine:
                         # Skip to next civilization
                         continue
 
-                # Apply total penalty (capped at 90% to maintain 10% floor)
-                total_penalty = min(0.9, total_penalty)
+                # Apply total penalty
+                # Note: No longer capped at 90% since hard constraint eliminates catastrophic violators
+                # Soft penalty can now exceed 90% for models just below elimination threshold
                 fitness = base_fitness - (base_fitness * total_penalty)
 
                 self.civilizations[civ_id]["fitness"] = fitness

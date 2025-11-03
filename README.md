@@ -178,9 +178,29 @@ physics_penalty:
   energy_drift_threshold: 0.01   # 1% energy drift threshold
   angular_momentum_threshold: 0.01  # 1% momentum drift threshold
   validation_timesteps: 10       # Timesteps for physics validation
+
+# Fitness Formula (prevent catastrophic violators & speed dominance)
+fitness:
+  enable_hard_constraint: true   # Eliminate models exceeding thresholds (fitness=-inf)
+  max_energy_drift: 0.10        # Energy drift threshold (10%, models above eliminated)
+  max_momentum_drift: 0.50      # Angular momentum threshold (50%, more lenient)
+  use_log_speed: true           # Use log-scale to reduce speed multiplier dominance
+  speed_log_base: 10.0          # Base for logarithm (higher = less speed-sensitive)
 ```
 
 **Physics Penalty** (New): Models that violate energy or angular momentum conservation are penalized. This ensures evolved approximations remain scientifically valid. Critical finding from PR #41: without physics penalties, ALL evolved models violated conservation laws (up to 293% energy drift). With physics penalties enabled, models preserve physics while maintaining speed/accuracy.
+
+**Fitness Formula** (Task 1.2): Addresses two critical issues discovered in full-scale validation:
+
+1. **Hard Constraint**: Eliminates catastrophic physics violators (fitness=-inf) instead of soft penalties
+   - Models with >10% energy drift or >50% momentum drift are eliminated immediately
+   - Prevents grossly unphysical models from surviving selection
+   - Critical finding from PR #49: soft penalties allowed models with >1000% drift to survive
+
+2. **Log-Scale Speed Normalization**: Reduces speed multiplier dominance from ~5000x to ~4x
+   - Original formula `accuracy / speed` created extreme multipliers for fast models (speed ~0.001s)
+   - New formula `accuracy / log(1 + speed * 1000)` provides balanced selection pressure
+   - Prevents fast but catastrophically inaccurate models from dominating population
 
 **Important**: Never duplicate settings. Each parameter has exactly ONE definition in `config.yaml`.
 

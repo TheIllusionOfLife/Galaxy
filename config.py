@@ -154,6 +154,29 @@ class Settings(BaseSettings):
         ge=0.0, le=2.0, description="Crossover creativity level (between explore/exploit)"
     )
 
+    # Fitness Formula Configuration (from config.yaml, no defaults here)
+    fitness_enable_hard_constraint: bool = Field(
+        description="Enable hard constraint to eliminate catastrophic physics violators"
+    )
+    fitness_max_energy_drift: float = Field(
+        ge=0.0,
+        le=10.0,
+        description="Energy drift threshold for hard constraint (relative, e.g., 0.10 = 10%)",
+    )
+    fitness_max_momentum_drift: float = Field(
+        ge=0.0,
+        le=10.0,
+        description="Angular momentum drift threshold for hard constraint (relative)",
+    )
+    fitness_use_log_speed: bool = Field(
+        description="Use log-scale speed normalization to reduce multiplier dominance"
+    )
+    fitness_speed_log_base: float = Field(
+        ge=2.0,
+        le=100.0,
+        description="Base for logarithm in speed normalization (higher = less sensitive)",
+    )
+
     # Benchmark Suite Configuration (from config.yaml, no defaults here)
     benchmark_enabled: bool = Field(description="Enable benchmark suite execution")
     benchmark_particle_counts: list[int] = Field(
@@ -287,6 +310,7 @@ class Settings(BaseSettings):
             "code_penalty",
             "physics_penalty",
             "crossover",
+            "fitness",
             "benchmark",
         ]
         missing_sections = [s for s in required_sections if s not in yaml_config]
@@ -398,6 +422,29 @@ class Settings(BaseSettings):
                 ),
                 "crossover_temperature": float(
                     os.getenv("CROSSOVER_TEMPERATURE", yaml_config["crossover"]["temperature"])
+                ),
+                # Fitness formula
+                "fitness_enable_hard_constraint": os.getenv(
+                    "FITNESS_ENABLE_HARD_CONSTRAINT",
+                    str(yaml_config["fitness"]["enable_hard_constraint"]),
+                ).lower()
+                == "true",
+                "fitness_max_energy_drift": float(
+                    os.getenv(
+                        "FITNESS_MAX_ENERGY_DRIFT", yaml_config["fitness"]["max_energy_drift"]
+                    )
+                ),
+                "fitness_max_momentum_drift": float(
+                    os.getenv(
+                        "FITNESS_MAX_MOMENTUM_DRIFT", yaml_config["fitness"]["max_momentum_drift"]
+                    )
+                ),
+                "fitness_use_log_speed": os.getenv(
+                    "FITNESS_USE_LOG_SPEED", str(yaml_config["fitness"]["use_log_speed"])
+                ).lower()
+                == "true",
+                "fitness_speed_log_base": float(
+                    os.getenv("FITNESS_SPEED_LOG_BASE", yaml_config["fitness"]["speed_log_base"])
                 ),
                 # Benchmark
                 "benchmark_enabled": os.getenv(
