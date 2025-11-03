@@ -937,6 +937,8 @@ class EvolutionaryEngine:
                         # HARD CONSTRAINT: Eliminate catastrophic physics violators
                         # Models exceeding thresholds get fitness=-inf (never selected)
                         if settings.fitness_enable_hard_constraint:
+                            # Note: Use strict inequality (>) so models at exactly the threshold are acceptable
+                            # Example: 10.0% energy drift is OK, 10.01% is eliminated
                             if (
                                 energy_drift > settings.fitness_max_energy_drift
                                 or angular_momentum_drift > settings.fitness_max_momentum_drift
