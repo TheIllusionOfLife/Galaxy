@@ -595,7 +595,7 @@ If you encounter issues not covered here:
 - ✅ **[PR #50](https://github.com/TheIllusionOfLife/Galaxy/pull/50)**: Fitness Formula Rebalancing (Task 1.2 from PR #45)
   - **Achievement**: Implemented hard constraint to eliminate catastrophic physics violators
   - **Hard Constraint**: Models with >10% energy drift or >50% momentum drift get fitness=-inf (immediate elimination)
-  - **Log-Scale Speed**: Reduced speed multiplier dominance from ~5000x to ~4x with `accuracy / log(1 + speed * 1000)`
+  - **Log-Scale Speed**: Reduced speed multiplier dominance from ~5000x to ~4x with `accuracy / log10(1 + speed * 1000)`
   - **Files Changed**: config.yaml (+10), config.py (+23), prototype.py (+91), tests/ (+249 in 3 files), README.md (+24)
   - **Test Coverage**: 15 unit tests for fitness formula rebalancing (configuration, log-scale, hard constraint, backward compatibility)
   - **Review Process**: All feedback addressed from gemini-code-assist (1 HIGH: tautological test), claude[bot] (boundary documentation)
@@ -706,7 +706,7 @@ If you encounter issues not covered here:
 - **Log-Scale Normalization for Multiplicative Features** (2025-11-03 PR #50): Linear features with vastly different scales require log transformation
   - **Problem**: Speed multiplier ~5000x (accuracy 0.95 / speed 0.0002s) overwhelmed physics penalty ~0.3
   - **Root Cause**: `accuracy / speed` creates exponential multipliers for fast models
-  - **Solution**: `accuracy / log(1 + speed * 1000)` reduces multiplier from ~5000x to ~4x
+  - **Solution**: `accuracy / log10(1 + speed * 1000)` reduces multiplier from ~5000x to ~4x
   - **Benefits**: All fitness components (accuracy, speed, physics) operate at similar scales
   - **Pattern**: When one component dominates by orders of magnitude, apply log transformation
 - **TDD Success with Configuration-Driven Features** (2025-11-03 PR #50): Write tests before implementation, especially for backward compatibility
