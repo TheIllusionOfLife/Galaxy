@@ -568,9 +568,19 @@ If you encounter issues not covered here:
 
 ## Session Handover
 
-### Last Updated: November 03, 2025 08:13 AM JST
+### Last Updated: November 03, 2025 10:35 AM JST
 
 #### Recently Completed
+
+- ✅ **[PR #47](https://github.com/TheIllusionOfLife/Galaxy/pull/47)**: Conservation-Aware LLM Prompts (Task 1 from PR #45)
+  - **Achievement**: 162x improvement in best energy drift (0.10% vs 16.25% baseline)
+  - **Validation**: All Gen 0 models independently adopted semi-implicit Euler (symplectic method)
+  - **Files Changed**: prompts.py (+74), prototype.py (+11), CONSERVATION_PROMPTS_RESULTS.md (+261), tests/test_prompts.py (+297)
+  - **Review Fixes**: 4 issues addressed (2 HIGH: 0.0 conservation bug, None handling)
+  - **Test Coverage**: 17 comprehensive prompt tests, all passing
+  - **Real API Validation**: 3 pop × 2 gen run (cost $0.0066, perfect conservation model)
+  - **Key Finding**: Prompt design > penalty weights (confirmed hypothesis from PR #45)
+  - **Status**: ✅ Merged (commit [9069337](https://github.com/TheIllusionOfLife/Galaxy/commit/9069337))
 
 - ✅ **[PR #45](https://github.com/TheIllusionOfLife/Galaxy/pull/45)**: Physics Penalty Validation and Analysis (Tasks 1-3)
   - **Task 1**: Full-scale evolution run (10 pop × 5 gen) with physics penalty enabled
@@ -595,18 +605,16 @@ If you encounter issues not covered here:
 
 #### Next Priority Tasks
 
-1. **Update LLM Prompts to Emphasize Conservation** (HIGH PRIORITY - New from PR #45)
-   - **Source**: PR #45 Task 2 findings - weight tuning showed NO improvement
-   - **Context**: LLM prompts focus on accuracy/speed but don't mention conservation
-   - **Root Cause**: Generating same fast non-conserving models regardless of penalty strength
-   - **Goal**: Add explicit conservation requirements to prompts
+1. **Full-Scale Validation of Conservation Prompts** (HIGH PRIORITY - Follow-up from PR #47)
+   - **Source**: PR #47 showed 0.10% drift in small run (3 pop × 2 gen)
+   - **Context**: Need to verify results hold at larger scale and different problems
    - **Tasks**:
-     - Update `prompts.py` to explicitly request energy/momentum conservation
-     - Add guidance for symplectic integrators or conservation-preserving schemes
-     - Request physics validation in generated code comments
-   - **Benefits**: Address root cause of poor conservation (prompt design vs penalty weights)
-   - **Estimated time**: 1-2 hours (prompt engineering + validation run)
-   - **Expected**: Better population mean drift (currently 391.67%)
+     - Run 10 pop × 5 gen on two_body problem (baseline comparison to PR #45)
+     - Run 10 pop × 5 gen on plummer problem (test complex N-body generalization)
+     - Compare drift distributions to PR #45 baseline
+   - **Benefits**: Confirm prompt effectiveness is reproducible and generalizes
+   - **Estimated cost**: ~$0.10 (2 full runs)
+   - **Expected**: Consistent <1% drift across majority of models
 
 2. **Rebalance Fitness Formula** (HIGH PRIORITY - New from PR #45)
    - **Source**: PR #45 analysis - speed multiplier (5000x) overwhelms physics penalty
@@ -771,6 +779,18 @@ If you encounter issues not covered here:
   - **Solution**: Reload settings + patch ALL module references: `monkeypatch.setattr(config_module, "settings", test_settings)`
   - **Detection**: Test passes but doesn't actually vary parameter being tested
   - **Pattern**: Always patch global references when testing module-level config objects
+- **Falsy Value Conservation Bug** (2025-11-03 from PR #47): Python treats 0.0 as falsy, causing perfect conservation to be misclassified
+  - **Problem**: `(parent.energy_drift or 1.0) < 0.01` evaluates `(0.0 or 1.0)` → `1.0 < 0.01` → False
+  - **Impact**: LLMs received "✗ Poor" signal for perfect conservation (0.0%), harming evolutionary decisions
+  - **Solution**: Handle None explicitly: `parent.energy_drift is not None and parent.energy_drift < 0.01`
+  - **Pattern**: Never use `or` for default values when 0.0 is a valid meaningful value
+  - **Detection**: Write edge case tests for boundary values (0.0, empty, None)
+- **Prompt Design Over Hyperparameters** (2025-11-03 from PR #47): Problem formulation dominates parameter tuning
+  - **Evidence**: Weight tuning (3-33x) had NO effect (PR #45), prompt updates → 162x improvement (PR #47)
+  - **Root Cause**: LLMs don't spontaneously discover domain knowledge (conservation laws) without explicit guidance
+  - **Solution**: Add explicit conservation requirements, formulas, and symplectic integrator guidance to prompts
+  - **Result**: All Gen 0 models independently adopted semi-implicit Euler; best model 0.10% drift
+  - **Pattern**: When evolution stalls, examine problem formulation before tuning selection pressure
 
 **Historical Learnings** (detailed patterns in personal reference files: `~/.claude/core-patterns.md` and `~/.claude/domain-patterns.md` - these are user-level patterns spanning all projects):
 - GraphQL PR review efficiency, Zip pattern optimization, Complete test coverage for edge cases
