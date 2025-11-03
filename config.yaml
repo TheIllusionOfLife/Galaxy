@@ -55,6 +55,18 @@ fitness:
   max_energy_drift: 0.10  # Energy drift threshold (0.10 = 10%, models above eliminated)
   max_momentum_drift: 0.50  # Angular momentum threshold (50%, more lenient than energy)
 
+  # Per-problem threshold overrides (optional, falls back to global if not specified)
+  per_problem_thresholds:
+    two_body:
+      max_energy_drift: 0.002    # 0.2% (strict for simple N=2 problem)
+      max_momentum_drift: 0.002  # 0.2%
+    figure_eight:
+      max_energy_drift: 0.015    # 1.5% (moderate for chaotic N=3)
+      max_momentum_drift: 0.015  # 1.5%
+    plummer:
+      max_energy_drift: 0.200    # 20% (relaxed for complex N=50)
+      max_momentum_drift: 0.200  # 20%
+
   # Speed normalization to reduce multiplier dominance (5000x → ~4x)
   use_log_speed: true  # Use log(1 + speed) instead of raw speed in fitness calculation
   speed_log_base: 10.0  # Base for logarithm (10.0 = common log, higher = less sensitive)

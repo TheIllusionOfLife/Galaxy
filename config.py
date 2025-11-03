@@ -176,6 +176,10 @@ class Settings(BaseSettings):
         le=100.0,
         description="Base for logarithm in speed normalization (higher = less sensitive)",
     )
+    fitness_per_problem_thresholds: dict[str, dict[str, float]] | None = Field(
+        default=None,
+        description="Per-problem threshold overrides (optional, falls back to global)",
+    )
 
     # Benchmark Suite Configuration (from config.yaml, no defaults here)
     benchmark_enabled: bool = Field(description="Enable benchmark suite execution")
@@ -223,6 +227,54 @@ class Settings(BaseSettings):
         if v not in valid_problems:
             raise ValueError(f"Invalid test_problem: {v}. Valid options: {valid_problems}")
         return v
+
+    @field_validator("fitness_per_problem_thresholds")
+    @classmethod
+    def validate_per_problem_thresholds(
+        cls, v: dict[str, dict[str, float]] | None
+    ) -> dict[str, dict[str, float]] | None:
+        """Validate per-problem threshold configuration."""
+        if v is None:
+            return v
+
+        valid_problems = {"two_body", "figure_eight", "plummer"}
+        for problem in v.keys():
+            if problem not in valid_problems:
+                raise ValueError(f"Invalid problem '{problem}', must be one of {valid_problems}")
+
+        # Validate threshold ranges
+        for problem, thresholds in v.items():
+            for key, value in thresholds.items():
+                if not 0.0 <= value <= 10.0:
+                    raise ValueError(f"{problem}.{key} must be 0.0-10.0, got {value}")
+
+        return v
+
+    def get_physics_threshold(self, problem: str, metric: str) -> float:
+        """Get physics threshold for specific problem and metric.
+
+        Args:
+            problem: Test problem name (two_body, figure_eight, plummer)
+            metric: Threshold metric (energy or momentum)
+
+        Returns:
+            Threshold value (falls back to global if not specified)
+        """
+        # Try per-problem first
+        if self.fitness_per_problem_thresholds:
+            problem_thresholds = self.fitness_per_problem_thresholds.get(problem)
+            if problem_thresholds:
+                if metric == "energy":
+                    return problem_thresholds.get("max_energy_drift", self.fitness_max_energy_drift)
+                elif metric == "momentum":
+                    return problem_thresholds.get(
+                        "max_momentum_drift", self.fitness_max_momentum_drift
+                    )
+
+        # Fallback to global
+        return (
+            self.fitness_max_energy_drift if metric == "energy" else self.fitness_max_momentum_drift
+        )
 
     @property
     def total_requests_needed(self) -> int:
@@ -445,6 +497,9 @@ class Settings(BaseSettings):
                 == "true",
                 "fitness_speed_log_base": float(
                     os.getenv("FITNESS_SPEED_LOG_BASE", yaml_config["fitness"]["speed_log_base"])
+                ),
+                "fitness_per_problem_thresholds": yaml_config["fitness"].get(
+                    "per_problem_thresholds"
                 ),
                 # Benchmark
                 "benchmark_enabled": os.getenv(
