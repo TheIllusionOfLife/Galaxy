@@ -287,15 +287,16 @@ CRITICAL - Verify code completeness:
     )
 
     # Format conservation metrics
+    # Handle None explicitly to avoid misclassifying 0.0 as poor conservation
     p1_energy_status = (
         "✓ Good"
-        if (parent1.energy_drift or 1.0) < 0.01
-        else f"✗ Poor ({(parent1.energy_drift or 0.0) * 100:.1f}%)"
+        if parent1.energy_drift is not None and parent1.energy_drift < 0.01
+        else f"✗ Poor ({(parent1.energy_drift or 1.0) * 100:.1f}%)"
     )
     p2_energy_status = (
         "✓ Good"
-        if (parent2.energy_drift or 1.0) < 0.01
-        else f"✗ Poor ({(parent2.energy_drift or 0.0) * 100:.1f}%)"
+        if parent2.energy_drift is not None and parent2.energy_drift < 0.01
+        else f"✗ Poor ({(parent2.energy_drift or 1.0) * 100:.1f}%)"
     )
 
     return f"""{SYSTEM_INSTRUCTION}

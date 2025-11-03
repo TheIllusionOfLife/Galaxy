@@ -480,8 +480,13 @@ def LLM_propose_surrogate_model(
                 speed=base_genome.speed or 0.01,
                 generation=generation,
                 mutation_type=mutation_type,
-                energy_drift=base_genome.energy_drift or 0.0,
-                momentum_drift=base_genome.momentum_drift or 0.0,
+                # Use 1.0 for None to signal poor/unknown conservation (not 0.0 which signals perfect)
+                energy_drift=base_genome.energy_drift
+                if base_genome.energy_drift is not None
+                else 1.0,
+                momentum_drift=base_genome.momentum_drift
+                if base_genome.momentum_drift is not None
+                else 1.0,
             )
             # Get adaptive temperature for this generation
             temp_override = settings.get_mutation_temperature(generation)

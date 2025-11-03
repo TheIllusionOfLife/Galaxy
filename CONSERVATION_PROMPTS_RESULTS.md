@@ -58,9 +58,9 @@ All 3 models independently discovered semi-implicit Euler integration:
 
 | Civ ID | Fitness | Accuracy | Speed (s) | Energy Drift | Momentum Drift | Integration Method |
 |--------|---------|----------|-----------|--------------|----------------|-------------------|
-| civ_0_0 | 83,261 | 0.993 | 0.000012 | **1.12%** | ~0% | Semi-implicit Euler |
-| civ_0_1 | 134,285 | 0.993 | 0.000007 | **1.12%** | 0% | Semi-implicit Euler |
-| civ_0_2 | 53,301 | 0.993 | 0.000018 | **1.12%** | ~0% | Semi-implicit Euler |
+| civ_0_0 | 83,261 | 0.993 | 0.000012 | **1.12%** | <0.01% | Semi-implicit Euler |
+| civ_0_1 | 134,285 | 0.993 | 0.000007 | **1.12%** | 0.00% | Semi-implicit Euler |
+| civ_0_2 | 53,301 | 0.993 | 0.000018 | **1.12%** | <0.01% | Semi-implicit Euler |
 
 **Key Finding**: All 3 Gen 0 models achieved ~1.12% energy drift, just slightly above the 1% threshold. This is a **massive improvement** from PR #45 baseline where 0/50 models achieved <10% drift.
 
