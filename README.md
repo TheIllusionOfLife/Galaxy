@@ -588,9 +588,32 @@ If you encounter issues not covered here:
 
 ## Session Handover
 
-### Last Updated: November 03, 2025 10:35 AM JST
+### Last Updated: November 03, 2025 04:53 PM JST
 
 #### Recently Completed
+
+- ✅ **[PR #50](https://github.com/TheIllusionOfLife/Galaxy/pull/50)**: Fitness Formula Rebalancing (Task 1.2 from PR #45)
+  - **Achievement**: Implemented hard constraint to eliminate catastrophic physics violators
+  - **Hard Constraint**: Models with >10% energy drift or >50% momentum drift get fitness=-inf (immediate elimination)
+  - **Log-Scale Speed**: Reduced speed multiplier dominance from ~5000x to ~4x with `accuracy / log10(1 + speed * 1000)`
+  - **Files Changed**: config.yaml (+10), config.py (+23), prototype.py (+91), tests/ (+249 in 3 files), README.md (+24)
+  - **Test Coverage**: 15 unit tests for fitness formula rebalancing (configuration, log-scale, hard constraint, backward compatibility)
+  - **Review Process**: All feedback addressed from gemini-code-assist (1 HIGH: tautological test), claude[bot] (boundary documentation)
+  - **CI Fixes**: Added fitness section to 9 test config templates (2 test files)
+  - **Key Finding**: Soft penalties (≤90% cap) allowed models with >1000% drift to survive - hard constraint needed
+  - **Status**: ✅ Merged (commit [20c2ee2](https://github.com/TheIllusionOfLife/Galaxy/commit/20c2ee2))
+
+- ✅ **[PR #49](https://github.com/TheIllusionOfLife/Galaxy/pull/49)**: Full-Scale Conservation Validation - FAILED to Generalize
+  - **Validation Runs**: 10 pop × 5 gen on two_body and plummer (120 API calls, $0.0878 cost)
+  - **Critical Finding**: Conservation prompts from PR #47 FAILED to scale from 3 pop × 2 gen to 10 pop × 5 gen
+  - **two_body**: Best drift degraded 0.10% → 0.16% (+60%), mean drift exploded to 161,061%
+  - **plummer**: Best drift degraded 4.21% → 16.25% (+286%), conservation rate 0% (target >10%)
+  - **Root Cause Hypothesis**: Mutation/crossover operators break conservation code during evolution
+  - **Resolution**: Issues addressed in PR #50 (hard constraint eliminates catastrophic violators)
+  - **Files Added**: FULL_SCALE_CONSERVATION_VALIDATION.md (+318), scripts/analyze_conservation_validation.py (+208), validation_tracking.md (+66)
+  - **Review Fixes**: 5 gemini-code-assist issues (doc typos, median calculation, ZeroDivisionError guards)
+  - **Scientific Value**: Documents negative research results with comprehensive analysis for future direction
+  - **Status**: ✅ Merged (commit [cd4be02](https://github.com/TheIllusionOfLife/Galaxy/commit/cd4be02))
 
 - ✅ **[PR #47](https://github.com/TheIllusionOfLife/Galaxy/pull/47)**: Conservation-Aware LLM Prompts (Task 1 from PR #45)
   - **Achievement**: 162x improvement in best energy drift (0.10% vs 16.25% baseline)
@@ -600,6 +623,7 @@ If you encounter issues not covered here:
   - **Test Coverage**: 17 comprehensive prompt tests, all passing
   - **Real API Validation**: 3 pop × 2 gen run (cost $0.0066, best model achieved 0.10% energy drift)
   - **Key Finding**: Prompt design > penalty weights (confirmed hypothesis from PR #45)
+  - **Limitation**: PR #49 showed prompts FAILED to generalize to larger scale (addressed by PR #50)
   - **Status**: ✅ Merged (commit [9069337](https://github.com/TheIllusionOfLife/Galaxy/commit/9069337))
 
 - ✅ **[PR #45](https://github.com/TheIllusionOfLife/Galaxy/pull/45)**: Physics Penalty Validation and Analysis (Tasks 1-3)
@@ -625,32 +649,24 @@ If you encounter issues not covered here:
 
 #### Next Priority Tasks
 
-1. **Full-Scale Validation of Conservation Prompts** (HIGH PRIORITY - Follow-up from PR #47)
-   - **Source**: PR #47 showed 0.10% drift in small run (3 pop × 2 gen)
-   - **Context**: Need to verify results hold at larger scale and different problems
+1. **Validate Hard Constraint Effectiveness** (HIGH PRIORITY - Follow-up from PR #50)
+   - **Source**: PR #50 implemented hard constraint, PR #49 showed validation failure
+   - **Context**: Need empirical validation that hard constraint prevents catastrophic violators from surviving
    - **Tasks**:
-     - Run 10 pop × 5 gen on two_body problem (baseline comparison to PR #45)
-     - Run 10 pop × 5 gen on plummer problem (test complex N-body generalization)
-     - Compare drift distributions to PR #45 baseline
-   - **Benefits**: Confirm prompt effectiveness is reproducible and generalizes
+     - Run 10 pop × 5 gen on two_body with PR #50 fitness formula
+     - Run 10 pop × 5 gen on plummer with PR #50 fitness formula
+     - Compare to PR #49 results (baseline without hard constraint)
+   - **Expected Outcome**:
+     - 0% catastrophic violators (>10% energy drift, >50% momentum drift)
+     - Improved mean drift (currently 161,061% two_body, 1,658% plummer)
+     - Verify log-scale prevents speed-only optimization
    - **Estimated cost**: ~$0.10 (2 full runs)
-   - **Expected**: Consistent <1% drift across majority of models
+   - **Benefits**: Empirically confirm PR #50 solution addresses PR #49 failure mode
 
-2. **Rebalance Fitness Formula** (HIGH PRIORITY - New from PR #45)
-   - **Source**: PR #45 analysis - speed multiplier (5000x) overwhelms physics penalty
-   - **Context**: Current formula `accuracy / (speed + 1e-9)` creates huge fitness from fast models
-   - **Problem**: Physics penalty becomes insignificant compared to speed-based fitness
-   - **Goal**: Rebalance to make conservation competitive with speed
-   - **Options**:
-     - Multi-objective: `w1*accuracy + w2*(1/speed) - w3*energy_drift - w4*momentum_drift`
-     - Log-scale speed: `accuracy / log(speed + 1.0)` (reduces 5000x to ~8x)
-     - Hard constraint: Mark >10% drift as invalid (fitness=-inf)
-   - **Benefits**: Allows physics penalty to influence model selection effectively
-   - **Estimated time**: 2-3 hours (implementation + validation runs)
-
-3. **Implement Per-Problem Thresholds (Code-Based)** (MEDIUM PRIORITY)
+2. **Implement Per-Problem Thresholds (Code-Based)** (MEDIUM PRIORITY)
    - **Source**: PR #45 Task 3 - documented recommendations, needs implementation
    - **Context**: Uniform 1% threshold unrealistic (too strict for plummer, too lenient for two_body)
+   - **Note**: PR #50 hard constraint uses 10% energy / 50% momentum thresholds uniformly
    - **Recommended thresholds**:
      - two_body: 0.2% (simple 2-body orbit)
      - figure_eight: 1.5% (chaotic 3-body)
@@ -662,7 +678,7 @@ If you encounter issues not covered here:
    - **Benefits**: More realistic physics expectations per problem complexity
    - **Estimated time**: 1-2 hours (config + code changes)
 
-4. **Code Modularization** (MEDIUM PRIORITY - Deferred)
+3. **Code Modularization** (MEDIUM PRIORITY - Deferred)
    - **Source**: Previous planning consensus
    - **Context**: prototype.py now at 1044 lines
    - **Priority**: Deferred until prompts/fitness rebalancing complete
@@ -670,13 +686,39 @@ If you encounter issues not covered here:
 
 #### Known Issues / Blockers
 
-- **Population Mean Drift Still High**: Best model improved (4.21%) but mean (391.67%) indicates most models violate conservation
-  - **Root Cause**: LLM prompts don't emphasize conservation (see Task 1 HIGH PRIORITY)
-  - **Solution Path**: Update prompts + rebalance fitness formula
+- **Conservation Prompts Failed to Scale** (PR #49): Prompts from PR #47 worked at 3×2 but failed at 10×5 scale
+  - **Evidence**: Mean drift exploded to 161,061% (two_body), catastrophic violators survived selection
+  - **Architectural Solution**: PR #50 hard constraint eliminates catastrophic violators (>10% energy drift)
+  - **Status**: Architectural fix merged, needs empirical validation (Task 1 HIGH PRIORITY)
+  - **Next Step**: Run validation experiments to confirm hard constraint effectiveness
 
 #### Session Learnings
 
-**Last Updated**: November 03, 2025 08:13 AM JST
+**Last Updated**: November 03, 2025 04:53 PM JST
+
+- **Hard Constraint Pattern for Selection** (2025-11-03 PR #50): Soft penalties (≤90% cap) insufficient to eliminate catastrophic failures
+  - **Problem**: PR #49 validation showed models with >1000% energy drift surviving selection despite soft penalties
+  - **Root Cause**: Soft penalty `fitness = base - (base * penalty)` capped at 90% still leaves positive fitness
+  - **Solution**: Hard constraint `if drift > threshold: fitness = float('-inf')` ensures immediate elimination
+  - **Implementation**: Energy >10% OR momentum >50% → fitness=-inf (skip soft penalty entirely)
+  - **Benefits**: Guarantees catastrophic violators never survive selection, simplifies fitness calculation
+  - **Pattern**: Use hard constraints for hard requirements, soft penalties for preferences
+- **Log-Scale Normalization for Multiplicative Features** (2025-11-03 PR #50): Linear features with vastly different scales require log transformation
+  - **Problem**: Speed multiplier ~5000x (accuracy 0.95 / speed 0.0002s) overwhelmed physics penalty ~0.3
+  - **Root Cause**: `accuracy / speed` creates exponential multipliers for fast models
+  - **Solution**: `accuracy / log10(1 + speed * 1000)` reduces multiplier from ~5000x to ~4x
+  - **Benefits**: All fitness components (accuracy, speed, physics) operate at similar scales
+  - **Pattern**: When one component dominates by orders of magnitude, apply log transformation
+- **TDD Success with Configuration-Driven Features** (2025-11-03 PR #50): Write tests before implementation, especially for backward compatibility
+  - **Approach**: 15 tests covering 5 categories (configuration, log-scale, hard constraint, backward compatibility, integration)
+  - **Result**: All tests passed on first implementation attempt, caught edge cases early
+  - **Key Tests**: Boundary conditions (10.0% drift = OK, 10.01% = eliminated), backward compatibility flags
+  - **Pattern**: For configurable features, test each config combination + ensure old behavior still works
+- **Strategic PR Merge Ordering** (2025-11-03 PRs #49, #50): Merge implementation before documentation referencing it
+  - **Strategy**: PR #50 (fitness fix) merged first → PR #49 (validation documenting issue) merged second
+  - **Benefit**: PR #49 documentation correctly links to merged PR #50, no broken references
+  - **Alternative Rejected**: Merging #49 first would document problem without solution, create confusion
+  - **Pattern**: Implementation → Documentation (with cross-references), not the reverse
 
 - **AI Reviewer Hallucination Pattern** (2025-11-03 PR #45): ALL AI reviewers can provide completely incorrect feedback
   - **Problem**: gemini-code-assist, chatgpt-codex-connector, coderabbitai reviewed Galaxy physics PR but provided feedback about non-existent ARC-AGI multi-agent code
