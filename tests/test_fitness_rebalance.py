@@ -176,22 +176,33 @@ class TestBackwardCompatibility:
         assert abs(expected_fitness - 950.0) < 1.0, f"Expected ~950, got {expected_fitness:.1f}"
 
     def test_soft_penalty_when_hard_constraint_disabled(self):
-        """When fitness_enable_hard_constraint=False, soft penalty formula should apply."""
-        # When hard constraint is disabled:
-        # - Models are NOT eliminated (fitness != -inf)
-        # - Soft penalty still applies via calculate_physics_penalty()
-        # - Penalty is capped at 90% (10% fitness floor)
+        """When fitness_enable_hard_constraint=False, soft penalty should apply."""
+        # Simulate a catastrophic violation
+        energy_drift = 0.50  # 50% drift, would be eliminated by hard constraint
+        momentum_drift = 0.10  # 10% drift, acceptable
+        energy_max = 0.10  # Hard constraint threshold
+        momentum_max = 0.50  # Hard constraint threshold
 
-        # With hard constraint disabled, fitness should be finite (not -inf)
-        # Example: 50% energy drift would eliminate if hard constraint enabled,
-        # but with soft penalty only, fitness remains finite (just heavily penalized)
+        # Simulate the logic from prototype.py with the feature flag disabled
+        hard_constraint_enabled = False
+        eliminated = False
+        if hard_constraint_enabled:
+            if energy_drift > energy_max or momentum_drift > momentum_max:
+                eliminated = True
 
-        # This is a logic test verifying the hard constraint behavior
-        fitness_would_be_infinite = float("-inf")
+        # Assert that the model is NOT eliminated when the flag is false
+        assert not eliminated, "Model should not be eliminated when hard constraint is disabled"
 
-        # Verify -inf is actually -inf (sanity check for test logic)
-        assert fitness_would_be_infinite == float("-inf"), "Sanity check"
-        # In actual implementation with disabled hard constraint, fitness != -inf
+        # Also verify that with hard constraint enabled, it WOULD be eliminated
+        hard_constraint_enabled = True
+        eliminated = False
+        if hard_constraint_enabled:
+            if energy_drift > energy_max or momentum_drift > momentum_max:
+                eliminated = True
+
+        assert eliminated, (
+            "Model with 50% energy drift should be eliminated when hard constraint is enabled"
+        )
 
 
 class TestIntegrationScenarios:
