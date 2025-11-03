@@ -578,7 +578,7 @@ If you encounter issues not covered here:
   - **Files Changed**: prompts.py (+74), prototype.py (+11), CONSERVATION_PROMPTS_RESULTS.md (+261), tests/test_prompts.py (+297)
   - **Review Fixes**: 4 issues addressed (2 HIGH: 0.0 conservation bug, None handling)
   - **Test Coverage**: 17 comprehensive prompt tests, all passing
-  - **Real API Validation**: 3 pop × 2 gen run (cost $0.0066, perfect conservation model)
+  - **Real API Validation**: 3 pop × 2 gen run (cost $0.0066, best model achieved 0.10% energy drift)
   - **Key Finding**: Prompt design > penalty weights (confirmed hypothesis from PR #45)
   - **Status**: ✅ Merged (commit [9069337](https://github.com/TheIllusionOfLife/Galaxy/commit/9069337))
 
