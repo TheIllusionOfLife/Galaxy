@@ -601,7 +601,7 @@ If you encounter issues not covered here:
   - **Recommendation**: Per-problem thresholds now CRITICAL PRIORITY (plummer needs 20-30% threshold)
   - **Files Added**: HARD_CONSTRAINT_VALIDATION.md (+465 lines), scripts/validate_hard_constraint.py (+239 lines)
   - **Documentation**: Comprehensive analysis with 8 sections, 4 session learnings, detailed comparisons
-  - **Status**: ⏳ Analysis complete, awaiting PR creation
+  - **Status**: 🔄 PR #52 (in review)
 
 - ✅ **[PR #50](https://github.com/TheIllusionOfLife/Galaxy/pull/50)**: Fitness Formula Rebalancing (Task 1.2 from PR #45)
   - **Achievement**: Implemented hard constraint to eliminate catastrophic physics violators

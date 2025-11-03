@@ -96,7 +96,7 @@ PR #49 results (conservation prompts WITHOUT hard constraint):
 The hard constraint successfully identifies and eliminates models exceeding thresholds:
 
 **two_body**: 22 eliminations in 50 models (44%)
-```
+```text
 Generation 1: 6/10 eliminated (civ_1_0, 1_2, 1_3, 1_4, 1_6, 1_7)
   - Energy drifts: 39.35%, 20.44%, 33.80%, 20.45%, 101.6%, 1514.87%
   - All correctly exceeded 10% threshold
@@ -107,7 +107,7 @@ Generation 4: 5/10 eliminated
 ```
 
 **plummer**: 50 eliminations in 50 models (100%)
-```
+```text
 Generation 0: 10/10 eliminated (all initial models)
   - Energy drifts: 16.24%, 472.39%, 201.03%, 202.67%, 201.03%, 201.03%, 1762.88%, 2494.16%, 5803.11%, 311.59%
   - All correctly exceeded 10% threshold
@@ -202,7 +202,7 @@ Generations 1-4: 10/10 eliminated each generation
 
 ### HIGH PRIORITY
 
-#### 1. Implement Per-Problem Thresholds (Task 2)
+#### 1. Implement Per-Problem Thresholds (Task 1)
 
 Update `config.yaml` and `config.py` to support problem-specific thresholds:
 
@@ -359,7 +359,7 @@ Automatically adjust thresholds based on problem complexity:
 
 ## Next Steps
 
-1. **Immediate**: Implement Task 2 (per-problem thresholds) → [HIGH PRIORITY]
+1. **Immediate**: Implement Task 1 (per-problem thresholds) → [CRITICAL PRIORITY]
 2. **Validation**: Re-run plummer with 20% threshold → [HIGH PRIORITY]
 3. **Documentation**: Update README with threshold guidance → [MEDIUM PRIORITY]
 4. **Research**: Investigate adaptive threshold calibration → [LOW PRIORITY]

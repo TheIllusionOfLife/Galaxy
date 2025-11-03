@@ -33,20 +33,10 @@ def load_run_data(run_dir: Path) -> dict[str, Any]:
                 isinstance(fitness, (int, float)) and math.isinf(fitness) and fitness < 0
             ):
                 eliminated_models += 1
-                # Still count drift for eliminated models if available
-                energy_drift = model.get("energy_drift")
-                momentum_drift = model.get("angular_momentum_drift")
+            else:
+                valid_models += 1
 
-                if energy_drift is not None:
-                    energy_drifts.append(energy_drift)
-                    if energy_drift > 0.10 or (
-                        momentum_drift is not None and momentum_drift > 0.50
-                    ):
-                        catastrophic_violators += 1
-                continue
-
-            valid_models += 1
-
+            # Process physics metrics for all models (both eliminated and valid)
             energy_drift = model.get("energy_drift")
             momentum_drift = model.get("angular_momentum_drift")
 
@@ -134,7 +124,7 @@ def print_results(label: str, data: dict, baseline: dict | None = None):
         print()
         print("  Comparison to PR #49 baseline (WITHOUT hard constraint):")
 
-        if baseline["best_drift"] and data["best_drift"]:
+        if baseline["best_drift"] is not None and data["best_drift"] is not None:
             best_improvement = (
                 (baseline["best_drift"] - data["best_drift"]) / baseline["best_drift"] * 100
             )
@@ -142,7 +132,7 @@ def print_results(label: str, data: dict, baseline: dict | None = None):
                 f"    Best drift: {baseline['best_drift'] * 100:.2f}% → {data['best_drift'] * 100:.2f}% ({best_improvement:+.1f}%)"
             )
 
-        if baseline["mean_drift"] and data["mean_drift"]:
+        if baseline["mean_drift"] is not None and data["mean_drift"] is not None:
             mean_improvement = (
                 (baseline["mean_drift"] - data["mean_drift"]) / baseline["mean_drift"] * 100
             )
@@ -189,6 +179,7 @@ def main():
     }
 
     # Load PR #50 results
+    # These are the specific validation runs from 2025-11-03 for PR #50 hard constraint validation
     two_body_dir = Path("results/run_20251103_180806")
     plummer_dir = Path("results/run_20251103_181334")
 
