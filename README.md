@@ -182,13 +182,32 @@ physics_penalty:
 # Fitness Formula (prevent catastrophic violators & speed dominance)
 fitness:
   enable_hard_constraint: true   # Eliminate models exceeding thresholds (fitness=-inf)
-  max_energy_drift: 0.10        # Energy drift threshold (10%, models above eliminated)
-  max_momentum_drift: 0.50      # Angular momentum threshold (50%, more lenient)
+  max_energy_drift: 0.10        # Global energy drift threshold (10%, models above eliminated)
+  max_momentum_drift: 0.50      # Global angular momentum threshold (50%, more lenient)
   use_log_speed: true           # Use log-scale to reduce speed multiplier dominance
   speed_log_base: 10.0          # Base for logarithm (higher = less speed-sensitive)
+
+  # Per-problem threshold overrides (optional, falls back to global)
+  per_problem_thresholds:
+    two_body:
+      max_energy_drift: 0.020    # 2% for simple N=2 (allows parametric baselines ~1.12% drift)
+      max_momentum_drift: 0.020
+    figure_eight:
+      max_energy_drift: 0.015    # 1.5% for chaotic N=3
+      max_momentum_drift: 0.015
+    plummer:
+      max_energy_drift: 0.200    # 20% for complex N=50 (enables evolution diversity)
+      max_momentum_drift: 0.200
 ```
 
 **Physics Penalty** (New): Models that violate energy or angular momentum conservation are penalized. This ensures evolved approximations remain scientifically valid. Critical finding from PR #41: without physics penalties, ALL evolved models violated conservation laws (up to 293% energy drift). With physics penalties enabled, models preserve physics while maintaining speed/accuracy.
+
+**Per-Problem Thresholds** (PR #53): Conservation difficulty scales non-linearly with problem complexity (N=2 vs N=50). Per-problem thresholds allow evolution on both simple and complex problems:
+- **two_body** (N=2): 2% threshold - strict for analytically solvable systems
+- **figure_eight** (N=3): 1.5% threshold - moderate for chaotic systems
+- **plummer** (N=50): 20% threshold - relaxed for many-body interactions
+
+Critical finding: Uniform 10% threshold eliminated 100% of plummer models (PR #52 validation), preventing evolution. Per-problem thresholds restore healthy population diversity (16.7% plummer survival, 50% two_body survival).
 
 **Fitness Formula** (Task 1.2): Addresses two critical issues discovered in full-scale validation:
 
@@ -588,9 +607,20 @@ If you encounter issues not covered here:
 
 ## Session Handover
 
-### Last Updated: November 03, 2025 06:21 PM JST
+### Last Updated: November 03, 2025
 
 #### Recently Completed
+
+- ✅ **[PR #53](https://github.com/TheIllusionOfLife/Galaxy/pull/53)**: Per-Problem Physics Thresholds
+  - **Achievement**: Implemented per-problem threshold configuration system to enable evolution on both simple and complex problems
+  - **Problem**: Uniform 10% threshold eliminated 100% of plummer (N=50) models while being too lenient for two_body (N=2)
+  - **Solution**: Per-problem overrides with graceful fallback to global defaults
+  - **Thresholds**: two_body=2%, figure_eight=1.5%, plummer=20%
+  - **Validation Results**: Plummer 16.7% survival (was 0%), two_body 50% survival
+  - **Files Changed**: config.yaml (+19), config.py (+113), prototype.py (+6), tests/test_per_problem_thresholds.py (+708), .gitignore (+3)
+  - **Test Coverage**: 10 comprehensive tests (threshold loading, retrieval, validation, edge cases)
+  - **Key Features**: Fail-fast validation with intelligent typo detection using difflib, backward-compatible
+  - **Status**: ✅ Merged (commit [29bc683](https://github.com/TheIllusionOfLife/Galaxy/commit/29bc683))
 
 - ✅ **Hard Constraint Validation** (Task 1 from Next Priority - analysis/validate-hard-constraint-pr50 branch)
   - **Objective**: Empirically validate PR #50's hard constraint eliminates catastrophic violators
@@ -601,7 +631,7 @@ If you encounter issues not covered here:
   - **Recommendation**: Per-problem thresholds now CRITICAL PRIORITY (plummer needs 20-30% threshold)
   - **Files Added**: HARD_CONSTRAINT_VALIDATION.md (+465 lines), scripts/validate_hard_constraint.py (+239 lines)
   - **Documentation**: Comprehensive analysis with 8 sections, 4 session learnings, detailed comparisons
-  - **Status**: 🔄 PR #52 (in review)
+  - **Status**: ✅ Merged to PR #52
 
 - ✅ **[PR #50](https://github.com/TheIllusionOfLife/Galaxy/pull/50)**: Fitness Formula Rebalancing (Task 1.2 from PR #45)
   - **Achievement**: Implemented hard constraint to eliminate catastrophic physics violators
@@ -660,22 +690,20 @@ If you encounter issues not covered here:
 
 #### Next Priority Tasks
 
-1. **Implement Per-Problem Thresholds (Code-Based)** (CRITICAL PRIORITY - UPGRADED from MEDIUM)
-   - **Source**: PR #45 Task 3 + Hard Constraint Validation showed 10% fails for plummer
-   - **Context**: Hard constraint validation proved uniform 10% threshold eliminates 100% of plummer models
-   - **Urgency**: Plummer evolution currently impossible without per-problem thresholds
-   - **Recommended thresholds** (from validation + PR #45):
-     - two_body: 0.2% (10% works but could be stricter)
-     - figure_eight: 1.5% (chaotic 3-body, moderate threshold)
-     - plummer: 20-30% (N=50 complex interactions, 10% eliminates all models)
+1. **Full-Scale Plummer Evolution** (HIGH PRIORITY)
+   - **Source**: PR #53 validation showed 16.7% survival with 20% threshold
+   - **Context**: Per-problem thresholds now enable plummer evolution (was 0% survival with 10%)
+   - **Objective**: Validate that population diversity sustains across full evolution run
    - **Tasks**:
-     - Update config.yaml schema to support per_problem_thresholds dict
-     - Modify config.py Settings class with `get_physics_threshold(problem, metric)` method
-     - Update prototype.py hard constraint logic to use per-problem thresholds
-     - Add tests for threshold retrieval and fallback behavior
-   - **Benefits**: Enable evolution on both simple (two_body) AND complex (plummer) problems
-   - **Estimated time**: 1-2 hours (config + code + tests)
-   - **Validation**: Re-run plummer with 20% threshold → expect 10-30% survival rate
+     - Run complete evolution (10 pop × 5 gen) with plummer test problem
+     - Monitor fitness progression and conservation trends
+     - Verify no catastrophic drift in later generations
+   - **Expected Outcomes**:
+     - Sustained 10-20% survival rate across generations
+     - Fitness improvement similar to two_body/figure_eight runs
+     - Best models achieve ~20% drift (at threshold boundary)
+   - **Cost**: ~$0.02 (50 API calls)
+   - **Time**: ~4 minutes (rate-limited to 15 RPM)
 
 2. **Code Modularization** (MEDIUM PRIORITY - Deferred)
    - **Source**: Previous planning consensus
@@ -685,13 +713,14 @@ If you encounter issues not covered here:
 
 #### Known Issues / Blockers
 
-- **Uniform Threshold Too Strict for Complex Problems** (Hard Constraint Validation): PR #50's 10% threshold eliminates 100% of plummer models
-  - **Evidence**: two_body 56% survival (good), plummer 0% survival (complete failure)
-  - **Root Cause**: N=50 many-body interactions inherently have 10-30% drift for fast approximations
-  - **Impact**: Plummer evolution currently impossible (fitness=0.00, no models to evolve)
-  - **Solution**: Per-problem thresholds (Task 1 CRITICAL PRIORITY)
-  - **Recommended**: two_body 0.2%, figure_eight 1.5%, plummer 20-30%
-  - **Status**: Implementation required ASAP to unblock plummer evolution
+- **No critical blockers** - Core functionality operational
+  - Per-problem thresholds resolved plummer evolution blocker (PR #53)
+  - All three test problems (two_body, figure_eight, plummer) now viable for evolution
+
+**Minor Issues**:
+- Figure_eight threshold (1.5%) not yet empirically validated (no full-scale run)
+- Free tier rate limits (15 RPM) slow evolution runs to ~4 minutes minimum
+- Single LLM provider (Gemini only) - no Claude/GPT-4o support yet
 
 #### Session Learnings
 
