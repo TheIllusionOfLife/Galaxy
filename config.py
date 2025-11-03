@@ -176,6 +176,10 @@ class Settings(BaseSettings):
         le=100.0,
         description="Base for logarithm in speed normalization (higher = less sensitive)",
     )
+    fitness_per_problem_thresholds: dict[str, dict[str, float]] | None = Field(
+        default=None,
+        description="Per-problem threshold overrides (optional, falls back to global)",
+    )
 
     # Benchmark Suite Configuration (from config.yaml, no defaults here)
     benchmark_enabled: bool = Field(description="Enable benchmark suite execution")
@@ -223,6 +227,86 @@ class Settings(BaseSettings):
         if v not in valid_problems:
             raise ValueError(f"Invalid test_problem: {v}. Valid options: {valid_problems}")
         return v
+
+    @field_validator("fitness_per_problem_thresholds")
+    @classmethod
+    def validate_per_problem_thresholds(
+        cls, v: dict[str, dict[str, float]] | None
+    ) -> dict[str, dict[str, float]] | None:
+        """Validate per-problem threshold configuration."""
+        if v is None:
+            return v
+
+        valid_problems = {"two_body", "figure_eight", "plummer"}
+        valid_keys = {"max_energy_drift", "max_momentum_drift"}
+
+        for problem in v.keys():
+            if problem not in valid_problems:
+                # Provide helpful suggestion if typo detected
+                from difflib import get_close_matches
+
+                suggestions = get_close_matches(problem, valid_problems, n=1, cutoff=0.6)
+                suggestion_msg = f" (did you mean '{suggestions[0]}'?)" if suggestions else ""
+                raise ValueError(
+                    f"Invalid problem '{problem}'{suggestion_msg}. "
+                    f"Valid problems: {', '.join(sorted(valid_problems))}"
+                )
+
+        # Validate threshold keys and ranges
+        for problem, thresholds in v.items():
+            for key, value in thresholds.items():
+                # Validate key name (prevent typos)
+                if key not in valid_keys:
+                    from difflib import get_close_matches
+
+                    suggestions = get_close_matches(key, valid_keys, n=1, cutoff=0.6)
+                    suggestion_msg = f" (did you mean '{suggestions[0]}'?)" if suggestions else ""
+                    raise ValueError(
+                        f"Invalid threshold key '{key}' for problem '{problem}'{suggestion_msg}. "
+                        f"Valid keys: {', '.join(sorted(valid_keys))}"
+                    )
+                # Validate value range
+                if not 0.0 <= value <= 10.0:
+                    raise ValueError(
+                        f"{problem}.{key} must be between 0.0 and 10.0, got {value}. "
+                        f"Typical values: two_body=0.002, figure_eight=0.015, plummer=0.200"
+                    )
+
+        return v
+
+    def get_physics_threshold(self, problem: str, metric: str) -> float:
+        """Get physics threshold for specific problem and metric.
+
+        Args:
+            problem: Test problem name (two_body, figure_eight, plummer)
+            metric: Threshold metric (energy or momentum)
+
+        Returns:
+            Threshold value (falls back to global if not specified)
+
+        Raises:
+            ValueError: If metric is not 'energy' or 'momentum'
+        """
+        # Validate metric parameter
+        if metric not in ("energy", "momentum"):
+            raise ValueError(f"Invalid metric '{metric}', must be 'energy' or 'momentum'")
+
+        # Determine default threshold and config key based on metric
+        if metric == "energy":
+            default_threshold = self.fitness_max_energy_drift
+            problem_key = "max_energy_drift"
+        else:  # metric == "momentum"
+            default_threshold = self.fitness_max_momentum_drift
+            problem_key = "max_momentum_drift"
+
+        # Try per-problem override first
+        if self.fitness_per_problem_thresholds:
+            problem_thresholds = self.fitness_per_problem_thresholds.get(problem)
+            if problem_thresholds:
+                return problem_thresholds.get(problem_key, default_threshold)
+
+        # Fallback to global default
+        return default_threshold
 
     @property
     def total_requests_needed(self) -> int:
@@ -445,6 +529,9 @@ class Settings(BaseSettings):
                 == "true",
                 "fitness_speed_log_base": float(
                     os.getenv("FITNESS_SPEED_LOG_BASE", yaml_config["fitness"]["speed_log_base"])
+                ),
+                "fitness_per_problem_thresholds": yaml_config["fitness"].get(
+                    "per_problem_thresholds"
                 ),
                 # Benchmark
                 "benchmark_enabled": os.getenv(

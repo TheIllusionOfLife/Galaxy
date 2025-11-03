@@ -826,6 +826,7 @@ class EvolutionaryEngine:
         elite_ratio: float = 0.2,
         gemini_client: Optional["GeminiClient"] = None,
         cost_tracker: Optional["CostTracker"] = None,
+        test_problem: str = "plummer",
     ):
         """Initialize the evolutionary engine.
 
@@ -835,6 +836,7 @@ class EvolutionaryEngine:
             elite_ratio: Fraction of top performers to keep for breeding (0.0 to 1.0)
             gemini_client: Optional LLM client for code generation
             cost_tracker: Optional cost tracking utility
+            test_problem: Test problem name for per-problem threshold lookup
 
         Raises:
             ValueError: If elite_ratio is outside valid range [0.0, 1.0]
@@ -850,6 +852,7 @@ class EvolutionaryEngine:
         self.gemini_client = gemini_client
         self.cost_tracker = cost_tracker or (CostTracker() if LLM_AVAILABLE else None)
         self.history: list[dict] = []
+        self.test_problem = test_problem
 
     def initialize_population(self):
         """Generate the initial population of civilizations (surrogate models)."""
@@ -937,18 +940,26 @@ class EvolutionaryEngine:
                         # HARD CONSTRAINT: Eliminate catastrophic physics violators
                         # Models exceeding thresholds get fitness=-inf (never selected)
                         if settings.fitness_enable_hard_constraint:
+                            # Get problem-specific thresholds (or fall back to global)
+                            energy_threshold = settings.get_physics_threshold(
+                                self.test_problem, "energy"
+                            )
+                            momentum_threshold = settings.get_physics_threshold(
+                                self.test_problem, "momentum"
+                            )
+
                             # Note: Use strict inequality (>) so models at exactly the threshold are acceptable
                             # Example: 10.0% energy drift is OK, 10.01% is eliminated
                             if (
-                                energy_drift > settings.fitness_max_energy_drift
-                                or angular_momentum_drift > settings.fitness_max_momentum_drift
+                                energy_drift > energy_threshold
+                                or angular_momentum_drift > momentum_threshold
                             ):
                                 logger.warning(
                                     f"{civ_id}: ELIMINATED by hard constraint - "
                                     f"Energy drift={energy_drift:.4f} "
-                                    f"(max {settings.fitness_max_energy_drift}), "
+                                    f"(max {energy_threshold}), "
                                     f"Momentum drift={angular_momentum_drift:.4f} "
-                                    f"(max {settings.fitness_max_momentum_drift})"
+                                    f"(max {momentum_threshold})"
                                 )
                                 fitness = float("-inf")
 
@@ -1231,6 +1242,7 @@ if __name__ == "__main__":
         elite_ratio=settings.elite_ratio,
         gemini_client=gemini_client,
         cost_tracker=cost_tracker,
+        test_problem=test_problem,
     )
 
     # Run evolution
