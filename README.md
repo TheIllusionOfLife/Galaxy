@@ -619,7 +619,7 @@ If you encounter issues not covered here:
   - **Validation Results**: Plummer 16.7% survival (was 0%), two_body 50% survival
   - **Files Changed**: config.yaml (+19), config.py (+113), prototype.py (+6), tests/test_per_problem_thresholds.py (+708), .gitignore (+3)
   - **Test Coverage**: 10 comprehensive tests (threshold loading, retrieval, validation, edge cases)
-  - **Key Features**: Fail-fast validation with intelligent typo detection using difflib, backward compatible
+  - **Key Features**: Fail-fast validation with intelligent typo detection using difflib, backward-compatible
   - **Status**: ✅ Merged (commit [29bc683](https://github.com/TheIllusionOfLife/Galaxy/commit/29bc683))
 
 - ✅ **Hard Constraint Validation** (Task 1 from Next Priority - analysis/validate-hard-constraint-pr50 branch)

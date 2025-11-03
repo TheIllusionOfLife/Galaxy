@@ -93,7 +93,7 @@ Galaxy Prometheus is an LLM-driven evolutionary framework for discovering novel 
 
 ## Repository Structure
 
-```
+```text
 Galaxy/
 ├── config.yaml                 # Single source of truth for configuration
 ├── config.py                   # Pydantic settings with validation
@@ -218,8 +218,16 @@ Galaxy/
 
 ## CI/CD Status
 
-**GitHub Actions**: Not yet configured
-**Pre-commit Hooks**: Not yet configured
+**GitHub Actions**: ✅ Configured (CI pipeline runs on push/PR)
+- Test matrix: Python 3.10, 3.11, 3.12
+- Automated code reviews: CodeRabbit, Gemini Code Assist, Claude
+
+**Pre-commit Hooks**: ✅ Configured and active
+- Ruff format & lint (code style and quality)
+- mypy (type checking)
+- detect-secrets (prevent credential commits)
+- YAML, TOML validation
+
 **Code Quality Tools**: Ruff (linting), mypy (type checking)
 
 ## Contributing
@@ -233,7 +241,7 @@ This is a research project exploring LLM-driven algorithm discovery. Key princip
 
 ## Contact and Resources
 
-**Repository**: https://github.com/TheIllusionOfLife/Galaxy
+**Repository**: [https://github.com/TheIllusionOfLife/Galaxy](https://github.com/TheIllusionOfLife/Galaxy)
 **Documentation**: See README.md
 **Analysis Archives**: archive/analysis_docs/
 
