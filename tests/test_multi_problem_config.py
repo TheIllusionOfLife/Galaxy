@@ -48,6 +48,12 @@ crossover:
   enabled: true
   crossover_rate: 0.5
   temperature: 0.75
+fitness:
+  enable_hard_constraint: true
+  max_energy_drift: 0.10
+  max_momentum_drift: 0.50
+  use_log_speed: true
+  speed_log_base: 10.0
 benchmark:
   enabled: true
   particle_counts: [10, 50, 100]
@@ -101,6 +107,12 @@ crossover:
   enabled: true
   crossover_rate: 0.5
   temperature: 0.75
+fitness:
+  enable_hard_constraint: true
+  max_energy_drift: 0.10
+  max_momentum_drift: 0.50
+  use_log_speed: true
+  speed_log_base: 10.0
 benchmark:
   enabled: true
   particle_counts: [10, 50, 100]
@@ -151,6 +163,12 @@ crossover:
   enabled: true
   crossover_rate: 0.5
   temperature: 0.75
+fitness:
+  enable_hard_constraint: true
+  max_energy_drift: 0.10
+  max_momentum_drift: 0.50
+  use_log_speed: true
+  speed_log_base: 10.0
 benchmark:
   enabled: true
   particle_counts: [10, 50, 100]
@@ -201,6 +219,12 @@ crossover:
   enabled: true
   crossover_rate: 0.5
   temperature: 0.75
+fitness:
+  enable_hard_constraint: true
+  max_energy_drift: 0.10
+  max_momentum_drift: 0.50
+  use_log_speed: true
+  speed_log_base: 10.0
 benchmark:
   enabled: true
   particle_counts: [10, 50, 100]
@@ -251,6 +275,12 @@ crossover:
   enabled: true
   crossover_rate: 0.5
   temperature: 0.75
+fitness:
+  enable_hard_constraint: true
+  max_energy_drift: 0.10
+  max_momentum_drift: 0.50
+  use_log_speed: true
+  speed_log_base: 10.0
 benchmark:
   enabled: true
   particle_counts: [10, 50, 100]
@@ -301,6 +331,12 @@ crossover:
   enabled: true
   crossover_rate: 0.5
   temperature: 0.75
+fitness:
+  enable_hard_constraint: true
+  max_energy_drift: 0.10
+  max_momentum_drift: 0.50
+  use_log_speed: true
+  speed_log_base: 10.0
 benchmark:
   enabled: true
   particle_counts: [10, 50, 100]
@@ -354,6 +390,12 @@ crossover:
   enabled: true
   crossover_rate: 0.5
   temperature: 0.75
+fitness:
+  enable_hard_constraint: true
+  max_energy_drift: 0.10
+  max_momentum_drift: 0.50
+  use_log_speed: true
+  speed_log_base: 10.0
 benchmark:
   enabled: true
   particle_counts: [10, 50, 100]
