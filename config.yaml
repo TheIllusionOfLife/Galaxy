@@ -48,6 +48,17 @@ crossover:
   crossover_rate: 0.5  # Fraction using crossover (0.5 = 50% crossover, 50% mutation)
   temperature: 0.75  # Crossover creativity level (0.0-2.0, between explore/exploit)
 
+# Fitness Formula Configuration (prevent catastrophic physics violators)
+fitness:
+  # Hard constraint to eliminate models with severe physics violations
+  enable_hard_constraint: true  # Eliminate models exceeding thresholds (fitness=-inf)
+  max_energy_drift: 0.10  # Energy drift threshold (0.10 = 10%, models above eliminated)
+  max_momentum_drift: 0.50  # Angular momentum threshold (50%, more lenient than energy)
+
+  # Speed normalization to reduce multiplier dominance (5000x → ~4x)
+  use_log_speed: true  # Use log(1 + speed) instead of raw speed in fitness calculation
+  speed_log_base: 10.0  # Base for logarithm (10.0 = common log, higher = less sensitive)
+
 # Benchmark Suite Configuration
 benchmark:
   enabled: true  # Enable benchmark suite execution
