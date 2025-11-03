@@ -238,13 +238,22 @@ class Settings(BaseSettings):
             return v
 
         valid_problems = {"two_body", "figure_eight", "plummer"}
+        valid_keys = {"max_energy_drift", "max_momentum_drift"}
+
         for problem in v.keys():
             if problem not in valid_problems:
                 raise ValueError(f"Invalid problem '{problem}', must be one of {valid_problems}")
 
-        # Validate threshold ranges
+        # Validate threshold keys and ranges
         for problem, thresholds in v.items():
             for key, value in thresholds.items():
+                # Validate key name (prevent typos)
+                if key not in valid_keys:
+                    raise ValueError(
+                        f"Invalid threshold key '{key}' for problem '{problem}', "
+                        f"must be one of {valid_keys}"
+                    )
+                # Validate value range
                 if not 0.0 <= value <= 10.0:
                     raise ValueError(f"{problem}.{key} must be 0.0-10.0, got {value}")
 
@@ -259,22 +268,30 @@ class Settings(BaseSettings):
 
         Returns:
             Threshold value (falls back to global if not specified)
+
+        Raises:
+            ValueError: If metric is not 'energy' or 'momentum'
         """
-        # Try per-problem first
+        # Validate metric parameter
+        if metric not in ("energy", "momentum"):
+            raise ValueError(f"Invalid metric '{metric}', must be 'energy' or 'momentum'")
+
+        # Determine default threshold and config key based on metric
+        if metric == "energy":
+            default_threshold = self.fitness_max_energy_drift
+            problem_key = "max_energy_drift"
+        else:  # metric == "momentum"
+            default_threshold = self.fitness_max_momentum_drift
+            problem_key = "max_momentum_drift"
+
+        # Try per-problem override first
         if self.fitness_per_problem_thresholds:
             problem_thresholds = self.fitness_per_problem_thresholds.get(problem)
             if problem_thresholds:
-                if metric == "energy":
-                    return problem_thresholds.get("max_energy_drift", self.fitness_max_energy_drift)
-                elif metric == "momentum":
-                    return problem_thresholds.get(
-                        "max_momentum_drift", self.fitness_max_momentum_drift
-                    )
+                return problem_thresholds.get(problem_key, default_threshold)
 
-        # Fallback to global
-        return (
-            self.fitness_max_energy_drift if metric == "energy" else self.fitness_max_momentum_drift
-        )
+        # Fallback to global default
+        return default_threshold
 
     @property
     def total_requests_needed(self) -> int:
