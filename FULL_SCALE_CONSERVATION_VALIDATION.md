@@ -1,5 +1,9 @@
 # Full-Scale Conservation Prompts Validation
 
+> **📌 Resolution**: Issues identified in this validation have been addressed in **[PR #50: Fitness Formula Rebalancing](https://github.com/TheIllusionOfLife/Galaxy/pull/50)**.
+>
+> **Key Fix**: Hard constraint now eliminates catastrophic physics violators (>10% energy drift, >50% momentum drift) with `fitness=-inf`, preventing models with >1000% drift from surviving selection.
+
 **Date**: November 3, 2025
 **Status**: ⚠️ **FAILED TO GENERALIZE** - Conservation prompts did not scale effectively
 
@@ -93,7 +97,7 @@ Validated PR #47's conservation-aware LLM prompts at full scale (10 pop × 5 gen
 
 ## Root Cause Analysis
 
-### Hypothesis 1: Mutation/Crossover破breakages Conservation Code ✅ LIKELY
+### Hypothesis 1: Mutation/Crossover breaks Conservation Code ✅ LIKELY
 **Evidence**:
 - Gen 0 two_body: 7/10 models at ~1.12% drift (good)
 - Later generations: Drift explodes to >100,000% (catastrophic)
@@ -147,7 +151,7 @@ This run (with prompts): 16.25% best drift
 
 ## Scientific Implications
 
-###1. **Problem Formulation Complexity Hypothesis VALIDATED**
+### 1. **Problem Formulation Complexity Hypothesis VALIDATED**
 - Simple conservation guidance insufficient for complex N-body dynamics
 - LLMs need problem-specific physics knowledge, not just general principles
 
@@ -179,8 +183,8 @@ This run (with prompts): 16.25% best drift
 # Instead of free-form mutation prompts
 # Add explicit constraints:
 if parent_energy_drift < 0.01:
-    prompt += \"CRITICAL: Your mutation MUST preserve energy conservation.\"
-    prompt += \"Verify: E_final - E_initial < 1% at every timestep.\"
+    prompt += "CRITICAL: Your mutation MUST preserve energy conservation."
+    prompt += "Verify: E_final - E_initial < 1% at every timestep."
 ```
 
 **3. Implement hard physics constraint**

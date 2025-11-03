@@ -3,6 +3,7 @@
 
 import json
 import math
+import statistics
 from pathlib import Path
 from typing import Any
 
@@ -53,7 +54,7 @@ def load_run_data(run_dir: Path) -> dict[str, Any]:
         "best_fitness": data["summary"]["best_overall_fitness"],
         "best_drift": min(energy_drifts),
         "mean_drift": sum(energy_drifts) / len(energy_drifts),
-        "median_drift": sorted(energy_drifts)[len(energy_drifts) // 2],
+        "median_drift": statistics.median(energy_drifts),
         "models_below_1pct": sum(1 for d in energy_drifts if d < 0.01),
         "models_below_10pct": sum(1 for d in energy_drifts if d < 0.10),
         "models_below_100pct": sum(1 for d in energy_drifts if d < 1.00),
@@ -72,10 +73,14 @@ def compare_to_baseline(new_data: dict, baseline_data: dict) -> dict:
         return {"error": "Cannot compare - invalid data"}
 
     best_improvement = (
-        (baseline_data["best_drift"] - new_data["best_drift"]) / baseline_data["best_drift"] * 100
+        ((baseline_data["best_drift"] - new_data["best_drift"]) / baseline_data["best_drift"] * 100)
+        if baseline_data.get("best_drift")
+        else float("inf")
     )
     mean_improvement = (
-        (baseline_data["mean_drift"] - new_data["mean_drift"]) / baseline_data["mean_drift"] * 100
+        ((baseline_data["mean_drift"] - new_data["mean_drift"]) / baseline_data["mean_drift"] * 100)
+        if baseline_data.get("mean_drift")
+        else float("inf")
     )
 
     conservation_rate_new = new_data["models_below_1pct"] / new_data["total_valid_models"] * 100
