@@ -588,9 +588,20 @@ If you encounter issues not covered here:
 
 ## Session Handover
 
-### Last Updated: November 03, 2025 04:53 PM JST
+### Last Updated: November 03, 2025 06:21 PM JST
 
 #### Recently Completed
+
+- ✅ **Hard Constraint Validation** (Task 1 from Next Priority - analysis/validate-hard-constraint-pr50 branch)
+  - **Objective**: Empirically validate PR #50's hard constraint eliminates catastrophic violators
+  - **Runs**: 10 pop × 5 gen on two_body and plummer (120 API calls, $0.1002 cost, 11 minutes)
+  - **two_body Result**: ✅ SUCCESS - 44% eliminated, mean drift improved 90.1% (161,061% → 15,948%)
+  - **plummer Result**: ⚠️ TOO STRICT - 100% eliminated, evolution failed (fitness=0.00)
+  - **Critical Finding**: Hard constraint works correctly, but 10% threshold too strict for N=50 problems
+  - **Recommendation**: Per-problem thresholds now CRITICAL PRIORITY (plummer needs 20-30% threshold)
+  - **Files Added**: HARD_CONSTRAINT_VALIDATION.md (+465 lines), scripts/validate_hard_constraint.py (+239 lines)
+  - **Documentation**: Comprehensive analysis with 8 sections, 4 session learnings, detailed comparisons
+  - **Status**: 🔄 PR #52 (in review)
 
 - ✅ **[PR #50](https://github.com/TheIllusionOfLife/Galaxy/pull/50)**: Fitness Formula Rebalancing (Task 1.2 from PR #45)
   - **Achievement**: Implemented hard constraint to eliminate catastrophic physics violators
@@ -649,36 +660,24 @@ If you encounter issues not covered here:
 
 #### Next Priority Tasks
 
-1. **Validate Hard Constraint Effectiveness** (HIGH PRIORITY - Follow-up from PR #50)
-   - **Source**: PR #50 implemented hard constraint, PR #49 showed validation failure
-   - **Context**: Need empirical validation that hard constraint prevents catastrophic violators from surviving
+1. **Implement Per-Problem Thresholds (Code-Based)** (CRITICAL PRIORITY - UPGRADED from MEDIUM)
+   - **Source**: PR #45 Task 3 + Hard Constraint Validation showed 10% fails for plummer
+   - **Context**: Hard constraint validation proved uniform 10% threshold eliminates 100% of plummer models
+   - **Urgency**: Plummer evolution currently impossible without per-problem thresholds
+   - **Recommended thresholds** (from validation + PR #45):
+     - two_body: 0.2% (10% works but could be stricter)
+     - figure_eight: 1.5% (chaotic 3-body, moderate threshold)
+     - plummer: 20-30% (N=50 complex interactions, 10% eliminates all models)
    - **Tasks**:
-     - Run 10 pop × 5 gen on two_body with PR #50 fitness formula
-     - Run 10 pop × 5 gen on plummer with PR #50 fitness formula
-     - Compare to PR #49 results (baseline without hard constraint)
-   - **Expected Outcome**:
-     - 0% catastrophic violators (>10% energy drift, >50% momentum drift)
-     - Improved mean drift (currently 161,061% two_body, 1,658% plummer)
-     - Verify log-scale prevents speed-only optimization
-   - **Estimated cost**: ~$0.10 (2 full runs)
-   - **Benefits**: Empirically confirm PR #50 solution addresses PR #49 failure mode
-
-2. **Implement Per-Problem Thresholds (Code-Based)** (MEDIUM PRIORITY)
-   - **Source**: PR #45 Task 3 - documented recommendations, needs implementation
-   - **Context**: Uniform 1% threshold unrealistic (too strict for plummer, too lenient for two_body)
-   - **Note**: PR #50 hard constraint uses 10% energy / 50% momentum thresholds uniformly
-   - **Recommended thresholds**:
-     - two_body: 0.2% (simple 2-body orbit)
-     - figure_eight: 1.5% (chaotic 3-body)
-     - plummer: 10% (complex N-body)
-   - **Tasks**:
-     - Update config.yaml schema to support per-problem thresholds
+     - Update config.yaml schema to support per_problem_thresholds dict
      - Modify config.py Settings class with `get_physics_threshold(problem, metric)` method
-     - Update prototype.py to use problem-specific thresholds
-   - **Benefits**: More realistic physics expectations per problem complexity
-   - **Estimated time**: 1-2 hours (config + code changes)
+     - Update prototype.py hard constraint logic to use per-problem thresholds
+     - Add tests for threshold retrieval and fallback behavior
+   - **Benefits**: Enable evolution on both simple (two_body) AND complex (plummer) problems
+   - **Estimated time**: 1-2 hours (config + code + tests)
+   - **Validation**: Re-run plummer with 20% threshold → expect 10-30% survival rate
 
-3. **Code Modularization** (MEDIUM PRIORITY - Deferred)
+2. **Code Modularization** (MEDIUM PRIORITY - Deferred)
    - **Source**: Previous planning consensus
    - **Context**: prototype.py now at 1044 lines
    - **Priority**: Deferred until prompts/fitness rebalancing complete
@@ -686,16 +685,42 @@ If you encounter issues not covered here:
 
 #### Known Issues / Blockers
 
-- **Conservation Prompts Failed to Scale** (PR #49): Prompts from PR #47 worked at 3×2 but failed at 10×5 scale
-  - **Evidence**: Mean drift exploded to 161,061% (two_body), catastrophic violators survived selection
-  - **Architectural Solution**: PR #50 hard constraint eliminates catastrophic violators (>10% energy drift)
-  - **Status**: Architectural fix merged, needs empirical validation (Task 1 HIGH PRIORITY)
-  - **Next Step**: Run validation experiments to confirm hard constraint effectiveness
+- **Uniform Threshold Too Strict for Complex Problems** (Hard Constraint Validation): PR #50's 10% threshold eliminates 100% of plummer models
+  - **Evidence**: two_body 56% survival (good), plummer 0% survival (complete failure)
+  - **Root Cause**: N=50 many-body interactions inherently have 10-30% drift for fast approximations
+  - **Impact**: Plummer evolution currently impossible (fitness=0.00, no models to evolve)
+  - **Solution**: Per-problem thresholds (Task 1 CRITICAL PRIORITY)
+  - **Recommended**: two_body 0.2%, figure_eight 1.5%, plummer 20-30%
+  - **Status**: Implementation required ASAP to unblock plummer evolution
 
 #### Session Learnings
 
-**Last Updated**: November 03, 2025 04:53 PM JST
+**Last Updated**: November 03, 2025 06:21 PM JST
 
+- **Hard Constraint Validation Pattern** (2025-11-03 Validation): 100% elimination means threshold miscalibration, not implementation bug
+  - **Problem**: Plummer run eliminated all 50 models (fitness=-inf for every generation)
+  - **Initial Interpretation**: Hard constraint broken? Implementation bug?
+  - **Correct Interpretation**: Hard constraint works perfectly - threshold (10%) unrealistic for N=50
+  - **Evidence**: two_body (N=2) 56% survival with same 10% threshold
+  - **Pattern**: When constraint eliminates 100%, calibrate threshold, don't debug constraint
+  - **Solution**: Test simple problem first (verify mechanism), then complex problem (calibrate threshold)
+- **Mean vs Best Metrics in Evolution** (2025-11-03 Validation): Report all three metrics for complete picture
+  - **Observation**: Best drift degraded (0.16% → 1.12%) BUT mean drift improved 90.1% (161,061% → 15,948%)
+  - **Interpretation**: Best individual eliminated, but population healthier overall
+  - **Pattern**: Always report best/mean/median for evolutionary algorithms
+  - **Best drift**: Shows ceiling performance (best individual in history)
+  - **Mean drift**: Shows population quality (average genetic material for breeding)
+  - **Median drift**: Shows typical performance (central tendency without outlier bias)
+- **Problem Complexity Scaling** (2025-11-03 Validation): Conservation difficulty scales non-linearly with N
+  - **Evidence**: Same 10% threshold → two_body 56% survival, plummer 0% survival
+  - **Root Cause**: N=2 has analytical solution (<1% achievable), N=50 chaotic (10-30% typical)
+  - **Pattern**: Threshold appropriate for simple problem may eliminate all models on complex problem
+  - **Solution**: Per-problem thresholds based on problem complexity (N, chaos, interactions)
+- **Fitness Collapse Diagnostic** (2025-11-03 Validation): Hard constraint + log-scale = performance trade-off
+  - **Observation**: Fitness dropped 99.7% (320,157 → 1,103) despite 90% mean drift improvement
+  - **Root Cause**: Hard constraint eliminates fast models + log-scale reduces multiplier
+  - **Acceptable?**: YES if goal is physics-preserving (accept performance loss), NO if speed-critical
+  - **Solution**: Multi-objective optimization or relaxed thresholds for speed applications
 - **Hard Constraint Pattern for Selection** (2025-11-03 PR #50): Soft penalties (≤90% cap) insufficient to eliminate catastrophic failures
   - **Problem**: PR #49 validation showed models with >1000% energy drift surviving selection despite soft penalties
   - **Root Cause**: Soft penalty `fitness = base - (base * penalty)` capped at 90% still leaves positive fitness
