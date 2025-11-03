@@ -225,6 +225,34 @@ class TestCrossoverPrompt:
         assert "conservation" in task_and_beyond.lower() or "physics" in task_and_beyond.lower()
         assert "drift" in task_and_beyond.lower()
 
+    def test_perfect_conservation_labeled_good(self):
+        """Parents with perfect conservation (0.0 drift) should be labeled Good."""
+        parent1 = SurrogateGenome(
+            theta=[1.0],
+            raw_code="def predict(p, ps): return p",
+            fitness=200.0,
+            accuracy=1.0,
+            speed=0.001,
+            energy_drift=0.0,  # Perfect conservation
+            momentum_drift=0.0,
+        )
+        parent2 = SurrogateGenome(
+            theta=[2.0],
+            raw_code="def predict(p, ps): return p",
+            fitness=150.0,
+            accuracy=0.95,
+            speed=0.002,
+            energy_drift=0.005,  # Good conservation
+            momentum_drift=0.01,
+        )
+
+        prompt = get_crossover_prompt(parent1, parent2, generation=2)
+
+        # Parent 1 with 0.0% drift should be labeled Good (not Poor)
+        assert "✓ Good" in prompt
+        # Should NOT show Poor with 0.0%
+        assert "✗ Poor (0.0%)" not in prompt
+
 
 class TestConservationKeywordCoverage:
     """Test that conservation keywords appear across all prompt types."""
