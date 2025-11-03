@@ -58,8 +58,8 @@ fitness:
   max_momentum_drift: 0.50
   per_problem_thresholds:
     two_body:
-      max_energy_drift: 0.002
-      max_momentum_drift: 0.002
+      max_energy_drift: 0.020
+      max_momentum_drift: 0.020
     plummer:
       max_energy_drift: 0.200
       max_momentum_drift: 0.200
@@ -82,7 +82,7 @@ benchmark:
         assert settings.fitness_per_problem_thresholds is not None
         assert "two_body" in settings.fitness_per_problem_thresholds
         assert "plummer" in settings.fitness_per_problem_thresholds
-        assert settings.fitness_per_problem_thresholds["two_body"]["max_energy_drift"] == 0.002
+        assert settings.fitness_per_problem_thresholds["two_body"]["max_energy_drift"] == 0.020
         assert settings.fitness_per_problem_thresholds["plummer"]["max_energy_drift"] == 0.200
 
     def test_threshold_retrieval_with_override(self, tmp_path):
@@ -133,8 +133,8 @@ fitness:
   max_momentum_drift: 0.50
   per_problem_thresholds:
     two_body:
-      max_energy_drift: 0.002
-      max_momentum_drift: 0.002
+      max_energy_drift: 0.020
+      max_momentum_drift: 0.020
   use_log_speed: true
   speed_log_base: 10.0
 
@@ -152,8 +152,8 @@ benchmark:
         settings = Settings.load_from_yaml(PathlibPath(config_path))
 
         # two_body should use override
-        assert settings.get_physics_threshold("two_body", "energy") == 0.002
-        assert settings.get_physics_threshold("two_body", "momentum") == 0.002
+        assert settings.get_physics_threshold("two_body", "energy") == 0.020
+        assert settings.get_physics_threshold("two_body", "momentum") == 0.020
 
         # plummer should fall back to global
         assert settings.get_physics_threshold("plummer", "energy") == 0.10
@@ -538,7 +538,7 @@ fitness:
   max_momentum_drift: 0.50
   per_problem_thresholds:
     two_body:
-      max_energy_drift: 0.002
+      max_energy_drift: 0.020
   use_log_speed: true
   speed_log_base: 10.0
 
@@ -556,7 +556,7 @@ benchmark:
         settings = Settings.load_from_yaml(PathlibPath(config_path))
 
         # Energy should use override, momentum should fall back to global
-        assert settings.get_physics_threshold("two_body", "energy") == 0.002
+        assert settings.get_physics_threshold("two_body", "energy") == 0.020
         assert settings.get_physics_threshold("two_body", "momentum") == 0.50
 
     def test_empty_per_problem_thresholds(self, tmp_path):
@@ -675,8 +675,8 @@ fitness:
   max_momentum_drift: 0.50
   per_problem_thresholds:
     two_body:
-      max_energy_drift: 0.002
-      max_momentum_drift: 0.002
+      max_energy_drift: 0.020
+      max_momentum_drift: 0.020
     figure_eight:
       max_energy_drift: 0.015
       max_momentum_drift: 0.015
@@ -700,8 +700,8 @@ benchmark:
         settings = Settings.load_from_yaml(PathlibPath(config_path))
 
         # Verify all three problem overrides load correctly
-        assert settings.get_physics_threshold("two_body", "energy") == 0.002
-        assert settings.get_physics_threshold("two_body", "momentum") == 0.002
+        assert settings.get_physics_threshold("two_body", "energy") == 0.020
+        assert settings.get_physics_threshold("two_body", "momentum") == 0.020
         assert settings.get_physics_threshold("figure_eight", "energy") == 0.015
         assert settings.get_physics_threshold("figure_eight", "momentum") == 0.015
         assert settings.get_physics_threshold("plummer", "energy") == 0.200
