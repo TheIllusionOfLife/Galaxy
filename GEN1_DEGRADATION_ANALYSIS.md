@@ -265,4 +265,66 @@ The Gen 0 → Gen 1 degradation in plummer evolution is caused by a **prompt thr
 **Expected impact**: Restore healthy Gen 1 survival rates (10-30%), enable continued evolution
 **Implementation time**: 30 minutes (prompt update + validation run)
 
-**Status**: Ready for implementation
+**Status**: ✅ IMPLEMENTED (commit f44224b)
+
+---
+
+## Post-Fix Validation & Model Upgrade Recommendations
+
+### Validation Results (10 pop × 5 gen)
+
+**Prompt fix was implemented correctly** but revealed a deeper issue:
+
+- **Gen 0**: 1/10 survived (10% survival rate)
+  - civ_0_0: 16.08% energy drift ✅ SURVIVED
+
+- **Gen 1-4**: 0/10 each generation (0% survival rate)
+  - All offspring eliminated despite dynamic threshold prompts
+  - **High syntax error rate**: 50%+ of LLM-generated code had syntax errors
+  - Valid code still violated 20% conservation threshold
+
+### Revised Root Cause Assessment
+
+**Primary Root Cause (Category D - LLM Capability Limitation)**:
+- Gemini 2.5 Flash Lite cannot reliably generate physically-accurate N-body code for 50-particle Plummer spheres
+- Even with correct prompts, generated code violates conservation thresholds
+- High syntax error rate (50%+) indicates model struggles with code complexity
+- Crossover operations particularly problematic (repeated syntax errors)
+
+**Secondary Issue (Category A - Prompt Design)**:
+- Hardcoded 1% threshold was misleading but NOT the primary failure cause
+- Fix implemented correctly but insufficient to overcome LLM limitations
+
+### Model Upgrade Strategy
+
+Based on validation showing LLM capability limitations:
+
+**Immediate Action**:
+1. **Switch to Gemini 2.5 Pro** for plummer evolution
+   - Edit config.yaml: `model.name: gemini-2.5-pro`
+   - Expected improvement: 80%+ reduction in syntax errors
+   - Cost impact: ~$3 per run (vs $0.03 for flash-lite)
+
+2. **Run comparative experiment**:
+   ```bash
+   # Baseline (already complete): Flash Lite, 10 pop × 5 gen on plummer
+   # Validation: Pro, 10 pop × 5 gen on plummer
+   echo "model:\n  name: gemini-2.5-pro" >> config.yaml
+   POPULATION_SIZE=10 NUM_GENERATIONS=5 TEST_PROBLEM=plummer uv run python prototype.py
+   ```
+
+3. **Decision criteria**:
+   - If Pro achieves >20% Gen 1 survival: Use Pro for plummer
+   - If Pro still fails: Problem may require simplification (e.g., 20 particles instead of 50)
+   - Keep Flash Lite for two_body/figure_eight (sufficient quality)
+
+**Cost-Benefit Analysis**:
+- Flash Lite: $0.03/run, 0% Gen 1 survival = wasted compute
+- Pro: $3.00/run, potential 20%+ Gen 1 survival = enables evolution
+- **ROI**: 100x cost pays off if it enables any evolution progress
+- Alternative: Simplify problem (reduce particles) if Pro still fails
+
+**Implementation**:
+- Model switching now easy: One line in config.yaml (commit f95e8a3)
+- All costs/rates auto-adjust per model
+- See README.md "Switching Between Models" section for details

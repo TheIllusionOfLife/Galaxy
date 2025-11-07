@@ -72,16 +72,31 @@ class RateLimiter:
 
 
 class GeminiClient:
-    """Client for Gemini 2.5 Flash Lite API.
+    """Client for Gemini 2.5 API with multi-model support.
 
-    Handles code generation with automatic retries, rate limiting,
-    and cost tracking.
+    Supports gemini-2.5-flash-lite, gemini-2.5-flash, and gemini-2.5-pro
+    with automatic cost tracking and rate limiting per model.
     """
 
-    # Pricing per 1M tokens (as of 2025-10-24)
+    # Model-specific pricing and rate limits (as of 2025-10-24)
     # Source: https://ai.google.dev/pricing
-    INPUT_COST_PER_MTOK = 0.10  # $0.10/1M input tokens (standard tier)
-    OUTPUT_COST_PER_MTOK = 0.40  # $0.40/1M output tokens (standard tier)
+    MODEL_PRICING = {
+        "gemini-2.5-flash-lite": {
+            "input": 0.10,  # $0.10/1M input tokens
+            "output": 0.40,  # $0.40/1M output tokens
+            "rpm": 15,  # Free tier rate limit (requests per minute)
+        },
+        "gemini-2.5-pro": {
+            "input": 1.25,  # $1.25/1M input tokens
+            "output": 10.00,  # $10.00/1M output tokens
+            "rpm": 10,  # Estimated rate limit for paid tier
+        },
+        "gemini-2.5-flash": {
+            "input": 0.30,  # $0.30/1M input tokens
+            "output": 1.20,  # $1.20/1M output tokens
+            "rpm": 15,  # Similar to flash-lite
+        },
+    }
 
     def __init__(
         self,
@@ -95,11 +110,23 @@ class GeminiClient:
 
         Args:
             api_key: Google AI API key
-            model: Model name to use
+            model: Model name to use (gemini-2.5-flash-lite, gemini-2.5-flash, gemini-2.5-pro)
             temperature: Sampling temperature (0.0-2.0)
             max_output_tokens: Maximum tokens in response
-            enable_rate_limiting: Whether to enforce 15 RPM limit
+            enable_rate_limiting: Whether to enforce rate limiting
+
+        Raises:
+            ValueError: If model name is not supported
         """
+        # Validate model and get pricing
+        if model not in self.MODEL_PRICING:
+            available = ", ".join(self.MODEL_PRICING.keys())
+            raise ValueError(f"Unsupported model '{model}'. Available models: {available}")
+
+        pricing = self.MODEL_PRICING[model]
+        self.INPUT_COST_PER_MTOK = pricing["input"]
+        self.OUTPUT_COST_PER_MTOK = pricing["output"]
+
         genai.configure(api_key=api_key)
 
         # Safety settings: allow code generation
@@ -123,7 +150,10 @@ class GeminiClient:
         )
 
         self.model_name = model
-        self.rate_limiter = RateLimiter() if enable_rate_limiting else None
+
+        # Set rate limiter based on model-specific RPM
+        rpm = int(pricing["rpm"]) if enable_rate_limiting else 1000
+        self.rate_limiter = RateLimiter(rpm) if enable_rate_limiting else None
 
     def generate_surrogate_code(
         self, prompt: str, retry_attempts: int = 3, temperature: float | None = None

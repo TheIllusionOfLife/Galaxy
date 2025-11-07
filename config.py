@@ -65,6 +65,31 @@ class Settings(BaseSettings):
 
     # Model Selection (from config.yaml, no defaults here)
     llm_model: str = Field(description="Gemini model to use for code generation")
+
+    @field_validator("llm_model")
+    @classmethod
+    def validate_model(cls, v: str) -> str:
+        """Validate that the model name is supported.
+
+        Supported models:
+        - gemini-2.5-flash-lite: Cheapest, free tier
+        - gemini-2.5-flash: Balanced cost/quality
+        - gemini-2.5-pro: Highest quality, most expensive
+        """
+        supported_models = [
+            "gemini-2.5-flash-lite",
+            "gemini-2.5-flash",
+            "gemini-2.5-pro",
+        ]
+        if v not in supported_models:
+            available = ", ".join(supported_models)
+            raise ValueError(
+                f"Unsupported model '{v}'. "
+                f"Available models: {available}. "
+                f"Update config.yaml model.name field."
+            )
+        return v
+
     temperature: float = Field(
         ge=0.0, le=2.0, description="LLM temperature (0.0-2.0, higher = more creative)"
     )
