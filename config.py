@@ -71,16 +71,11 @@ class Settings(BaseSettings):
     def validate_model(cls, v: str) -> str:
         """Validate that the model name is supported.
 
-        Supported models:
-        - gemini-2.5-flash-lite: Cheapest, free tier
-        - gemini-2.5-flash: Balanced cost/quality
-        - gemini-2.5-pro: Highest quality, most expensive
+        Supported models are defined in GeminiClient.MODEL_PRICING.
         """
-        supported_models = [
-            "gemini-2.5-flash-lite",
-            "gemini-2.5-flash",
-            "gemini-2.5-pro",
-        ]
+        from gemini_client import GeminiClient
+
+        supported_models = GeminiClient.MODEL_PRICING.keys()
         if v not in supported_models:
             available = ", ".join(supported_models)
             raise ValueError(

@@ -325,6 +325,6 @@ Based on validation showing LLM capability limitations:
 - Alternative: Simplify problem (reduce particles) if Pro still fails
 
 **Implementation**:
-- Model switching now easy: One line in config.yaml (commit f95e8a3)
+- Model switching now easy: One line in config.yaml (commit 29bb5f7)
 - All costs/rates auto-adjust per model
 - See README.md "Switching Between Models" section for details

@@ -152,8 +152,11 @@ class GeminiClient:
         self.model_name = model
 
         # Set rate limiter based on model-specific RPM
-        rpm = int(pricing["rpm"]) if enable_rate_limiting else 1000
-        self.rate_limiter = RateLimiter(rpm) if enable_rate_limiting else None
+        self.rate_limiter: RateLimiter | None
+        if enable_rate_limiting:
+            self.rate_limiter = RateLimiter(int(pricing["rpm"]))
+        else:
+            self.rate_limiter = None
 
     def generate_surrogate_code(
         self, prompt: str, retry_attempts: int = 3, temperature: float | None = None
