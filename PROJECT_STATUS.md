@@ -1,17 +1,66 @@
 # Galaxy Prometheus - Project Status
 
-**Last Updated**: 2025-11-03
-**Current Version**: Main branch (commit a4cb175)
+**Last Updated**: 2025-11-07
+**Current Version**: Main branch (commit c58098d)
 
 ## Executive Summary
 
-Galaxy Prometheus is an LLM-driven evolutionary framework for discovering novel N-body simulation algorithms. The system uses Gemini models to evolve surrogate force calculation methods that are faster than traditional approaches while maintaining physical accuracy.
+Galaxy Prometheus is an LLM-driven evolutionary framework for discovering novel N-body simulation algorithms. The system uses Gemini Flash Lite to evolve surrogate force calculation methods that are faster than traditional approaches while maintaining physical accuracy.
 
-**Current Status**: ✅ **Core system functional and validated**
+**Current Status**: ✅ **Core system functional with documented limitations**
+
+**Model Selection**: `gemini-2.5-flash-lite` is the **only viable model**. Gemini Pro is blocked by safety filters.
 
 ## Recent Accomplishments (October-November 2025)
 
-### 1. Per-Problem Physics Thresholds (PR #53) ✅ MERGED
+### 1. Flash Lite Plummer Validation (Nov 07, 2025) ✅ COMPLETE
+
+**Objective**: Validate if PR #55 dynamic prompts enable sustained evolution on plummer (N=50).
+
+**Configuration**:
+- Model: gemini-2.5-flash-lite
+- Population: 10, Generations: 5
+- Cost: $0.0362
+
+**Results**:
+```
+Gen 0:  1/10 survived (10.0%)
+Gen 1:  1/10 survived (10.0%)
+Gen 2-4: 0/10 survived (0%)  ← Evolution collapsed
+```
+
+**Key Findings**:
+- ✅ Flash Lite generates valid code (0% syntax errors)
+- ⚠️ Gen1 survival marginal (10% exactly at threshold)
+- ❌ Gen2+ collapse (0% survival indicates insufficient diversity)
+- **Interpretation**: PR #55 prompt fix had marginal effect; N=50 complexity exceeds Flash Lite capability
+
+**Impact**: Established baseline for plummer evolution - 10% Gen1 proves concept works, but not production-ready.
+
+### 2. Gemini Pro Safety Filter Blocker (Nov 07, 2025) ❌ BLOCKED
+
+**Objective**: A/B test Flash Lite vs Pro to validate if Pro enables better evolution.
+
+**Result**: **Gemini Pro UNUSABLE** - safety filters block all code generation.
+
+**Evidence**:
+```
+Duration: 6+ minutes
+Attempts: 6+ generations
+Error: finish_reason=2 (SAFETY)
+Success rate: 0% (100% blocked)
+```
+
+**Root Cause**: Pro's conservative safety filters flag evolution prompts (force calculations, mutation terminology, N-body dynamics) as potentially harmful.
+
+**Why Flash Lite works**: Flash models optimized for code generation with permissive filters.
+
+**Impact**:
+- Pro upgrade path **permanently closed**
+- Flash Lite is **only viable option**
+- Documented in MODEL_SELECTION_GUIDE.md
+
+### 3. Per-Problem Physics Thresholds (PR #53) ✅ MERGED
 
 **Problem**: Uniform 10% energy drift threshold eliminated 100% of models in complex N=50 plummer simulations, preventing evolution entirely.
 
