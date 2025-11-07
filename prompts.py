@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from prototype import SurrogateGenome
 
+from config import settings
+
 # System instruction used for all prompts
 SYSTEM_INSTRUCTION = """You are an expert in numerical methods and physics simulation.
 Generate Python code for a surrogate model that approximates 3D N-body gravitational dynamics.
@@ -134,6 +136,7 @@ def get_mutation_prompt(
     mutation_type: str = "explore",
     energy_drift: float = 0.0,
     momentum_drift: float = 0.0,
+    test_problem: str = "plummer",
 ) -> str:
     """Generate mutation prompt based on parent performance.
 
@@ -146,6 +149,7 @@ def get_mutation_prompt(
         mutation_type: "explore" for large changes, "exploit" for refinement
         energy_drift: Parent's energy conservation drift (0-1+, lower is better)
         momentum_drift: Parent's angular momentum drift (0-1+, lower is better)
+        test_problem: Test problem name for threshold lookup (two_body, figure_eight, plummer)
 
     Returns:
         Complete prompt for mutating parent model
@@ -191,21 +195,40 @@ Make targeted improvements while keeping the core approach."""
     elif fitness > 100:
         perf_analysis.append("✓ High fitness - make incremental refinements")
 
-    # Add conservation analysis
-    if energy_drift > 0.01:
-        perf_analysis.append(
-            f"✗ Energy drift {energy_drift * 100:.2f}% - violates conservation (goal <1%)"
-        )
-    else:
-        perf_analysis.append(f"✓ Energy drift {energy_drift * 100:.2f}% - good conservation")
+    # Add conservation analysis with dynamic per-problem thresholds
+    energy_threshold = settings.get_physics_threshold(test_problem, "energy")
+    momentum_threshold = settings.get_physics_threshold(test_problem, "momentum")
 
-    if momentum_drift > 0.01:
+    # Categorize energy drift relative to actual threshold
+    if energy_drift > energy_threshold:
+        # ELIMINATED by hard constraint
         perf_analysis.append(
-            f"✗ Angular momentum drift {momentum_drift * 100:.2f}% - violates conservation"
+            f"✗ Energy drift {energy_drift * 100:.2f}% - ELIMINATED (exceeds {energy_threshold * 100:.1f}% threshold)"
+        )
+    elif energy_drift > 0.01:
+        # Acceptable but not ideal
+        perf_analysis.append(
+            f"⚠ Energy drift {energy_drift * 100:.2f}% - acceptable but not ideal (threshold: {energy_threshold * 100:.1f}%, ideal: <1%)"
         )
     else:
+        # Excellent conservation
+        perf_analysis.append(f"✓ Energy drift {energy_drift * 100:.2f}% - excellent conservation")
+
+    # Categorize momentum drift relative to actual threshold
+    if momentum_drift > momentum_threshold:
+        # ELIMINATED by hard constraint
         perf_analysis.append(
-            f"✓ Angular momentum drift {momentum_drift * 100:.2f}% - good conservation"
+            f"✗ Angular momentum drift {momentum_drift * 100:.2f}% - ELIMINATED (exceeds {momentum_threshold * 100:.1f}% threshold)"
+        )
+    elif momentum_drift > 0.01:
+        # Acceptable but not ideal
+        perf_analysis.append(
+            f"⚠ Angular momentum drift {momentum_drift * 100:.2f}% - acceptable but not ideal (threshold: {momentum_threshold * 100:.1f}%, ideal: <1%)"
+        )
+    else:
+        # Excellent conservation
+        perf_analysis.append(
+            f"✓ Angular momentum drift {momentum_drift * 100:.2f}% - excellent conservation"
         )
 
     performance_context = f"""

@@ -411,6 +411,7 @@ def LLM_propose_surrogate_model(
     cost_tracker: Optional["CostTracker"] = None,
     second_parent: SurrogateGenome | None = None,
     parent_ids: list[str] | None = None,
+    test_problem: str = "plummer",
 ) -> SurrogateGenome:
     """Generate or evolve a new surrogate model using LLM or Mock fallback.
 
@@ -426,6 +427,7 @@ def LLM_propose_surrogate_model(
         cost_tracker: Cost tracker
         second_parent: Second parent for crossover (None for mutation)
         parent_ids: List of parent civ_ids for lineage tracking
+        test_problem: Test problem name for threshold lookup (two_body, figure_eight, plummer)
 
     Returns:
         New SurrogateGenome
@@ -487,6 +489,7 @@ def LLM_propose_surrogate_model(
                 momentum_drift=base_genome.momentum_drift
                 if base_genome.momentum_drift is not None
                 else 1.0,
+                test_problem=test_problem,
             )
             # Get adaptive temperature for this generation
             temp_override = settings.get_mutation_temperature(generation)
@@ -859,7 +862,11 @@ class EvolutionaryEngine:
         for i in range(self.population_size):
             civ_id = f"civ_{self.generation}_{i}"
             genome = LLM_propose_surrogate_model(
-                None, self.generation, self.gemini_client, self.cost_tracker
+                None,
+                self.generation,
+                self.gemini_client,
+                self.cost_tracker,
+                test_problem=self.test_problem,
             )
             self.civilizations[civ_id] = {"genome": genome, "fitness": 0}
 
@@ -1140,6 +1147,7 @@ class EvolutionaryEngine:
                     self.cost_tracker,
                     second_parent=parent2_genome,
                     parent_ids=[parent1_civ[0], parent2_civ[0]],
+                    test_problem=self.test_problem,
                 )
                 crossover_count += 1
             else:
@@ -1153,6 +1161,7 @@ class EvolutionaryEngine:
                     self.gemini_client,
                     self.cost_tracker,
                     parent_ids=[parent_civ[0]],
+                    test_problem=self.test_problem,
                 )
                 mutation_count += 1
 
