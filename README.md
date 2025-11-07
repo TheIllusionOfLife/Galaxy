@@ -643,9 +643,23 @@ If you encounter issues not covered here:
 
 ## Session Handover
 
-### Last Updated: November 03, 2025
+### Last Updated: November 07, 2025 08:47 PM JST
 
 #### Recently Completed
+
+- ✅ **[PR #55](https://github.com/TheIllusionOfLife/Galaxy/pull/55)**: Fix Gen1 degradation + Add multi-model support (Flash Lite/Flash/Pro)
+  - **Achievement**: Implemented dynamic per-problem threshold prompts AND multi-model LLM support (3 models)
+  - **Problem 1 (Gen1 Degradation)**: Mutation prompts used hardcoded 1% threshold while plummer threshold was 20%, causing LLM to perceive 16.25% drift as "violating conservation" and over-optimize with buggy code
+  - **Solution 1**: Dynamic threshold prompts using `settings.get_physics_threshold(test_problem, "energy")` - LLM now sees "16.25% drift - acceptable (threshold 20%)"
+  - **Problem 2 (Model Switching)**: User wanted easy comparative experiments between flash-lite ($0.03/run) and pro ($3/run) models
+  - **Solution 2**: Multi-model support with MODEL_PRICING dictionary, dynamic cost/rate calculation, single source of truth pattern
+  - **Models Supported**: gemini-2.5-flash-lite (15 RPM, $0.10/$0.40 per 1M tokens), gemini-2.5-flash (15 RPM, $0.30/$1.20), gemini-2.5-pro (10 RPM, $1.25/$10.00)
+  - **Files Changed**: prompts.py (+37), gemini_client.py (+44), config.py (+15), config.yaml (+12), README.md (+42), GEN1_DEGRADATION_ANALYSIS.md (+3), tests/ (+67 in 2 files)
+  - **Test Coverage**: 341 tests passing (4 tests fixed for new test_problem parameter)
+  - **Review Fixes**: 4 issues addressed (gemini-code-assist: 3 MEDIUM - commit hash typo, single source of truth, simplified rate limiter; coderabbitai: 1 - YAML duplicate key prevention)
+  - **CI**: All tests passing across Python 3.10, 3.11, 3.12
+  - **Key Features**: Easy model switching via config.yaml or env var, automatic cost/rate adjustment per model, backward-compatible
+  - **Status**: ✅ Merged (commit [80852f2](https://github.com/TheIllusionOfLife/Galaxy/commit/80852f2))
 
 - ✅ **[PR #53](https://github.com/TheIllusionOfLife/Galaxy/pull/53)**: Per-Problem Physics Thresholds
   - **Achievement**: Implemented per-problem threshold configuration system to enable evolution on both simple and complex problems
@@ -760,8 +774,26 @@ If you encounter issues not covered here:
 
 #### Session Learnings
 
-**Last Updated**: November 03, 2025 06:21 PM JST
+**Last Updated**: November 07, 2025 08:47 PM JST
 
+- **Committing on Wrong Branch Recovery** (2025-11-07 from PR #55): When commits land on main instead of feature branch, use git push origin main:feature-branch
+  - **Problem**: Committed 5 times directly to main during PR work (violated Mandatory Branch Workflow from CLAUDE.md)
+  - **Cause**: Continued from summarized session, forgot to create feature branch before coding
+  - **Recovery**: Used `git push origin main:feat/multi-model-support` to push main commits to PR branch
+  - **Prevention**: IMMEDIATELY create feature branch at session start, even for "quick fixes" or continuing work
+  - **Pattern**: When you realize commits are on wrong branch, push with `origin local-branch:remote-branch` syntax
+- **Type Annotation for Optional Initialization** (2025-11-07 from PR #55): Explicit type annotation needed when assigning None to untyped attribute
+  - **Problem**: mypy error `Incompatible types in assignment (expression has type "None", variable has type "RateLimiter")`
+  - **Code**: Simplified if/else for rate limiter: `if enable: self.rate_limiter = RateLimiter(...) else: self.rate_limiter = None`
+  - **Solution**: Add explicit type annotation before assignment: `self.rate_limiter: RateLimiter | None`
+  - **Why Needed**: Python infers type from first assignment; without annotation, mypy can't know None is valid
+  - **Pattern**: When optional attributes initialized in conditional logic, annotate type explicitly with `| None`
+- **YAML Key Duplication Anti-Pattern** (2025-11-07 from PR #55 coderabbitai review): Appending with echo creates duplicate keys that break parsers
+  - **Problem**: Documentation suggested `echo "model:\n  name: X" >> config.yaml` to switch models
+  - **Impact**: Creates duplicate `model:` blocks → YAML parser fails in `Settings.load_from_yaml()`
+  - **Solution**: Use `sed -i` for in-place updates: `sed -i.bak 's/name: gemini-2.5-flash-lite/name: gemini-2.5-pro/' config.yaml`
+  - **Pattern**: NEVER append structured config with echo; use sed/yq/jq for in-place key updates
+  - **Detection**: Review documentation for any `echo ... >> config.*` commands that add non-list items
 - **Hard Constraint Validation Pattern** (2025-11-03 Validation): 100% elimination means threshold miscalibration, not implementation bug
   - **Problem**: Plummer run eliminated all 50 models (fitness=-inf for every generation)
   - **Initial Interpretation**: Hard constraint broken? Implementation bug?
