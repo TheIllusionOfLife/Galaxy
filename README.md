@@ -791,8 +791,8 @@ If you encounter issues not covered here:
 - **YAML Key Duplication Anti-Pattern** (2025-11-07 from PR #55 coderabbitai review): Appending with echo creates duplicate keys that break parsers
   - **Problem**: Documentation suggested `echo "model:\n  name: X" >> config.yaml` to switch models
   - **Impact**: Creates duplicate `model:` blocks → YAML parser fails in `Settings.load_from_yaml()`
-  - **Solution**: Use `sed -i` for in-place updates: `sed -i.bak 's/name: gemini-2.5-flash-lite/name: gemini-2.5-pro/' config.yaml`
-  - **Pattern**: NEVER append structured config with echo; use sed/yq/jq for in-place key updates
+  - **Solution**: Use `sed -i` for in-place updates: `sed -i.bak 's/^\(\s*name:\s*\).*/\1gemini-2.5-pro/' config.yaml`
+  - **Pattern**: NEVER append structured config with echo; use sed/yq/jq for in-place key updates; match key name not value for reusability
   - **Detection**: Review documentation for any `echo ... >> config.*` commands that add non-list items
 - **Hard Constraint Validation Pattern** (2025-11-03 Validation): 100% elimination means threshold miscalibration, not implementation bug
   - **Problem**: Plummer run eliminated all 50 models (fitness=-inf for every generation)
