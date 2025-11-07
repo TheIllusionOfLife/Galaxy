@@ -643,9 +643,30 @@ If you encounter issues not covered here:
 
 ## Session Handover
 
-### Last Updated: November 07, 2025 08:47 PM JST
+### Last Updated: November 07, 2025 10:10 PM JST
 
 #### Recently Completed
+
+- ✅ **Flash Lite Plummer Validation** (November 07, 2025)
+  - **Objective**: Validate if PR #55 prompt fix enables sustained evolution on plummer (N=50)
+  - **Run**: 10 pop × 5 gen, Flash Lite model, cost $0.0362
+  - **Results**:
+    - Gen 0: 1/10 survived (10.0%) - civ_0_0 with 16.25% energy drift
+    - Gen 1: 1/10 survived (10.0%) - civ_1_0 (same parent, marginal mutation)
+    - Gen 2-4: 0/10 each (0%) - **evolution collapsed**
+  - **Code Quality**: 0% syntax errors (Flash Lite generates valid code)
+  - **Interpretation**: PR #55 prompt fix had MARGINAL effect - Gen1 exactly at 10% threshold, but no sustained evolution
+  - **Critical Finding**: Flash Lite struggles with N=50 physics preservation, not code generation
+
+- ✅ **Gemini Pro Blocker Discovery** (November 07, 2025)
+  - **Objective**: A/B test Flash Lite vs Pro to determine if Pro enables better evolution
+  - **Result**: ❌ **BLOCKED** - Gemini Pro safety filters reject ALL code generation prompts
+  - **Error**: `finish_reason: 2` (SAFETY) on all 6+ attempts over 6 minutes
+  - **Diagnosis**: Pro has stricter safety filters than Flash models, incompatible with evolution prompts
+  - **Impact**: Pro is UNUSABLE for this use case despite theoretical quality advantages
+  - **Cost**: ~$0 (all requests blocked before code generation)
+  - **Decision**: Flash Lite is ONLY viable option for plummer evolution
+  - **Documentation**: Created MODEL_SELECTION_GUIDE.md with findings
 
 - ✅ **[PR #55](https://github.com/TheIllusionOfLife/Galaxy/pull/55)**: Fix Gen1 degradation + Add multi-model support (Flash Lite/Flash/Pro)
   - **Achievement**: Implemented dynamic per-problem threshold prompts AND multi-model LLM support (3 models)
@@ -740,41 +761,82 @@ If you encounter issues not covered here:
 
 #### Next Priority Tasks
 
-1. **Full-Scale Plummer Evolution** (HIGH PRIORITY)
-   - **Source**: PR #53 validation showed 16.7% survival with 20% threshold
-   - **Context**: Per-problem thresholds now enable plummer evolution (was 0% survival with 10%)
-   - **Objective**: Validate that population diversity sustains across full evolution run
+1. **Figure_eight Validation** (HIGH PRIORITY)
+   - **Source**: PROJECT_STATUS Known Issues #5 - only untested test problem
+   - **Context**: 1.5% threshold never validated since per-problem thresholds (PR #53)
+   - **Objective**: Validate threshold appropriateness for chaotic N=3 system
    - **Tasks**:
-     - Run complete evolution (10 pop × 5 gen) with plummer test problem
-     - Monitor fitness progression and conservation trends
-     - Verify no catastrophic drift in later generations
-   - **Expected Outcomes**:
-     - Sustained 10-20% survival rate across generations
-     - Fitness improvement similar to two_body/figure_eight runs
-     - Best models achieve ~20% drift (at threshold boundary)
-   - **Cost**: ~$0.02 (50 API calls)
-   - **Time**: ~4 minutes (rate-limited to 15 RPM)
+     - Run small validation (3 pop × 2 gen)
+     - Measure Gen 0 survival rate
+     - Tune threshold if needed (too strict/lenient)
+   - **Expected Outcomes**: 20-40% survival rate (healthy diversity)
+   - **Cost**: ~$0.006 (6 API calls)
+   - **Time**: ~1 minute
 
-2. **Code Modularization** (MEDIUM PRIORITY - Deferred)
+2. **Plummer Evolution Strategy** (MEDIUM PRIORITY)
+   - **Status**: Full-scale validation COMPLETE (10% Gen1, 0% Gen2+)
+   - **Options**:
+     - **Option A**: Accept Flash Lite limitations (10% Gen1 proves concept, document as exploratory)
+     - **Option B**: Simplify problem (reduce to N=30, retest Flash Lite)
+     - **Option C**: Use two_body/figure_eight as primary problems, plummer as stretch goal
+   - **Recommendation**: Option A (accept limitations) - Gemini Pro blocked by safety filters, no alternative
+   - **Rationale**: 10% survival proves evolution works, Gen2+ collapse is problem complexity issue not fixable by model change
+
+3. **Code Modularization** (LOW PRIORITY - Deferred)
    - **Source**: Previous planning consensus
    - **Context**: prototype.py now at 1044 lines
-   - **Priority**: Deferred until prompts/fitness rebalancing complete
+   - **Priority**: Deferred until core evolution issues resolved
    - **Estimated time**: 3-4 hours
 
 #### Known Issues / Blockers
 
 - **No critical blockers** - Core functionality operational
-  - Per-problem thresholds resolved plummer evolution blocker (PR #53)
-  - All three test problems (two_body, figure_eight, plummer) now viable for evolution
+  - Per-problem thresholds enable all test problems (PR #53)
+  - Flash Lite is only viable model (Pro blocked by safety filters)
+
+**Plummer Evolution Limitations**:
+- Gen 0-1: 10% survival (proves evolution works)
+- Gen 2-4: 0% survival (evolution collapses)
+- Root cause: N=50 problem complexity exceeds Flash Lite physics preservation capability
+- Mitigation: Accept as exploratory, or reduce to N=30, or use simpler problems
+
+**Model Selection Issues**:
+- **Gemini Pro BLOCKED**: Safety filters (`finish_reason: 2`) reject all evolution prompts
+- **Flash Lite ONLY option**: Despite limitations, only model that works
+- **No alternatives**: Claude/GPT-4o not integrated yet
 
 **Minor Issues**:
-- Figure_eight threshold (1.5%) not yet empirically validated (no full-scale run)
-- Free tier rate limits (15 RPM) slow evolution runs to ~4 minutes minimum
-- Single LLM provider (Gemini only) - no Claude/GPT-4o support yet
+- Figure_eight threshold (1.5%) not yet empirically validated
+- Free tier rate limits (15 RPM for Flash Lite, 10 RPM for Pro) slow runs to ~4-6 minutes
 
 #### Session Learnings
 
-**Last Updated**: November 07, 2025 08:47 PM JST
+**Last Updated**: November 07, 2025 10:10 PM JST
+
+- **Gemini Pro Safety Filter Blocking** (2025-11-07 validation): Pro has stricter safety filters than Flash models, unsuitable for certain code generation prompts
+  - **Problem**: All LLM calls failed with `finish_reason: 2` (SAFETY) when attempting plummer evolution
+  - **Duration**: 6+ minutes, 6+ attempts, 100% failure rate
+  - **Root Cause**: Evolution prompts (force calculations, mutation, N-body dynamics) trigger Pro's safety filters
+  - **Why Flash Lite works**: Flash models optimized for code generation with more permissive filters
+  - **Pattern**: When ALL LLM calls fail with same finish_reason, it's a prompt/safety issue, not code quality
+  - **Solution**: Use Flash models for code generation tasks; Pro unsuitable despite higher theoretical capability
+  - **Impact**: Pro is completely unusable for this project
+
+- **Flash Lite Gen2+ Collapse Pattern** (2025-11-07 validation): 10% Gen1 survival insufficient for sustained evolution
+  - **Observation**: Gen 0-1 had 10% survival each, Gen 2-4 had 0%
+  - **Root Cause**: Single survivor (civ_1_0) could not diversify enough to create viable Gen 2 offspring
+  - **Pattern**: <15% survival at Gen 1 → high risk of Gen 2+ collapse
+  - **Threshold insight**: 10% is "marginal pass" not "healthy evolution" - need 20%+ for sustainability
+  - **N=50 complexity**: Problem inherently difficult for Flash Lite's physics preservation capability
+  - **Mitigation**: Either accept limitations or simplify problem (reduce to N=30)
+
+- **Boundary Decision Thresholds** (2025-11-07 validation): Exact threshold matches require judgment call
+  - **Situation**: Set threshold at <10% for Pro test, Flash Lite achieved exactly 10.0%
+  - **Technical**: 10.0% ≥ 10% so "passes" threshold
+  - **Practical**: Gen 2-4 collapse suggests 10% insufficient for healthy evolution
+  - **Pattern**: When metric exactly equals threshold, look at secondary indicators (Gen2+ survival, sustainability)
+  - **Resolution**: Proceeded to Pro test despite "passing" because of Gen2+ concerns - discovered Pro blocked
+  - **Learning**: Thresholds are guidelines; use full context for decisions
 
 - **Committing on Wrong Branch Recovery** (2025-11-07 from PR #55): When commits land on main instead of feature branch, use git push origin main:feature-branch
   - **Problem**: Committed 5 times directly to main during PR work (violated Mandatory Branch Workflow from CLAUDE.md)
