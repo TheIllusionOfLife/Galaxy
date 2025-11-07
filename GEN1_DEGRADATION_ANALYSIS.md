@@ -309,7 +309,8 @@ Based on validation showing LLM capability limitations:
    ```bash
    # Baseline (already complete): Flash Lite, 10 pop × 5 gen on plummer
    # Validation: Pro, 10 pop × 5 gen on plummer
-   echo "model:\n  name: gemini-2.5-pro" >> config.yaml
+   # Update existing model.name in config.yaml (don't append duplicate keys)
+   sed -i.bak 's/name: gemini-2.5-flash-lite/name: gemini-2.5-pro/' config.yaml
    POPULATION_SIZE=10 NUM_GENERATIONS=5 TEST_PROBLEM=plummer uv run python prototype.py
    ```
 
