@@ -831,7 +831,7 @@ If you encounter issues not covered here:
   - **Mitigation**: Either accept limitations or simplify problem (reduce to N=30)
 
 - **Boundary Decision Thresholds** (2025-11-07 validation): Exact threshold matches require judgment call
-  - **Situation**: Set threshold at <10% for Pro test, Flash Lite achieved exactly 10.0%
+  - **Situation**: The go/no-go threshold for the Pro test was a Gen 1 survival rate of at least 10%. Flash Lite achieved exactly 10.0%.
   - **Technical**: 10.0% ≥ 10% so "passes" threshold
   - **Practical**: Gen 2-4 collapse suggests 10% insufficient for healthy evolution
   - **Pattern**: When metric exactly equals threshold, look at secondary indicators (Gen2+ survival, sustainability)

@@ -164,7 +164,7 @@ ERROR - LLM call failed: finish_reason=2 (SAFETY)
 Potential alternatives if/when integrated:
 - **Claude 3.5 Sonnet**: Strong code generation, may have different safety filters
 - **GPT-4o**: Multimodal capabilities, proven code quality
-- **Gemini 2.5 Flash**: Middle ground between Flash Lite and Pro (untested)
+- **gemini-2.5-flash**: Middle ground between Flash Lite and Pro (untested)
 
 ### Flash Lite Improvements
 
