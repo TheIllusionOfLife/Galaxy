@@ -99,20 +99,22 @@ class TestMutationPrompt:
 
     def test_shows_conservation_analysis_when_poor(self):
         """Mutation prompt should show conservation issues when drift is high."""
+        # Test with two_body (threshold=2%) where 15% drift is clearly bad
         prompt = get_mutation_prompt(
             parent_code="def predict(p, ps): return p",
             fitness=100.0,
             accuracy=0.9,
             speed=0.001,
             generation=1,
-            energy_drift=0.15,  # 15% drift (poor)
-            momentum_drift=0.08,  # 8% drift (poor)
+            energy_drift=0.15,  # 15% drift - exceeds 2% threshold for two_body
+            momentum_drift=0.08,  # 8% drift - exceeds 2% threshold for two_body
+            test_problem="two_body",
         )
 
         # Should include analysis of poor conservation
         assert "15" in prompt or "0.15" in prompt  # Energy drift value
         assert "drift" in prompt.lower()
-        assert "✗" in prompt or "poor" in prompt.lower() or "violate" in prompt.lower()
+        assert "✗" in prompt or "ELIMINATED" in prompt  # Should show elimination message
 
     def test_shows_conservation_analysis_when_good(self):
         """Mutation prompt should acknowledge good conservation."""

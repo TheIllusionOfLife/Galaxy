@@ -157,7 +157,43 @@ model:
   name: gemini-2.5-flash-lite  # Change model
   temperature: 0.8             # Adjust creativity (0.0-2.0)
   max_output_tokens: 2000      # Limit response length
+```
 
+#### Switching Between Models
+
+The codebase supports three Gemini models with automatic cost/rate adjustment:
+
+| Model | Input Cost | Output Cost | Quality | Best For |
+|-------|------------|-------------|---------|----------|
+| gemini-2.5-flash-lite | $0.10/1M | $0.40/1M | Lower | Prototyping, experiments |
+| gemini-2.5-flash | $0.30/1M | $1.20/1M | Medium | General use |
+| gemini-2.5-pro | $1.25/1M | $10.00/1M | Highest | Complex problems, production |
+
+**To switch models:**
+
+1. Edit `config.yaml`:
+   ```yaml
+   model:
+     name: gemini-2.5-pro  # Change this line
+   ```
+
+2. Or use environment variable:
+   ```bash
+   LLM_MODEL=gemini-2.5-pro uv run python prototype.py
+   ```
+
+**Cost comparison** (10 pop × 5 gen run):
+- Flash Lite: ~$0.03 per run
+- Flash: ~$0.09 per run
+- Pro: ~$3.00 per run (100x more)
+
+**When to use Pro:**
+- Plummer problem (50 particles) with high syntax error rate on Flash Lite
+- Production validation runs requiring best code quality
+- Research papers where code accuracy is critical
+- When ~$3/run cost is acceptable for better physics preservation
+
+```yaml
 # Evolution Parameters
 evolution:
   population_size: 10    # Models per generation

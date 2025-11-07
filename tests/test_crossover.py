@@ -160,6 +160,7 @@ class TestBreedingWithCrossover:
             cost_tracker,
             second_parent=None,
             parent_ids=None,
+            test_problem="plummer",
         ):
             if second_parent is not None:
                 crossover_calls.append(1)
@@ -224,6 +225,7 @@ class TestBreedingWithCrossover:
             cost_tracker,
             second_parent=None,
             parent_ids=None,
+            test_problem="plummer",
         ):
             if second_parent is not None:
                 crossover_calls.append(1)
@@ -273,6 +275,7 @@ class TestBreedingWithCrossover:
             cost_tracker,
             second_parent=None,
             parent_ids=None,
+            test_problem="plummer",
         ):
             if second_parent is not None:
                 crossover_calls.append(1)
